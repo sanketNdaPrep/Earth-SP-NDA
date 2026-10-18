@@ -55,10 +55,10 @@ export default function LandingPage() {
   const [resources, setResources] = useState<ResourcePdf[]>([]);
   const [downloadedFiles, setDownloadedFiles] = useState<string[]>([]);
   const [selectedTab, setSelectedTab] = useState<'all' | 'planners'>('all');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
-      // Fetch Cadet session
       const { data: authData } = await supabase.auth.getUser();
 
       if (authData?.user) {
@@ -83,7 +83,6 @@ export default function LandingPage() {
         }
       }
 
-      // Fetch dynamic resources from Supabase
       const { data: resData } = await supabase.from('resources').select('*').order('created_at', { ascending: false });
       if (resData) {
         setResources(resData);
@@ -98,7 +97,6 @@ export default function LandingPage() {
       setDownloadedFiles((prev) => [...prev, file.title]);
     }
 
-    // Increment download count in Supabase
     await supabase
       .from('resources')
       .update({ downloads: (file.downloads || 0) + 1 })
@@ -119,53 +117,84 @@ export default function LandingPage() {
         🔥 Built for NDA, CDS, AFCAT & SSB Aspirants • Inspired by Persevering SSB Bhopal Candidates
       </div>
 
-      {/* Main Navigation */}
-      <nav className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between border-b border-slate-800">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="bg-emerald-500 text-slate-950 text-xs font-black px-2.5 py-1 rounded-md">EARTH SP</span>
-          <span className="font-extrabold text-lg tracking-tight text-white">NDA PREP</span>
-        </Link>
+      {/* Main Responsive Navigation */}
+      <nav className="max-w-6xl mx-auto px-6 py-4 border-b border-slate-800">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <span className="bg-emerald-500 text-slate-950 text-xs font-black px-2.5 py-1 rounded-md">EARTH SP</span>
+            <span className="font-extrabold text-base md:text-lg tracking-tight text-white">NDA PREP</span>
+          </Link>
 
-        <div className="flex items-center gap-4 text-xs font-semibold">
-          <Link href="/quizzes" className="hover:text-emerald-400 transition-all">Tests & Drills</Link>
-          <Link href="#resources" className="hover:text-emerald-400 transition-all">PDF Hub</Link>
-          <Link href="#books" className="hover:text-emerald-400 transition-all">Recommended Books</Link>
-          <Link href="/admin/seed" className="text-slate-400 hover:text-white transition-all">Admin Control</Link>
-          
-          {user ? (
-            <div className="flex items-center gap-2">
-              <Link href="/dashboard" className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3.5 py-2 rounded-xl transition-all">
-                📊 Dashboard
+          {/* Desktop Nav Links */}
+          <div className="hidden md:flex items-center gap-5 text-xs font-semibold">
+            <Link href="/quizzes" className="hover:text-emerald-400 transition-all">Tests & Drills</Link>
+            <Link href="#resources" className="hover:text-emerald-400 transition-all">PDF Hub</Link>
+            <Link href="#books" className="hover:text-emerald-400 transition-all">Recommended Books</Link>
+            <Link href="/admin/login" className="text-slate-400 hover:text-white transition-all">Admin</Link>
+            
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Link href="/dashboard" className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3.5 py-2 rounded-xl transition-all">
+                  📊 Dashboard
+                </Link>
+                <Link href="/profile" className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3.5 py-2 rounded-xl transition-all">
+                  👤 Profile
+                </Link>
+              </div>
+            ) : (
+              <Link href="/login" className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-all">
+                Sign In
               </Link>
-              <Link href="/profile" className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3.5 py-2 rounded-xl transition-all">
-                👤 Profile
-              </Link>
-            </div>
-          ) : (
-            <Link href="/login" className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-all">
-              Sign In
-            </Link>
-          )}
+            )}
+          </div>
+
+          {/* Mobile Hamburger Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 text-slate-400 hover:text-white focus:outline-none"
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? '✕' : '☰'}
+          </button>
         </div>
+
+        {/* Mobile Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden pt-4 pb-2 space-y-3 border-t border-slate-800 mt-3 text-sm font-medium">
+            <Link href="/quizzes" className="block text-slate-300 hover:text-emerald-400 py-1" onClick={() => setMobileMenuOpen(false)}>Tests & Drills</Link>
+            <Link href="#resources" className="block text-slate-300 hover:text-emerald-400 py-1" onClick={() => setMobileMenuOpen(false)}>PDF Hub</Link>
+            <Link href="#books" className="block text-slate-300 hover:text-emerald-400 py-1" onClick={() => setMobileMenuOpen(false)}>Recommended Books</Link>
+            <Link href="/admin/login" className="block text-slate-400 hover:text-white py-1" onClick={() => setMobileMenuOpen(false)}>Admin Portal</Link>
+            
+            {user ? (
+              <div className="flex gap-2 pt-2">
+                <Link href="/dashboard" className="bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs" onClick={() => setMobileMenuOpen(false)}>📊 Dashboard</Link>
+                <Link href="/profile" className="bg-slate-800 text-slate-200 font-bold px-4 py-2 rounded-xl text-xs" onClick={() => setMobileMenuOpen(false)}>👤 Profile</Link>
+              </div>
+            ) : (
+              <Link href="/login" className="inline-block bg-slate-800 text-white font-semibold px-4 py-2 rounded-xl text-xs mt-1" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
-      <section className="max-w-6xl mx-auto px-6 pt-16 pb-12 text-center space-y-6">
-        <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3.5 py-1.5 rounded-full border border-emerald-500/20">
+      <section className="max-w-6xl mx-auto px-6 pt-12 md:pt-16 pb-12 text-center space-y-6">
+        <span className="text-[11px] md:text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3.5 py-1.5 rounded-full border border-emerald-500/20">
           Integrated Officer Training Portal
         </span>
-        <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mx-auto">
+        <h1 className="text-3xl md:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mx-auto">
           Master Written Defence Exams & Stage-1 SSB Screening
         </h1>
-        <p className="text-slate-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+        <p className="text-slate-400 text-sm md:text-lg max-w-2xl mx-auto leading-relaxed">
           High-yield practice drills, authentic topic-wise PYQs, curated study planners, and real-time performance analytics designed to take you from written clearing to recommended status.
         </p>
 
-        <div className="flex flex-wrap justify-center gap-4 pt-4">
-          <Link href="/quizzes" className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-8 py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/20">
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
+          <Link href="/quizzes" className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-3 rounded-xl text-xs md:text-sm transition-all shadow-lg shadow-emerald-500/20">
             Start Practice Test →
           </Link>
-          <a href="#resources" className="bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-semibold px-8 py-3.5 rounded-xl text-sm transition-all">
+          <a href="#resources" className="bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-semibold px-6 py-3 rounded-xl text-xs md:text-sm transition-all">
             Download Study PDFs
           </a>
         </div>
@@ -178,7 +207,7 @@ export default function LandingPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-4">
               <div>
                 <span className="text-xs text-emerald-400 font-bold uppercase tracking-wider">Active Cadet Profile</span>
-                <h2 className="text-2xl font-extrabold text-white mt-1">Welcome Back, {user.name}</h2>
+                <h2 className="text-xl md:text-2xl font-extrabold text-white mt-1">Welcome Back, {user.name}</h2>
                 <p className="text-xs text-slate-400">Target Entry: <strong className="text-slate-200">{user.targetExam}</strong></p>
               </div>
               <Link href="/dashboard" className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-4 py-2 rounded-xl transition-all">
@@ -211,8 +240,8 @@ export default function LandingPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-800 pb-6">
           <div>
             <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Sanket NDA Prep Vault</span>
-            <h2 className="text-3xl font-extrabold text-white mt-1">PDF Resources & Study Planners</h2>
-            <p className="text-slate-400 text-sm mt-1">Curated study roadmaps, PYQ collections, and SSB screening preparation sheets.</p>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-white mt-1">PDF Resources & Study Planners</h2>
+            <p className="text-slate-400 text-xs md:text-sm mt-1">Curated study roadmaps, PYQ collections, and SSB screening preparation sheets.</p>
           </div>
 
           <div className="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800 text-xs font-semibold">
@@ -265,7 +294,7 @@ export default function LandingPage() {
       <section id="books" className="max-w-6xl mx-auto px-6 py-12 space-y-8">
         <div className="border-b border-slate-800 pb-6">
           <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Aspirant Arsenal</span>
-          <h2 className="text-3xl font-extrabold text-white mt-1">Recommended Books & Effective Usage Guides</h2>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-white mt-1">Recommended Books & Effective Usage Guides</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
