@@ -1,6 +1,6 @@
 import type { ActivityEvent, QueryItem } from '@/components/admin/dashboard/types';
 
-export const SHOW_SAMPLE_DATA = true;
+export const SHOW_SAMPLE_DATA = false;
 
 export const PREVIEW_KPIS = {
   enrolledCadets: { value: 1420, hint: 'Active NDA aspirants' },
