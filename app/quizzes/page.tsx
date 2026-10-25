@@ -73,7 +73,7 @@ export default function QuizzesPage() {
                     ⏱️ {quiz.time_limit_mins} mins
                   </span>
                   <Link
-                    href={`/quizzes/${quiz.id}`}
+                    href={`/quiz/${quiz.id}`}
                     className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10"
                   >
                     Start Test →
