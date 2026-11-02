@@ -80,7 +80,6 @@ function Ready({ data }: { data: Extract<ResultsState, { status: 'ready' }> }) {
   const closeDrawer = () => {
     const id = open ? rowId(open.question.id) : null;
     setOpenIndex(null);
-    // The drawer is removed, so hand focus back to the row that opened it.
     if (id) requestAnimationFrame(() => document.getElementById(id)?.focus());
   };
 
@@ -119,12 +118,11 @@ function Ready({ data }: { data: Extract<ResultsState, { status: 'ready' }> }) {
           {!hasDetail ? (
             <Notice tone="steel">
               Your answers and timings for this attempt are not saved on this device, so negative marking, the speed
-              index and the answer filters are unavailable. The solutions below are complete. Tests you take on this
-              device from now on are saved in full.
+              index and the answer filters are unavailable.
             </Notice>
           ) : null}
           {analysis.bankChanged ? (
-            <Notice tone="gold">Questions were added or removed from this module after your attempt. Only the questions you saw are listed.</Notice>
+            <Notice tone="gold">Questions were added or removed from this module after your attempt.</Notice>
           ) : null}
           {analysis.scoreDiffers ? (
             <Notice tone="gold">
@@ -162,13 +160,7 @@ function Ready({ data }: { data: Extract<ResultsState, { status: 'ready' }> }) {
                   <QuestionList items={visible} onOpen={setOpenIndex} />
                 ) : (
                   <p className="rounded-md border border-dashed border-steel-700 px-4 py-10 text-center text-sm text-steel-300">
-                    {filter === 'incorrect'
-                      ? 'No wrong answers in this attempt.'
-                      : filter === 'unattempted'
-                        ? 'You answered every question.'
-                        : filter === 'flagged'
-                          ? 'You did not flag any question for review.'
-                          : 'No questions to show.'}
+                    No questions to show.
                   </p>
                 )}
               </div>
@@ -190,4 +182,63 @@ function Ready({ data }: { data: Extract<ResultsState, { status: 'ready' }> }) {
       </Shell>
     </MotionConfig>
   );
+}
+
+export function ResultsView() {
+  const params = useParams<{ attemptId: string }>();
+  const attemptId = params?.attemptId;
+  const { state, retry } = useAttemptResults(attemptId);
+
+  if (state.status === 'loading') {
+    return (
+      <Shell>
+        <main className="flex min-h-[60dvh] items-center justify-center px-4">
+          <p role="status" className="flex items-center gap-3 text-sm text-steel-300">
+            <SpinnerIcon className="size-5 text-emerald-400" />
+            Loading attempt analysis...
+          </p>
+        </main>
+      </Shell>
+    );
+  }
+
+  if (state.status === 'error') {
+    return (
+      <Shell>
+        <main className="mx-auto flex min-h-[60dvh] max-w-md flex-col items-center justify-center px-4 text-center">
+          <AlertIcon className="size-8 text-gold-400" />
+          <h1 className="mt-4 text-xl font-semibold text-white">Analysis could not be loaded</h1>
+          <p role="alert" className="mt-2 text-sm leading-relaxed text-steel-300">
+            {state.message}
+          </p>
+          <div className="mt-6 flex gap-3">
+            <button type="button" onClick={retry} className={primaryButton}>
+              Try again
+            </button>
+            <Link href="/dashboard" className={ghostButton}>
+              Dashboard
+            </Link>
+          </div>
+        </main>
+      </Shell>
+    );
+  }
+
+  if (state.status === 'missing') {
+    return (
+      <Shell>
+        <main className="mx-auto flex min-h-[60dvh] max-w-md flex-col items-center justify-center px-4 text-center">
+          <h1 className="text-xl font-semibold text-white">Attempt not found</h1>
+          <p className="mt-2 text-sm leading-relaxed text-steel-300">
+            This attempt does not exist or belongs to another cadet.
+          </p>
+          <Link href="/dashboard" className={`${primaryButton} mt-6`}>
+            Back to dashboard
+          </Link>
+        </main>
+      </Shell>
+    );
+  }
+
+  return <Ready data={state} />;
 }
