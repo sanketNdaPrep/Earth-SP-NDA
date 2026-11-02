@@ -107,8 +107,9 @@ export function useSeedForm() {
   }, []);
 
   useEffect(() => {
-    void fetchQuizzes();
-  }, [fetchQuizzes]);
+  const timer = setTimeout(() => void fetchQuizzes(), 0);
+  return () => clearTimeout(timer);
+}, [fetchQuizzes]);
 
   const refreshCount = useCallback(async (id: string) => {
     if (!id) {
@@ -123,21 +124,28 @@ export function useSeedForm() {
   }, []);
 
   useEffect(() => {
-    void refreshCount(quizId);
-  }, [quizId, refreshCount]);
+  if (!quizId) return;
+  const timer = setTimeout(() => void refreshCount(quizId), 0);
+  return () => clearTimeout(timer);
+}, [quizId, refreshCount]);
 
   useEffect(() => {
-    if (banner?.type !== 'success') return;
-    const timer = setTimeout(() => setBanner(null), 6000);
-    return () => clearTimeout(timer);
-  }, [banner]);
+  const timer = setTimeout(() => {
+    const saved = loadDraft();
+    if (saved && !isEmptyDraft(saved)) setPendingDraft(saved);
+  }, 0);
+  return () => clearTimeout(timer);
+}, []);
 
   /* ------------------------------ Draft autosave ----------------------------- */
 
   // On first load, offer to restore whatever was being typed last time.
   useEffect(() => {
-    const saved = loadDraft();
-    if (saved && !isEmptyDraft(saved)) setPendingDraft(saved);
+    const timer = setTimeout(() => {
+      const saved = loadDraft();
+      if (saved && !isEmptyDraft(saved)) setPendingDraft(saved);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Save 600 ms after the last keystroke. Paused while the restore offer is open.
@@ -145,10 +153,10 @@ export function useSeedForm() {
     if (pendingDraft) return;
     const snapshot = { quizId, group, subject, question, options, correct, explanation };
     if (isEmptyDraft(snapshot)) {
-      clearDraft();
-      setDraftSavedAt(null);
-      return;
-    }
+        clearDraft();
+        setTimeout(() => setDraftSavedAt(null), 0);
+        return;
+      }
     const timer = setTimeout(() => {
       const saved = saveDraft(snapshot);
       if (saved) setDraftSavedAt(saved.savedAt);

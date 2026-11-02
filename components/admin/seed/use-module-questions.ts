@@ -37,8 +37,9 @@ export function useModuleQuestions(quizId: string) {
   }, [quizId]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const timer = setTimeout(() => void refresh(), 0);
+  return () => clearTimeout(timer);
+}, [refresh]);
 
   return { items, state, refresh };
 }
