@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { LandingProviders } from '@/components/landing-data';
 import './globals.css';
+import { Analytics } from '@vercel/analytics/react';
 
 const sans = Inter({ subsets: ['latin'], variable: '--font-sans' });
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LandingProviders>
           {children}
         </LandingProviders>
+        <Analytics />
       </body>
     </html>
   );
