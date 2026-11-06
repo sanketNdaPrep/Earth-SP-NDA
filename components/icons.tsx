@@ -18,8 +18,16 @@ export function ShieldMark(props: IconProps) {
       <path d="M32 4 56 13v18c0 15-10 25-24 29C18 56 8 46 8 31V13z" fill="currentColor" />
       <path
         d="M32 17l4 9 10 1-7.5 6.5 2.3 9.8L32 38l-8.8 5.3 2.3-9.8L18 27l10-1z"
-        fill="#e9bb4e"
+        fill="#f59e0b"
       />
+    </svg>
+  );
+}
+
+export function AccountAddIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path className="account-icon-draw" d="M3.5 20v-1.2a4.3 4.3 0 0 1 4.3-4.3h2.8a4.3 4.3 0 0 1 4.3 4.3V20M9.2 11.5a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6ZM18 5v6M15 8h6" />
     </svg>
   );
 }
