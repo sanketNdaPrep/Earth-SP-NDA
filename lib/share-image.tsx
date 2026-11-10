@@ -1,53 +1,91 @@
-import { ImageResponse } from 'next/og';
+import { ImageResponse } from "next/og";
 
-export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
+export const alt = "EARTH SP NDA - Tactical Defence Exam Prep";
+export const size = {
+  width: 1200,
+  height: 630,
+};
 
-export function ShareImage({ title, subtitle }: { title: string; subtitle: string }) {
+export const contentType = "image/png";
+
+export function generateShareImage(title?: string, description?: string) {
   return new ImageResponse(
     (
       <div
         style={{
-          background: 'linear-gradient(to bottom right, #0a1128, #101b3b)',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          justifyContent: 'center',
-          padding: '80px',
-          fontFamily: 'sans-serif',
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          justifyContent: "center",
+          backgroundColor: "#090d16",
+          padding: "80px",
+          color: "#f1f5f9",
+          fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '40px' }}>
-          <svg width="64" height="64" viewBox="0 0 64 64">
-            <path d="M32 4 56 13v18c0 15-10 25-24 29C18 56 8 46 8 31V13z" fill="#34d399" />
-            <path
-              d="M32 17l4 9 10 1-7.5 6.5 2.3 9.8L32 38l-8.8 5.3 2.3-9.8L18 27l10-1z"
-              fill="#e9bb4e"
-            />
-          </svg>
-          <span style={{ fontSize: '32px', fontWeight: 600, color: '#f8fafc', marginLeft: '20px' }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            marginBottom: "24px",
+          }}
+        >
+          <div
+            style={{
+              width: "16px",
+              height: "16px",
+              borderRadius: "50%",
+              backgroundColor: "#facc15",
+            }}
+          />
+          <span
+            style={{
+              fontSize: "20px",
+              fontWeight: 600,
+              letterSpacing: "0.1em",
+              color: "#fde047",
+              textTransform: "uppercase",
+            }}
+          >
             EARTH SP NDA
           </span>
         </div>
         <h1
           style={{
-            fontSize: '64px',
+            fontSize: "56px",
             fontWeight: 700,
-            color: '#ffffff',
-            lineHeight: 1.1,
-            marginBottom: '20px',
-            maxWidth: '800px',
+            color: "#ffffff",
+            lineHeight: 1.15,
+            marginBottom: "20px",
+            maxWidth: "900px",
           }}
         >
-          {title}
+          {title || "Master the NDA Exam with Tactical Precision"}
         </h1>
-        <p style={{ fontSize: '32px', color: '#94a3b8', maxWidth: '800px' }}>
-          {subtitle}
+        <p
+          style={{
+            fontSize: "24px",
+            color: "#94a3b8",
+            lineHeight: 1.4,
+            maxWidth: "800px",
+          }}
+        >
+          {description ||
+            "Enterprise-grade study tracking, interactive mock papers, and real-time performance analytics."}
         </p>
       </div>
     ),
-    { ...size }
+    {
+      ...size,
+    }
   );
 }
+
+export function ShareImage(props?: { title?: string; description?: string }) {
+  return generateShareImage(props?.title, props?.description);
+}
+
+export default ShareImage;
