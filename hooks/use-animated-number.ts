@@ -1,35 +1,36 @@
-"use client";
-
 import * as React from "react";
+import { useReducedMotion } from "framer-motion";
 
-export function useAnimatedNumber(targetValue: number, duration: number = 500): number {
-  const [current, setCurrent] = React.useState(targetValue);
+/**
+ * Eases a displayed number towards `target`. With reduced motion it returns the
+ * target immediately. State is only updated inside animation-frame callbacks.
+ */
+export function useAnimatedNumber(target: number, duration = 700): number {
+  const reduceMotion = useReducedMotion();
+  const [value, setValue] = React.useState(target);
+  const current = React.useRef(target);
 
   React.useEffect(() => {
-    let startTimestamp: number | null = null;
-    const initialValue = current;
-    let animationFrameId: number;
+    if (reduceMotion) {
+      current.current = target;
+      return;
+    }
 
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      const easeOut = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
-      
-      setCurrent(initialValue + (targetValue - initialValue) * easeOut);
+    const from = current.current;
+    const start = performance.now();
+    let frame = 0;
 
-      if (progress < 1) {
-        animationFrameId = requestAnimationFrame(step);
-      }
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      current.current = from + (target - from) * eased;
+      setValue(current.current);
+      if (t < 1) frame = requestAnimationFrame(tick);
     };
 
-    animationFrameId = requestAnimationFrame(step);
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration, reduceMotion]);
 
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [targetValue, duration]);
-
-  return current;
+  return reduceMotion ? target : value;
 }
-
-export default useAnimatedNumber;

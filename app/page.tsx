@@ -62,7 +62,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-navy-950 text-steel-100">
       
-      {/* Navigation Bar */}
+      {/* Navigation Header */}
       <header className="sticky top-0 z-50 border-b border-steel-700 bg-navy-950/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-8">
           <Link href="/" className="flex items-center gap-2 font-mono text-sm font-bold uppercase tracking-wider text-white">
@@ -78,10 +78,10 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link href="/ui-demo">
-              <Button variant="outline" size="sm">UI Showcase</Button>
+            <Link href="/admin/login">
+              <Button variant="gold" size="sm">Admin Login</Button>
             </Link>
-            <Link href="/ui-demo">
+            <Link href="/register">
               <Button variant="primary" size="sm">Get Started</Button>
             </Link>
           </div>
@@ -107,15 +107,15 @@ export default function Home() {
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <Link href={HERO_CONTENT.primaryCtaHref}>
+              <Link href="/register">
                 <Button variant="primary" size="lg">
-                  {HERO_CONTENT.primaryCtaText}
+                  Start Free Practice
                   <Icons.chevronRight className="size-4" />
                 </Button>
               </Link>
-              <Link href={HERO_CONTENT.secondaryCtaHref}>
+              <Link href="#roadmap">
                 <Button variant="secondary" size="lg">
-                  {HERO_CONTENT.secondaryCtaText}
+                  Explore Exam Roadmap
                 </Button>
               </Link>
             </div>
@@ -132,22 +132,27 @@ export default function Home() {
             <div className="mb-12 text-center">
               <Badge variant="outline" className="mb-2">Targeted Schemes</Badge>
               <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Supported Entry Schemes</h2>
-              <p className="mt-2 text-steel-300">Customised mock test series and study logs for your specific entry path.</p>
+              <p className="mt-2 text-steel-300">Click any entry scheme to view syllabus details and mock test series.</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               {TARGET_EXAMS.map((exam) => (
-                <div key={exam.id} className="flex flex-col justify-between rounded-panel border border-steel-700 bg-navy-900 p-6 shadow-panel">
-                  <div>
-                    <span className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{exam.code}</span>
-                    <h3 className="mt-2 text-xl font-bold text-white">{exam.name}</h3>
-                    <p className="mt-2 text-sm text-steel-300">{exam.description}</p>
+                <Link key={exam.id} href={`/exams/${exam.id}`} className="group block">
+                  <div className="flex h-full flex-col justify-between rounded-panel border border-steel-700 bg-navy-900 p-6 shadow-panel transition-all duration-300 group-hover:border-gold-400/60 group-hover:shadow-gold-400/10">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{exam.code}</span>
+                        <Icons.chevronRight className="size-4 text-steel-500 transition-transform group-hover:translate-x-1 group-hover:text-gold-400" />
+                      </div>
+                      <h3 className="mt-2 text-xl font-bold text-white group-hover:text-gold-300">{exam.name}</h3>
+                      <p className="mt-2 text-sm text-steel-300">{exam.description}</p>
+                    </div>
+                    <div className="mt-6 flex items-center justify-between border-t border-steel-700/60 pt-4 text-xs text-steel-300">
+                      <span>{exam.subjectsCount} Core Subjects</span>
+                      <span>{exam.mockCount} Full Mocks</span>
+                    </div>
                   </div>
-                  <div className="mt-6 flex items-center justify-between border-t border-steel-700/60 pt-4 text-xs text-steel-300">
-                    <span>{exam.subjectsCount} Core Subjects</span>
-                    <span>{exam.mockCount} Full Mocks</span>
-                  </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -204,8 +209,12 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-steel-700 bg-navy-950 py-10 text-center text-xs text-steel-500">
-        <div className="mx-auto max-w-6xl px-4">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row">
           <p>© 2027 EARTH SP NDA. Enterprise-grade defence examination portal.</p>
+          <div className="flex gap-4">
+            <Link href="/ui-demo" className="text-steel-400 hover:text-white">Developer UI Showcase</Link>
+            <Link href="/admin/login" className="text-gold-400 hover:underline">Admin Command Portal</Link>
+          </div>
         </div>
       </footer>
     </div>

@@ -1,98 +1,148 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Icons } from "@/components/ui/icons";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const router = useRouter();
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMsg(null);
+    setError(null);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setLoading(false);
-      setMsg({ type: 'error', text: `Login failed: ${error.message}` });
-      return;
-    }
-
-    // Check admin profile and approval status
-    const { data: adminRecord } = await supabase
-      .from('admin_profiles')
-      .select('role, is_approved')
-      .eq('id', data.user.id)
-      .single();
-
-    setLoading(false);
-
-    if (!adminRecord) {
-      await supabase.auth.signOut();
-      setMsg({ type: 'error', text: 'Access Denied. You do not have registered Admin privileges.' });
-    } else if (!adminRecord.is_approved) {
-      await supabase.auth.signOut();
-      setMsg({
-        type: 'error',
-        text: 'Account Pending Approval. Your registration has not been approved by the Super Admin yet.',
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-    } else {
-      setMsg({ type: 'success', text: 'Authentication Granted! Redirecting to workspace...' });
-      setTimeout(() => {
-        window.location.href = '/admin/dashboard';
-      }, 1000);
+
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        // Verify admin role in profiles table
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profileError || profile?.role !== "admin") {
+          setError("Access Denied: Authorized Admin credentials required.");
+          await supabase.auth.signOut();
+          setLoading(false);
+          return;
+        }
+
+        router.push("/admin");
+        router.refresh();
+      }
+    } catch (err: any) {
+      setError("System error during login execution.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6 font-sans">
-      <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl space-y-6">
-        
-        <div className="text-center space-y-2 border-b border-slate-800 pb-6">
-          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 uppercase tracking-wider">
-            Admin Portal Access
-          </span>
-          <h1 className="text-2xl font-extrabold text-white mt-1">Admin Sign In</h1>
-          <p className="text-xs text-slate-400">Authenticate credentials to manage portal content.</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-navy-950 px-4 text-steel-100">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <Badge variant="gold" className="mb-3">
+            Restricted Access // Command Center
+          </Badge>
+          <h1 className="flex items-center justify-center gap-2 text-2xl font-bold tracking-tight text-white">
+            <Icons.logo className="size-6 text-gold-400" />
+            EARTH SP Admin Portal
+          </h1>
+          <p className="mt-1 text-xs text-steel-400">
+            Authenticate using authorized administrator credentials.
+          </p>
         </div>
 
-        {msg && (
-          <div className={`p-4 rounded-xl border text-xs font-semibold ${
-            msg.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'
-          }`}>
-            {msg.text}
-          </div>
-        )}
+        <Card className="border-gold-400/30 bg-navy-900/90 shadow-2xl backdrop-blur-md">
+          <CardHeader>
+            <CardTitle className="text-center text-base font-semibold text-gold-300">
+              System Credentials
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              {error && (
+                <div className="rounded-control border border-danger-500/40 bg-danger-500/10 p-3 text-xs text-danger-300">
+                  {error}
+                </div>
+              )}
 
-        <form onSubmit={handleAdminLogin} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Admin Email Address</label>
-            <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@earthspnda.com" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-emerald-500 outline-none" />
-          </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase tracking-wider text-steel-300">
+                  Admin Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@earthspnda.com"
+                  className="w-full rounded-control border border-steel-700 bg-navy-950 px-3 py-2 text-sm text-steel-100 focus:border-gold-400 focus:outline-none"
+                />
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Password</label>
-            <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-emerald-500 outline-none" />
-          </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase tracking-wider text-steel-300">
+                  Security Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full rounded-control border border-steel-700 bg-navy-950 px-3 py-2 text-sm text-steel-100 focus:border-gold-400 focus:outline-none"
+                />
+              </div>
 
-          <button type="submit" disabled={loading} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/20">
-            {loading ? 'Authenticating Credentials...' : 'Sign In to Admin Workspace'}
-          </button>
-        </form>
+              <Button
+                type="submit"
+                variant="gold"
+                disabled={loading}
+                className="w-full py-2.5"
+              >
+                {loading ? (
+                  <span>Authenticating...</span>
+                ) : (
+                  <>
+                    <Icons.shield className="size-4" />
+                    <span>Access Admin Suite</span>
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-        <div className="flex justify-between items-center pt-2 text-xs text-slate-400">
-          <Link href="/admin/signup" className="text-emerald-400 font-bold hover:underline">New Admin? Sign Up →</Link>
-          <Link href="/" className="hover:text-white">← Return Home</Link>
+        <div className="flex justify-between px-2 text-xs text-steel-400">
+          <Link href="/login" className="hover:text-gold-300 hover:underline">
+            Switch to Cadet Login
+          </Link>
+          <Link href="/" className="hover:text-white hover:underline">
+            Back to Homepage
+          </Link>
         </div>
-
       </div>
     </div>
   );

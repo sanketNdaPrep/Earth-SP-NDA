@@ -137,7 +137,7 @@ function ScoreTrendCard({ scores, subjectStats }: { scores: ScorePoint[]; subjec
     if (e.key === "ArrowLeft") next = Math.max(0, shown - 1);
     else if (e.key === "ArrowRight") next = Math.min(last, shown + 1);
     else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = next;
+    else if (e.key === "End") next = last;
     else return;
     e.preventDefault();
     setKbd(next);
