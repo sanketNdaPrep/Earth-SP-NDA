@@ -111,6 +111,8 @@ create table public.resources (
   size             text,
   recommended_for  text,
   download_url     text not null,
+  file_path        text,   -- object path in the study-materials bucket (null for external links)
+  file_type        text,   -- 'pdf' or 'image'
   downloads        int  not null default 0 check (downloads >= 0),
   created_by       uuid default auth.uid() references auth.users (id) on delete set null,
   created_at       timestamptz not null default now()
@@ -464,7 +466,7 @@ create table if not exists public.admin_logs (
   id           uuid primary key default gen_random_uuid(),
   admin_id     uuid default auth.uid() references public.admin_profiles (id) on delete set null,
   action       text not null check (action in ('added', 'edited', 'deleted', 'activated', 'deactivated')),
-  entity_type  text not null check (entity_type in ('subject', 'question')),
+  entity_type  text not null check (entity_type in ('subject', 'question', 'resource')),
   details      jsonb not null default '{}'::jsonb,
   created_at   timestamptz not null default now()
 );
@@ -504,3 +506,37 @@ insert into public.subjects (name, slug, code, description, icon_name, sort_orde
   ('Air Force Common Admission Test', 'afcat', 'AFCAT Flying & Ground Duty',
    'Verbal Ability, Numerical Ability, Reasoning, and Military Aptitude.', 'plane', 3)
 on conflict (slug) do nothing;
+
+
+-- 8. STUDY MATERIAL STORAGE (Milestone 3) ---------------------------------------
+-- Public bucket (students download from the link), 20 MB limit, PDF and images only.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'study-materials', 'study-materials', true, 20971520,
+  array['application/pdf', 'image/png', 'image/jpeg', 'image/webp']
+)
+on conflict (id) do update
+  set public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists study_materials_admin_select on storage.objects;
+create policy study_materials_admin_select on storage.objects
+  for select to authenticated
+  using (bucket_id = 'study-materials' and public.is_admin());
+
+drop policy if exists study_materials_admin_insert on storage.objects;
+create policy study_materials_admin_insert on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'study-materials' and public.is_admin());
+
+drop policy if exists study_materials_admin_update on storage.objects;
+create policy study_materials_admin_update on storage.objects
+  for update to authenticated
+  using (bucket_id = 'study-materials' and public.is_admin())
+  with check (bucket_id = 'study-materials' and public.is_admin());
+
+drop policy if exists study_materials_admin_delete on storage.objects;
+create policy study_materials_admin_delete on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'study-materials' and public.is_admin());
