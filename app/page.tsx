@@ -1,3 +1,4 @@
+import * as React from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,8 @@ import { PerformanceBento } from "@/components/ui/performance-bento";
 import { StackedSectionsDemo } from "@/components/ui/stacked-sections-demo";
 import { StatsGrid, type StatItem } from "@/components/ui/stats-grid";
 import { TimelineDemo } from "@/components/ui/timeline-demo";
-import { FEATURE_ITEMS, HERO_CONTENT, TARGET_EXAMS } from "@/lib/landing-content";
+import { EntrySchemes, EntrySchemesSkeleton } from "@/components/landing/entry-schemes";
+import { FEATURE_ITEMS, HERO_CONTENT } from "@/lib/landing-content";
 
 const HERO_STATS: StatItem[] = [
   { id: "1", title: "Active Aspirants", value: "2,400+", description: "Targeting NDA & CDS 2027", icon: "users", trend: { direction: "up", text: "+18% this month" } },
@@ -135,26 +137,9 @@ export default function Home() {
               <p className="mt-2 text-steel-300">Click any entry scheme to view syllabus details and mock test series.</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              {TARGET_EXAMS.map((exam) => (
-                <Link key={exam.id} href={`/exams/${exam.id}`} className="group block">
-                  <div className="flex h-full flex-col justify-between rounded-panel border border-steel-700 bg-navy-900 p-6 shadow-panel transition-all duration-300 group-hover:border-gold-400/60 group-hover:shadow-gold-400/10">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{exam.code}</span>
-                        <Icons.chevronRight className="size-4 text-steel-500 transition-transform group-hover:translate-x-1 group-hover:text-gold-400" />
-                      </div>
-                      <h3 className="mt-2 text-xl font-bold text-white group-hover:text-gold-300">{exam.name}</h3>
-                      <p className="mt-2 text-sm text-steel-300">{exam.description}</p>
-                    </div>
-                    <div className="mt-6 flex items-center justify-between border-t border-steel-700/60 pt-4 text-xs text-steel-300">
-                      <span>{exam.subjectsCount} Core Subjects</span>
-                      <span>{exam.mockCount} Full Mocks</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <React.Suspense fallback={<EntrySchemesSkeleton />}>
+              <EntrySchemes />
+            </React.Suspense>
           </div>
         </section>
 
