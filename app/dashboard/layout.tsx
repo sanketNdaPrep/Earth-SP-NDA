@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
+import { getAdminStatus } from "@/lib/adminAuth";
 import { supabase } from "@/lib/supabaseClient";
 
 interface NavItem {
@@ -18,8 +19,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Study Tracker", href: "/dashboard/study-tracker", icon: "book" },
   { label: "Mock Tests", href: "/dashboard/mocks", icon: "calculator" },
   { label: "Analytics", href: "/dashboard/analytics", icon: "sigma" },
-  { label: "Admin Suite", href: "/admin", icon: "shield" },
 ];
+
+const ADMIN_NAV_ITEM: NavItem = { label: "Admin Suite", href: "/admin", icon: "shield" };
 
 export default function DashboardLayout({
   children,
@@ -28,6 +30,20 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [isAdmin, setIsAdmin] = React.useState(false);
+
+  // Only approved admins see the Admin Suite link
+  React.useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (active) setIsAdmin(getAdminStatus(data.user) === "approved");
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const navItems = isAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -47,7 +63,7 @@ export default function DashboardLayout({
         </div>
 
         <nav className="flex-1 space-y-1 p-4">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = Icons[item.icon] || Icons.target;
             const isActive = pathname === item.href;
             return (
