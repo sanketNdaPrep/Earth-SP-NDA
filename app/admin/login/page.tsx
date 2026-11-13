@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
+import { getAdminStatus } from "@/lib/adminAuth";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function AdminLoginPage() {
@@ -34,15 +35,15 @@ export default function AdminLoginPage() {
       }
 
       if (data.user) {
-        // Verify admin role in profiles table
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .single();
+        // Admin status is stored in app_metadata, which only the server can write
+        const status = getAdminStatus(data.user);
 
-        if (profileError || profile?.role !== "admin") {
-          setError("Access Denied: Authorized Admin credentials required.");
+        if (status !== "approved") {
+          setError(
+            status === "pending"
+              ? "Your admin request is waiting for approval. You can log in once it is approved."
+              : "Access Denied: Authorized Admin credentials required."
+          );
           await supabase.auth.signOut();
           setLoading(false);
           return;
@@ -51,7 +52,7 @@ export default function AdminLoginPage() {
         router.push("/admin");
         router.refresh();
       }
-    } catch (err: any) {
+    } catch {
       setError("System error during login execution.");
     } finally {
       setLoading(false);
