@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
+import { ProfileMenu } from "@/components/profile/profile-menu";
 import { useSignOut } from "@/hooks/use-sign-out";
 
 interface AdminNavItem {
@@ -93,6 +94,7 @@ export default function AdminLayout({
             <span className="rounded-full bg-emerald-400/10 border border-emerald-400/30 px-3 py-1 font-mono text-xs font-bold text-emerald-300">
               ● System Active
             </span>
+            <ProfileMenu />
           </div>
         </header>
 
