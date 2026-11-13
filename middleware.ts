@@ -2,6 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getAdminStatus } from "@/lib/adminAuth";
 
+/** A redirect that keeps any refreshed session cookies, so a token refresh is never lost. */
+function redirectKeepingCookies(url: URL, from: NextResponse) {
+  const redirect = NextResponse.redirect(url);
+  from.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  return redirect;
+}
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -49,7 +56,7 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith("/admin"));
 
   if (isProtectedRoute && !user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return redirectKeepingCookies(new URL("/login", request.url), response);
   }
 
   // Only approved admins may open the admin area
@@ -58,11 +65,11 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/admin") &&
     getAdminStatus(user) !== "approved"
   ) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    return redirectKeepingCookies(new URL("/admin/login", request.url), response);
   }
 
   if (isAuthRoute && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return redirectKeepingCookies(new URL("/dashboard", request.url), response);
   }
 
   return response;
