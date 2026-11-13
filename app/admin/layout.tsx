@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
+import { useSignOut } from "@/hooks/use-sign-out";
 
 interface AdminNavItem {
   label: string;
@@ -24,6 +25,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const handleSignOut = useSignOut();
 
   // Login and signup are standalone pages: no sidebar or command-center header
   if (pathname === "/admin/login" || pathname === "/admin/signup") {
@@ -62,7 +64,16 @@ export default function AdminLayout({
           })}
         </nav>
 
-        <div className="border-t border-steel-700/60 p-4">
+        <div className="space-y-2 border-t border-steel-700/60 p-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSignOut}
+            className="w-full justify-start text-steel-300 hover:text-danger-400"
+          >
+            <Icons.close className="size-4" />
+            <span>Sign Out</span>
+          </Button>
           <Link href="/dashboard">
             <Button variant="outline" size="sm" className="w-full justify-start text-steel-300">
               <Icons.chevronRight className="size-4 rotate-180" />
