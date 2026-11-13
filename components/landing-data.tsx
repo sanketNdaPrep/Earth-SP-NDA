@@ -135,10 +135,8 @@ export function LandingProviders({ children }: { children: ReactNode }) {
 
     setDownloadedFiles((prev) => (prev.includes(file.title) ? prev : [...prev, file.title]));
 
-    await supabase
-      .from('resources')
-      .update({ downloads: (file.downloads || 0) + 1 })
-      .eq('id', file.id);
+    // Students cannot edit resources directly, so the counter goes through a safe database function.
+    await supabase.rpc('increment_resource_downloads', { p_resource_id: file.id });
   }, []);
 
   const value = useMemo<LandingData>(
