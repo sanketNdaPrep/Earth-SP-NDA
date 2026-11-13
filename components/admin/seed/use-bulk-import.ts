@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { logAdminAction } from '@/lib/adminLog';
 import { supabase } from '@/lib/supabaseClient';
 import { BULK_CHUNK, BULK_MAX_FILE_BYTES } from './data';
 import { parseBulk, type ParsedRow } from './bulk-parser';
@@ -90,12 +91,21 @@ export function useBulkImport(shared: Shared) {
       position: base + i + 1,
     }));
 
+    const logBulk = (count: number) =>
+      logAdminAction({
+        action: 'added',
+        entityType: 'question',
+        label: `${count} ${count === 1 ? 'question' : 'questions'} in ${selectedQuiz?.title ?? 'a module'} (bulk import)`,
+        details: { quiz_id: quizId, count },
+      });
+
     let saved = 0;
     for (let start = 0; start < payload.length; start += BULK_CHUNK) {
       const chunk = payload.slice(start, start + BULK_CHUNK);
       const { error } = await supabase.from('questions').insert(chunk);
       if (error) {
         setImporting(false);
+        if (saved > 0) await logBulk(saved);
         setBanner({
           type: 'error',
           text: `Import stopped after ${saved} of ${payload.length} questions: ${error.message}`,
@@ -107,6 +117,7 @@ export function useBulkImport(shared: Shared) {
     }
 
     setImporting(false);
+    await logBulk(saved);
     setBanner({
       type: 'success',
       text: `${saved} ${saved === 1 ? 'question' : 'questions'} added to "${selectedQuiz?.title ?? 'module'}".`,
