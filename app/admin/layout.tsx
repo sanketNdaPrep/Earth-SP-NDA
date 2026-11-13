@@ -25,6 +25,11 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
 
+  // Login and signup are standalone pages: no sidebar or command-center header
+  if (pathname === "/admin/login" || pathname === "/admin/signup") {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex min-h-screen bg-navy-950 text-steel-100">
       {/* Admin Sidebar */}
