@@ -23,7 +23,7 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -40,15 +40,7 @@ export default function RegisterPage() {
       return;
     }
 
-    if (data.user) {
-      await supabase.from("profiles").insert({
-        id: data.user.id,
-        email,
-        full_name: fullName,
-        target_exam: targetExam as any,
-        role: "student",
-      });
-    }
+    // The profile row is created by a database trigger from the sign-up data above.
 
     router.push("/dashboard");
     router.refresh();
