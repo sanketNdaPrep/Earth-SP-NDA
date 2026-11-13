@@ -54,6 +54,7 @@ create table public.profiles (
   email               text not null,
   full_name           text,
   avatar_url          text,
+  avatar_id           smallint check (avatar_id between 1 and 10),
   phone_number        text,
   role                text not null default 'student' check (role in ('student', 'admin')),
   target_exam         text not null default 'NDA'     check (target_exam in ('NDA', 'CDS', 'AFCAT')),
@@ -342,7 +343,7 @@ grant select, insert, update, delete on public.quizzes, public.questions, public
 grant select on public.admin_profiles to authenticated;
 grant select, insert on public.profiles to authenticated;
 -- Users may edit these profile fields only. role and email are not on the list.
-grant update (full_name, avatar_url, phone_number, target_exam, target_year, daily_goal_minutes)
+grant update (full_name, avatar_url, avatar_id, phone_number, target_exam, target_year, daily_goal_minutes)
   on public.profiles to authenticated;
 grant select, insert on public.user_quiz_attempts to authenticated;
 grant select, insert, update, delete on public.study_logs to authenticated;
