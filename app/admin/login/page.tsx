@@ -136,6 +136,13 @@ export default function AdminLoginPage() {
           </CardContent>
         </Card>
 
+        <p className="text-center text-xs text-steel-300">
+          New administrator?{" "}
+          <Link href="/admin/signup" className="font-semibold text-gold-300 hover:underline">
+            Register for admin access
+          </Link>
+        </p>
+
         <div className="flex justify-between px-2 text-xs text-steel-400">
           <Link href="/login" className="hover:text-gold-300 hover:underline">
             Switch to Cadet Login
