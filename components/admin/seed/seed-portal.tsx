@@ -157,6 +157,7 @@ export function SeedPortal() {
               items={form.moduleQuestions.items}
               state={form.moduleQuestions.state}
               onRefresh={form.moduleQuestions.refresh}
+              onDelete={(q) => form.moduleQuestions.remove(q, form.selectedQuiz?.title ?? 'a module')}
             />
           )}
         </div>

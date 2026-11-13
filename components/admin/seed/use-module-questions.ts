@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { logAdminAction } from '@/lib/adminLog';
 import { supabase } from '@/lib/supabaseClient';
 import type { LoadState, ModuleQuestion } from './types';
 
@@ -41,5 +42,24 @@ export function useModuleQuestions(quizId: string) {
   return () => clearTimeout(timer);
 }, [refresh]);
 
-  return { items, state, refresh };
+  /** Deletes one question, writes it to the audit log, then reloads the list. */
+  const remove = useCallback(
+    async (question: ModuleQuestion, moduleTitle: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const { data, error } = await supabase.from('questions').delete().eq('id', question.id).select('id');
+      if (error || !data?.length) {
+        return { ok: false, error: error?.message ?? 'The question was not deleted. You may not have permission.' };
+      }
+      await logAdminAction({
+        action: 'deleted',
+        entityType: 'question',
+        label: `Question #${question.position ?? '?'} in ${moduleTitle}`,
+        details: { quiz_id: quizId, question_id: question.id, text: question.question_text.slice(0, 120) },
+      });
+      await refresh();
+      return { ok: true };
+    },
+    [quizId, refresh],
+  );
+
+  return { items, state, refresh, remove };
 }

@@ -1,15 +1,38 @@
 'use client';
 
 import React from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import type { ModuleQuestion } from './types';
 
 interface ExistingQuestionsProps {
   items: ModuleQuestion[];
   state: 'loading' | 'ready' | 'error';
   onRefresh: () => void;
+  /** Deletes one question. The portal also writes it to the audit log. */
+  onDelete?: (question: ModuleQuestion) => Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
-export function ExistingQuestions({ items, state, onRefresh }: ExistingQuestionsProps) {
+export function ExistingQuestions({ items, state, onRefresh, onDelete }: ExistingQuestionsProps) {
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
+  const confirmDelete = async (question: ModuleQuestion) => {
+    if (!onDelete) return;
+    setDeleteError(null);
+    const result = await onDelete(question);
+    if (!result.ok) setDeleteError(result.error);
+  };
+
   return (
     <div className="p-4 rounded-lg bg-navy-900 border border-steel-700/60 space-y-4">
       <div className="flex items-center justify-between border-b border-steel-700/40 pb-3">
@@ -30,6 +53,12 @@ export function ExistingQuestions({ items, state, onRefresh }: ExistingQuestions
           🔄 Refresh
         </button>
       </div>
+
+      {deleteError && (
+        <div role="alert" className="p-3 rounded bg-red-950/40 border border-red-500/40 text-xs font-mono text-red-300">
+          Could not delete: {deleteError}
+        </div>
+      )}
 
       {state === 'loading' && (
         <div className="p-8 text-center text-xs font-mono text-slate-400">
@@ -60,9 +89,32 @@ export function ExistingQuestions({ items, state, onRefresh }: ExistingQuestions
                 <span className="font-mono font-bold text-emerald-400">
                   #{q.position ?? idx + 1}
                 </span>
-                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300">
-                  Correct: Option {q.correct_option}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300">
+                    Correct: Option {q.correct_option}
+                  </span>
+                  {onDelete && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" aria-label={`Delete question ${q.position ?? idx + 1}`}>
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent tone="danger">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete question #{q.position ?? idx + 1}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This removes the question from the module for good. The action is saved in the audit log.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Keep it</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => void confirmDelete(q)}>Delete question</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
               </div>
 
               <p className="font-mono text-slate-200 leading-relaxed whitespace-pre-wrap">
