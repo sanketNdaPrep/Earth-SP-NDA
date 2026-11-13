@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSignOut } from '@/hooks/use-sign-out';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import {
@@ -189,10 +190,7 @@ export function AdminDashboard() {
     return null;
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/admin/login');
-  };
+  const handleSignOut = useSignOut();
 
   if (loading) {
     return (
