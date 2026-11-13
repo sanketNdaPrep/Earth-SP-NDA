@@ -3,6 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Icons } from '@/components/ui/icons';
 
 export default function AdminSignupPage() {
   const router = useRouter();
@@ -73,161 +77,165 @@ export default function AdminSignupPage() {
     }
   };
 
+  const inputClass =
+    'w-full rounded-control border border-steel-700 bg-navy-950 px-3 py-2 text-sm text-steel-100 placeholder:text-steel-500 focus:border-gold-400 focus:outline-none';
+  const labelClass = 'block text-xs font-semibold uppercase tracking-wider text-steel-300';
+  const toggleClass =
+    'absolute right-2 top-1/2 -translate-y-1/2 rounded-control px-2 py-1 text-xs font-semibold text-steel-300 hover:text-white focus-visible:outline-2 focus-visible:outline-gold-400';
+
   return (
-    <div className="min-h-screen bg-navy-950 text-steel-100 flex items-center justify-center p-6 font-sans">
-      <div className="max-w-xl w-full bg-navy-900 border border-navy-800 p-8 rounded-2xl shadow-2xl space-y-6">
-        
-        <div className="text-center space-y-2 border-b border-navy-800 pb-6">
-          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 uppercase tracking-wider">
-            Protected Admin Portal
-          </span>
-          <h1 className="text-2xl font-extrabold text-white mt-1">Admin Profile Registration</h1>
-          <p className="text-xs text-steel-300">Choose registration verification method below.</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-navy-950 px-4 py-10 text-steel-100">
+      <div className="w-full max-w-xl space-y-6">
+        <div className="text-center">
+          <Badge variant="gold" className="mb-3">
+            Restricted Access // Command Center
+          </Badge>
+          <h1 className="flex items-center justify-center gap-2 text-2xl font-bold tracking-tight text-white">
+            <Icons.logo className="size-6 text-gold-400" />
+            Admin Registration
+          </h1>
+          <p className="mt-1 text-xs text-steel-300">Choose how you want to verify your admin account.</p>
         </div>
 
-        {/* Mode Selector */}
-        <div className="grid grid-cols-2 gap-2 bg-navy-950 p-1.5 rounded-xl border border-navy-800 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => { setSignupMode('passcode'); setMsg(null); }}
-            className={`py-2.5 rounded-lg transition-all ${
-              signupMode === 'passcode' ? 'bg-emerald-500 text-navy-950 font-bold' : 'text-steel-300 hover:text-white'
-            }`}
-          >
-            🔑 Instant (With Passcode)
-          </button>
-          <button
-            type="button"
-            onClick={() => { setSignupMode('approval'); setMsg(null); }}
-            className={`py-2.5 rounded-lg transition-all ${
-              signupMode === 'approval' ? 'bg-emerald-500 text-navy-950 font-bold' : 'text-steel-300 hover:text-white'
-            }`}
-          >
-            ⏳ Request Approval
-          </button>
+        <Card className="border-gold-400/30 bg-navy-900/90 shadow-2xl backdrop-blur-md">
+          <CardContent className="space-y-5 pt-6">
+            <div role="group" aria-label="Registration method" className="grid grid-cols-2 gap-2 rounded-control border border-steel-700 bg-navy-950 p-1.5">
+              {([
+                ['passcode', 'Instant, with passcode'],
+                ['approval', 'Request approval'],
+              ] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  aria-pressed={signupMode === mode}
+                  onClick={() => {
+                    setSignupMode(mode);
+                    setMsg(null);
+                  }}
+                  className={`rounded-control px-3 py-2.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-gold-400 ${
+                    signupMode === mode ? 'bg-gold-400 text-navy-950' : 'text-steel-300 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {msg && (
+              <div
+                role={msg.type === 'error' ? 'alert' : 'status'}
+                className={`flex items-start gap-2 rounded-control border p-3 text-xs ${
+                  msg.type === 'success'
+                    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300'
+                    : 'border-danger-500/40 bg-danger-500/10 text-danger-300'
+                }`}
+              >
+                {msg.type === 'success' ? (
+                  <Icons.checkCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                ) : (
+                  <Icons.info className="mt-0.5 size-4 shrink-0" aria-hidden />
+                )}
+                <span>{msg.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSignup} className="space-y-4">
+              {signupMode === 'passcode' ? (
+                <div className="space-y-1 rounded-control border border-gold-400/30 bg-gold-400/5 p-4">
+                  <label htmlFor="admin-passcode" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gold-300">
+                    <Icons.lock className="size-4" aria-hidden />
+                    Admin security passcode
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="admin-passcode"
+                      required
+                      autoComplete="off"
+                      type={showSecretPasscode ? 'text' : 'password'}
+                      value={secretPasscode}
+                      onChange={(e) => setSecretPasscode(e.target.value)}
+                      placeholder="Enter the admin passcode"
+                      className={`${inputClass} pr-16`}
+                    />
+                    <button type="button" onClick={() => setShowSecretPasscode(!showSecretPasscode)} className={toggleClass} aria-pressed={showSecretPasscode}>
+                      {showSecretPasscode ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-steel-500">A correct passcode activates your account right away.</p>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2 rounded-control border border-steel-700 bg-navy-950 p-4 text-xs text-steel-300">
+                  <Icons.info className="mt-0.5 size-4 shrink-0 text-gold-300" aria-hidden />
+                  <p>
+                    <strong className="text-white">Manual approval:</strong> your account is created as pending. You can log in after an approved admin approves it.
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <label htmlFor="admin-name" className={labelClass}>Full name</label>
+                  <input id="admin-name" required autoComplete="name" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className={inputClass} />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="admin-email" className={labelClass}>Email address</label>
+                  <input id="admin-email" required autoComplete="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@earthspnda.com" className={inputClass} />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="admin-phone" className={labelClass}>Phone number</label>
+                <input id="admin-phone" required autoComplete="tel" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 9876543210" className={inputClass} />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="admin-about" className={labelClass}>About you (optional)</label>
+                <textarea id="admin-about" rows={2} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="Short introduction" className={inputClass} />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <label htmlFor="admin-password" className={labelClass}>Password</label>
+                  <div className="relative">
+                    <input id="admin-password" required minLength={8} autoComplete="new-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" className={`${inputClass} pr-16`} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className={toggleClass} aria-pressed={showPassword}>
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="admin-confirm" className={labelClass}>Confirm password</label>
+                  <div className="relative">
+                    <input id="admin-confirm" required minLength={8} autoComplete="new-password" type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter password" className={`${inputClass} pr-16`} />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className={toggleClass} aria-pressed={showConfirmPassword}>
+                      {showConfirmPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <Button type="submit" variant="gold" disabled={loading} className="w-full py-2.5">
+                <Icons.shield className="size-4" aria-hidden />
+                <span>
+                  {loading
+                    ? 'Processing registration...'
+                    : signupMode === 'passcode'
+                    ? 'Verify passcode and register'
+                    : 'Submit for approval'}
+                </span>
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-between px-2 text-xs text-steel-400">
+          <Link href="/admin/login" className="hover:text-gold-300 hover:underline">
+            Already an admin? Log in
+          </Link>
+          <Link href="/" className="hover:text-white hover:underline">
+            Back to Homepage
+          </Link>
         </div>
-
-        {msg && (
-          <div className={`p-4 rounded-xl border text-xs font-semibold ${
-            msg.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'
-          }`}>
-            {msg.text}
-          </div>
-        )}
-
-        <form onSubmit={handleSignup} className="space-y-4">
-          
-          {signupMode === 'passcode' ? (
-            <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-xl space-y-1">
-              <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                🔒 Admin Security Passcode
-              </label>
-              <div className="relative">
-                <input
-                  required
-                  type={showSecretPasscode ? 'text' : 'password'}
-                  value={secretPasscode}
-                  onChange={(e) => setSecretPasscode(e.target.value)}
-                  placeholder="Enter the admin passcode"
-                  className="w-full bg-navy-950 border border-navy-800 rounded-xl pl-4 pr-10 py-2.5 text-sm text-white focus:border-emerald-500 outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSecretPasscode(!showSecretPasscode)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-steel-300 hover:text-white text-sm"
-                  aria-label="Toggle Passcode Visibility"
-                >
-                  {showSecretPasscode ? '👁️' : '🙈'}
-                </button>
-              </div>
-              <p className="text-[11px] text-steel-500">Provides instant account activation upon submission.</p>
-            </div>
-          ) : (
-            <div className="bg-amber-500/5 border border-amber-500/20 p-4 rounded-xl text-xs text-amber-400">
-              ℹ️ <strong>Manual Approval Mode:</strong> Your profile will be created in <em>Pending</em> state. The Super Admin must approve your profile before login is granted.
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-steel-300 mb-1">Full Name</label>
-              <input required type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full Name" className="w-full bg-navy-950 border border-navy-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-steel-300 mb-1">Email Address</label>
-              <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@earthspnda.com" className="w-full bg-navy-950 border border-navy-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-steel-300 mb-1">Phone Number</label>
-            <input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 9876543210" className="w-full bg-navy-950 border border-navy-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-steel-300 mb-1">About Section / Role Bio (Optional)</label>
-            <textarea rows={2} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="Brief introduction..." className="w-full bg-navy-950 border border-navy-800 rounded-xl p-3 text-sm text-white focus:border-emerald-500 outline-none" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-steel-300 mb-1">Password</label>
-              <div className="relative">
-                <input
-                  required
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
-                  className="w-full bg-navy-950 border border-navy-800 rounded-xl pl-4 pr-10 py-2 text-sm text-white focus:border-emerald-500 outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-steel-300 hover:text-white text-sm"
-                  aria-label="Toggle Password Visibility"
-                >
-                  {showPassword ? '👁️' : '🙈'}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-steel-300 mb-1">Confirm Password</label>
-              <div className="relative">
-                <input
-                  required
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter password"
-                  className="w-full bg-navy-950 border border-navy-800 rounded-xl pl-4 pr-10 py-2 text-sm text-white focus:border-emerald-500 outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-steel-300 hover:text-white text-sm"
-                  aria-label="Toggle Confirm Password Visibility"
-                >
-                  {showConfirmPassword ? '👁️' : '🙈'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" disabled={loading} className="w-full bg-emerald-500 hover:bg-emerald-400 text-navy-950 font-bold py-3 rounded-xl text-sm transition-all mt-2">
-            {loading
-              ? 'Processing Registration...'
-              : signupMode === 'passcode'
-              ? 'Verify Passcode & Register Admin Profile'
-              : 'Submit Admin Profile for Approval'}
-          </button>
-        </form>
-
-        <div className="text-center pt-2 text-xs text-steel-300">
-          Already an authorized Admin? <Link href="/admin/login" className="text-emerald-400 font-bold hover:underline">Log in as Admin →</Link>
-        </div>
-
       </div>
     </div>
   );
