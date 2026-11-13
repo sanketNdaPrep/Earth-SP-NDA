@@ -73,11 +73,14 @@ export function useBulkImport(shared: Shared) {
     setImporting(true);
     setBanner(null);
 
-    const { count } = await supabase
+    // Continue after the highest number, so deleted questions never cause a repeat
+    const { data: last } = await supabase
       .from('questions')
-      .select('*', { count: 'exact', head: true })
-      .eq('quiz_id', quizId);
-    const base = count || 0;
+      .select('position')
+      .eq('quiz_id', quizId)
+      .order('position', { ascending: false, nullsFirst: false })
+      .limit(1);
+    const base = (last?.[0]?.position as number | null | undefined) ?? 0;
 
     const payload = toImport.map((row, i) => ({
       quiz_id: quizId,

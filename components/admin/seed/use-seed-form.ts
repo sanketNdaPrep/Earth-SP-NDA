@@ -296,11 +296,14 @@ export function useSeedForm() {
     setSaving(true);
     setBanner(null);
 
-    const { count } = await supabase
+    // Continue after the highest number, so deleted questions never cause a repeat
+    const { data: last } = await supabase
       .from('questions')
-      .select('*', { count: 'exact', head: true })
-      .eq('quiz_id', quizId);
-    const nextPosition = (count || 0) + 1;
+      .select('position')
+      .eq('quiz_id', quizId)
+      .order('position', { ascending: false, nullsFirst: false })
+      .limit(1);
+    const nextPosition = ((last?.[0]?.position as number | null | undefined) ?? 0) + 1;
 
     const { error } = await supabase.from('questions').insert({
       quiz_id: quizId,
