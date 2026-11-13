@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
+import { ProfileMenu } from "@/components/profile/profile-menu";
 import { getAdminStatus } from "@/lib/adminAuth";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { supabase } from "@/lib/supabaseClient";
@@ -109,11 +110,7 @@ export default function DashboardLayout({
             <Link href="/ui-demo">
               <Button variant="outline" size="sm">UI Demo</Button>
             </Link>
-            <div className="flex items-center gap-2">
-              <div className="size-8 rounded-full bg-gold-400/20 text-gold-300 flex items-center justify-center font-bold text-xs border border-gold-400/40">
-                SK
-              </div>
-            </div>
+            <ProfileMenu />
           </div>
         </header>
 
