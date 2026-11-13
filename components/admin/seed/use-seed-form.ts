@@ -9,6 +9,7 @@ import {
   type FocusEvent,
   type FormEvent,
 } from 'react';
+import { logAdminAction } from '@/lib/adminLog';
 import { supabase } from '@/lib/supabaseClient';
 import { OPTS, TAXONOMY } from './data';
 import { clearDraft, isEmptyDraft, loadDraft, saveDraft } from './draft-storage';
@@ -318,6 +319,13 @@ export function useSeedForm() {
       setBanner({ type: 'error', text: `Failed to add question: ${error.message}` });
       return;
     }
+
+    void logAdminAction({
+      action: 'added',
+      entityType: 'question',
+      label: `Question #${nextPosition} in ${selectedQuiz?.title ?? 'a module'}`,
+      details: { quiz_id: quizId, position: nextPosition },
+    });
 
     let resourceFailed = false;
     let resourceNote = '';
