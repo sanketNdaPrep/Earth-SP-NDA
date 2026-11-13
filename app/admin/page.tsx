@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
+import { ApprovalsPanel } from "@/components/admin/approvals-panel";
 import { ADMIN_STUDENTS_PREVIEW, ADMIN_EXAM_STATS_PREVIEW } from "@/lib/admin-preview-data";
 
 export default function AdminOverviewPage() {
@@ -28,6 +29,8 @@ export default function AdminOverviewPage() {
           </Link>
         </div>
       </div>
+
+      <ApprovalsPanel />
 
       {/* Exam Performance Overview */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
