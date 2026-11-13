@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getAdminStatus } from "@/lib/adminAuth";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -49,6 +50,15 @@ export async function middleware(request: NextRequest) {
 
   if (isProtectedRoute && !user) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Only approved admins may open the admin area
+  if (
+    isProtectedRoute &&
+    request.nextUrl.pathname.startsWith("/admin") &&
+    getAdminStatus(user) !== "approved"
+  ) {
+    return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 
   if (isAuthRoute && user) {
