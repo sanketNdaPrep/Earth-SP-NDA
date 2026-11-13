@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSignOut } from '@/hooks/use-sign-out';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function ProfilePage() {
@@ -96,10 +97,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
+  const handleSignOut = useSignOut();
 
   if (loading) {
     return (

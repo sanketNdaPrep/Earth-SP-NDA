@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
 import { getAdminStatus } from "@/lib/adminAuth";
+import { useSignOut } from "@/hooks/use-sign-out";
 import { supabase } from "@/lib/supabaseClient";
 
 interface NavItem {
@@ -29,7 +30,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [isAdmin, setIsAdmin] = React.useState(false);
 
   // Only approved admins see the Admin Suite link
@@ -45,11 +45,7 @@ export default function DashboardLayout({
 
   const navItems = isAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS;
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  };
+  const handleSignOut = useSignOut();
 
   return (
     <div className="flex min-h-screen bg-navy-950 text-steel-100">

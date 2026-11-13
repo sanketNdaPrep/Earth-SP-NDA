@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { useSignOut } from '@/hooks/use-sign-out';
 import { ShieldMark } from '@/components/icons';
 import { focusRing, ghostButton } from '@/components/quiz/styles';
 
@@ -10,12 +9,7 @@ const link = `inline-flex min-h-11 touch-manipulation items-center rounded-md px
 
 /** Slim navigation bar for the signed-in pages. Sign out behaves as it did on the old dashboard. */
 export function TopBar() {
-  const router = useRouter();
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
+  const signOut = useSignOut();
 
   return (
     <header className="border-b border-steel-700/60 bg-navy-950">
