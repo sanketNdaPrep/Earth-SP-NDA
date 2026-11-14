@@ -18,6 +18,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Admin Overview", href: "/admin", icon: "shield" },
   { label: "Student Roster", href: "/admin/students", icon: "users" },
   { label: "Question Bank", href: "/admin/questions", icon: "book" },
+  { label: "Study Materials", href: "/admin/resources", icon: "component" },
   { label: "Subjects", href: "/admin/subjects", icon: "target" },
   { label: "Audit Logs", href: "/admin/logs", icon: "clipboardCheck" },
 ];
