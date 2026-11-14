@@ -100,7 +100,9 @@ export default function StudyTrackerPage() {
   }, []);
 
   const totals = React.useMemo(() => {
-    const list = logs ?? [];
+    // Wait for the saved sessions: reading the clock earlier breaks page prerendering.
+    if (!logs) return { todayMinutes: 0, weekMinutes: 0, weekQuestions: 0 };
+    const list = logs;
     const today = startOfDay(0);
     const week = startOfDay(6);
     let todayMinutes = 0;
