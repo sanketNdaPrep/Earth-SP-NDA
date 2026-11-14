@@ -117,12 +117,23 @@ const EXAM_DATA: Record<string, ExamConfig> = {
   },
 };
 
+/** The mock_tests columns this page shows. */
+interface MockTestRow {
+  id: string;
+  code: string;
+  title: string;
+  target_exam: string | null;
+  total_questions: number;
+  duration_minutes: number;
+  total_marks: number;
+}
+
 function ExamDetailContent() {
   const params = useParams();
   const examId = (params?.id as string)?.toLowerCase() || "nda";
   const exam = EXAM_DATA[examId] || EXAM_DATA.nda;
 
-  const [dbMocks, setDbMocks] = React.useState<any[]>([]);
+  const [dbMocks, setDbMocks] = React.useState<MockTestRow[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -134,7 +145,7 @@ function ExamDetailContent() {
           .order("created_at", { ascending: false });
 
         if (!error && data && data.length > 0) {
-          const filtered = data.filter(
+          const filtered = (data as MockTestRow[]).filter(
             (m) => m.target_exam?.toLowerCase() === examId || m.target_exam?.toLowerCase().includes(examId)
           );
           setDbMocks(filtered);
