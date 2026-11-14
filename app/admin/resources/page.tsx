@@ -23,6 +23,8 @@ import {
   ACCEPT_ATTRIBUTE,
   checkFile,
   formatSize,
+  MAX_CATEGORY,
+  MAX_DESCRIPTION,
   MAX_UPLOAD_BYTES,
   RESOURCE_BUCKET,
   RESOURCE_CATEGORIES,
@@ -36,12 +38,17 @@ import { supabase } from "@/lib/supabaseClient";
 
 type Message = { type: "success" | "error"; text: string } | null;
 
+const textareaClass =
+  "w-full rounded-control border border-steel-700 bg-navy-950 px-3 py-2 text-sm text-steel-100 placeholder:text-steel-500 " +
+  "focus-visible:border-gold-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/40";
+
 export default function AdminResourcesPage() {
   const [rows, setRows] = React.useState<StoredResource[] | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [version, setVersion] = React.useState(0);
 
   const [title, setTitle] = React.useState("");
+  const [description, setDescription] = React.useState("");
   const [category, setCategory] = React.useState(RESOURCE_CATEGORIES[0]);
   const [exam, setExam] = React.useState(RESOURCE_EXAMS[0]);
   const [file, setFile] = React.useState<File | null>(null);
@@ -97,6 +104,12 @@ export default function AdminResourcesPage() {
       setMsg({ type: "error", text: "Give the file a title of at least 3 characters." });
       return;
     }
+    const cleanCategory = category.trim();
+    if (!cleanCategory) {
+      setMsg({ type: "error", text: "Add a category, for example Maths Notes or Flashcards." });
+      return;
+    }
+    const cleanDescription = description.trim();
     if (!file) {
       setMsg({ type: "error", text: "Choose a PDF or image to upload." });
       return;
@@ -125,7 +138,8 @@ export default function AdminResourcesPage() {
       .from("resources")
       .insert({
         title: cleanTitle,
-        category,
+        description: cleanDescription || null,
+        category: cleanCategory,
         size: formatSize(file.size),
         recommended_for: exam,
         download_url: url,
@@ -146,14 +160,23 @@ export default function AdminResourcesPage() {
       action: "added",
       entityType: "resource",
       label: cleanTitle,
-      details: { resource_id: data[0].id, category, recommended_for: exam, file_type: kind, size: formatSize(file.size) },
+      details: {
+        resource_id: data[0].id,
+        category: cleanCategory,
+        description: cleanDescription || null,
+        recommended_for: exam,
+        file_type: kind,
+        size: formatSize(file.size),
+        file_path: path,
+      },
     });
 
     setUploading(false);
     setTitle("");
+    setDescription("");
     setFile(null);
     setFileKey((k) => k + 1);
-    setMsg({ type: "success", text: `"${cleanTitle}" is uploaded. Students can download it from the Vault now.` });
+    setMsg({ type: "success", text: `"${cleanTitle}" is uploaded. Students can download it from the Study Material page now.` });
     refresh();
   };
 
@@ -176,13 +199,13 @@ export default function AdminResourcesPage() {
       action: "deleted",
       entityType: "resource",
       label: row.title,
-      details: { resource_id: row.id, file_path: row.file_path, file_left_in_storage: leftover },
+      details: { resource_id: row.id, category: row.category, file_path: row.file_path, file_left_in_storage: leftover },
     });
     setBusyId(null);
     setMsg({
       type: leftover ? "error" : "success",
       text: leftover
-        ? `"${row.title}" was removed from the Vault, but its file could not be deleted from storage.`
+        ? `"${row.title}" was removed from the Study Material page, but its file could not be deleted from storage.`
         : `"${row.title}" was deleted.`,
     });
     refresh();
@@ -194,7 +217,7 @@ export default function AdminResourcesPage() {
         <Badge variant="gold" className="mb-2">Content Management</Badge>
         <h1 className="text-3xl font-bold tracking-tight text-white">Study Materials</h1>
         <p className="mt-1 text-sm text-steel-300">
-          Upload PDFs and images. They appear in the student Vault straight away, ready to download.
+          Upload PDFs and images. They appear on the student Study Material page straight away, ready to download.
         </p>
       </div>
 
@@ -247,16 +270,39 @@ export default function AdminResourcesPage() {
               />
             </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="res-description">Description</Label>
+              <textarea
+                id="res-description"
+                rows={3}
+                maxLength={MAX_DESCRIPTION}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What is in this file, and who is it for? (optional)"
+                className={textareaClass}
+              />
+              <p className="text-right text-xs tabular-nums text-steel-500">
+                {description.length}/{MAX_DESCRIPTION}
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="res-category">Type</Label>
-                <Select id="res-category" value={category} onChange={(e) => setCategory(e.target.value)}>
+                <Label htmlFor="res-category">Category</Label>
+                <Input
+                  id="res-category"
+                  list="res-category-options"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  maxLength={MAX_CATEGORY}
+                  placeholder="e.g. Maths Notes"
+                  required
+                />
+                <datalist id="res-category-options">
                   {RESOURCE_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
+                    <option key={c} value={c} />
                   ))}
-                </Select>
+                </datalist>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="res-exam">Recommended for</Label>
@@ -297,6 +343,7 @@ export default function AdminResourcesPage() {
                   <li key={row.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 space-y-2">
                       <p className="truncate text-sm font-semibold text-white">{row.title}</p>
+                      {row.description ? <p className="line-clamp-2 text-xs text-steel-300">{row.description}</p> : null}
                       <div className="flex flex-wrap items-center gap-2">
                         {row.category ? <Badge variant="outline">{row.category}</Badge> : null}
                         <Badge variant={kind === "pdf" ? "gold" : "emerald"}>{kind === "pdf" ? "PDF" : "Image"}</Badge>
@@ -325,7 +372,7 @@ export default function AdminResourcesPage() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete this file?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              &quot;{row.title}&quot; will disappear from the student Vault and the stored file is removed for good.
+                              &quot;{row.title}&quot; will disappear from the student Study Material page and the stored file is removed for good.
                               The action is saved in the audit log.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
