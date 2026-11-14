@@ -3,8 +3,36 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icons } from '@/components/ui/icons';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { useSignOut } from '@/hooks/use-sign-out';
 import { supabase } from '@/lib/supabaseClient';
+
+type Notice = { type: 'success' | 'error'; text: string } | null;
+
+function StatusNotice({ notice }: { notice: Notice }) {
+  if (!notice) return null;
+  const ok = notice.type === 'success';
+  return (
+    <div
+      role={ok ? 'status' : 'alert'}
+      className={cn(
+        'rounded-control border p-3 text-xs font-semibold',
+        ok
+          ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300'
+          : 'border-danger-500/40 bg-danger-500/10 text-danger-400',
+      )}
+    >
+      {notice.text}
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -23,8 +51,8 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Status Alerts
-  const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [profileMsg, setProfileMsg] = useState<Notice>(null);
+  const [passwordMsg, setPasswordMsg] = useState<Notice>(null);
 
   useEffect(() => {
     async function loadCadetProfile() {
@@ -101,182 +129,171 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 font-sans text-sm">
+      <div
+        role="status"
+        className="flex min-h-screen items-center justify-center bg-navy-950 font-mono text-xs uppercase tracking-wider text-steel-300"
+      >
         Loading Cadet Profile...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10 font-sans">
-      <div className="max-w-4xl mx-auto space-y-8">
-        
+    <div className="min-h-screen bg-navy-950 p-6 text-steel-100 md:p-10">
+      <div className="mx-auto max-w-4xl space-y-8">
         {/* Navigation & Header */}
-        <div className="flex justify-between items-center border-b border-slate-800 pb-6">
+        <header className="flex flex-col gap-4 border-b border-steel-700/60 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 uppercase tracking-wider">
-              Cadet Dossier
-            </span>
-            <h1 className="text-3xl font-extrabold text-white mt-2">Profile & Security Settings</h1>
+            <Badge variant="gold">Cadet Dossier</Badge>
+            <h1 className="mt-3 text-balance text-3xl font-bold tracking-tight text-white">
+              Profile &amp; Security Settings
+            </h1>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 font-semibold px-4 py-2 rounded-xl text-xs transition-all">
-              📊 Performance Dashboard
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 text-red-400 font-semibold px-4 py-2 rounded-xl text-xs transition-all"
-            >
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard">
+                <Icons.layoutDashboard className="size-4" />
+                Performance Dashboard
+              </Link>
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleSignOut}>
               Sign Out
-            </button>
+            </Button>
           </div>
-        </div>
+        </header>
 
         {/* Section 1: Cadet Information */}
-        <div className="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-2xl space-y-6 shadow-xl">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-lg font-bold text-white">1. Service & Personal Information</h2>
-            <p className="text-xs text-slate-400 mt-1">Configure your target commissioning entry and preferred combat or support arm.</p>
-          </div>
-
-          {profileMsg && (
-            <div className={`p-4 rounded-xl border text-xs font-semibold ${
-              profileMsg.type === 'success' 
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                : 'bg-red-500/10 border-red-500/30 text-red-400'
-            }`}>
-              {profileMsg.text}
-            </div>
-          )}
-
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="border-b border-steel-700/60 pb-4">
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 items-center justify-center rounded-control border border-gold-400/30 bg-gold-400/10 text-gold-300">
+                <Icons.user className="size-4" />
+              </span>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Full Name</label>
-                <input
-                  required
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Cadet Officer"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-emerald-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Registered Email Address</label>
-                <input
-                  disabled
-                  type="email"
-                  value={email}
-                  className="w-full bg-slate-950/50 border border-slate-800/80 text-slate-500 rounded-xl px-4 py-2.5 text-sm cursor-not-allowed outline-none"
-                />
+                <p className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">Section 01</p>
+                <CardTitle className="text-lg">Service &amp; Personal Information</CardTitle>
               </div>
             </div>
+            <CardDescription className="pt-1">
+              Configure your target commissioning entry and preferred combat or support arm.
+            </CardDescription>
+          </CardHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Target Entry / Examination</label>
-                <select
-                  value={targetExam}
-                  onChange={(e) => setTargetExam(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-emerald-500 outline-none"
-                >
-                  <option value="NDA">NDA (National Defence Academy)</option>
-                  <option value="CDS">CDS (Combined Defence Services)</option>
-                  <option value="AFCAT">AFCAT (Air Force Common Admission Test)</option>
-                  <option value="ACC">ACC (Army Candidate Corps)</option>
-                  <option value="SSB Direct">SSB Direct Entry / Tech</option>
-                </select>
+          <CardContent className="space-y-5 pt-6">
+            <StatusNotice notice={profileMsg} />
+
+            <form onSubmit={handleUpdateProfile} className="space-y-5">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="profile-name">Full Name</Label>
+                  <Input
+                    id="profile-name"
+                    required
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="e.g. Cadet Officer"
+                    autoComplete="name"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="profile-email">Registered Email Address</Label>
+                  <Input id="profile-email" disabled type="email" value={email} readOnly />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="profile-exam">Target Entry / Examination</Label>
+                  <Select id="profile-exam" value={targetExam} onChange={(e) => setTargetExam(e.target.value)}>
+                    <option value="NDA">NDA (National Defence Academy)</option>
+                    <option value="CDS">CDS (Combined Defence Services)</option>
+                    <option value="AFCAT">AFCAT (Air Force Common Admission Test)</option>
+                    <option value="ACC">ACC (Army Candidate Corps)</option>
+                    <option value="SSB Direct">SSB Direct Entry / Tech</option>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="profile-branch">Aspirational Branch / Arm</Label>
+                  <Select id="profile-branch" value={targetBranch} onChange={(e) => setTargetBranch(e.target.value)}>
+                    <option value="Armoured Corps">Armoured Corps</option>
+                    <option value="Corps of Signals">Corps of Signals</option>
+                    <option value="Army Ordnance Corps / Logistics">Army Ordnance Corps / Logistics</option>
+                    <option value="Flying Branch (IAF)">Flying Branch (IAF)</option>
+                    <option value="Infantry">Infantry</option>
+                    <option value="Executive Branch (Navy)">Executive Branch (Navy)</option>
+                    <option value="Technical / Engineering Branch">Technical / Engineering Branch</option>
+                  </Select>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Aspirational Branch / Arm</label>
-                <select
-                  value={targetBranch}
-                  onChange={(e) => setTargetBranch(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-emerald-500 outline-none"
-                >
-                  <option value="Armoured Corps">Armoured Corps</option>
-                  <option value="Corps of Signals">Corps of Signals</option>
-                  <option value="Army Ordnance Corps / Logistics">Army Ordnance Corps / Logistics</option>
-                  <option value="Flying Branch (IAF)">Flying Branch (IAF)</option>
-                  <option value="Infantry">Infantry</option>
-                  <option value="Executive Branch (Navy)">Executive Branch (Navy)</option>
-                  <option value="Technical / Engineering Branch">Technical / Engineering Branch</option>
-                </select>
+              <div className="flex justify-end border-t border-steel-700/60 pt-5">
+                <Button type="submit" loading={savingProfile}>
+                  {savingProfile ? 'Saving Changes...' : 'Update Profile Dossier'}
+                </Button>
               </div>
-            </div>
-
-            <div className="pt-4">
-              <button
-                type="submit"
-                disabled={savingProfile}
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-emerald-500/20"
-              >
-                {savingProfile ? 'Saving Changes...' : 'Update Profile Dossier'}
-              </button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* Section 2: Security & Credentials */}
-        <div className="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-2xl space-y-6 shadow-xl">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-lg font-bold text-white">2. Access Control & Password Reset</h2>
-            <p className="text-xs text-slate-400 mt-1">Update your password credentials to maintain account security.</p>
-          </div>
-
-          {passwordMsg && (
-            <div className={`p-4 rounded-xl border text-xs font-semibold ${
-              passwordMsg.type === 'success' 
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                : 'bg-red-500/10 border-red-500/30 text-red-400'
-            }`}>
-              {passwordMsg.text}
-            </div>
-          )}
-
-          <form onSubmit={handleUpdatePassword} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="border-b border-steel-700/60 pb-4">
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 items-center justify-center rounded-control border border-gold-400/30 bg-gold-400/10 text-gold-300">
+                <Icons.lock className="size-4" />
+              </span>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">New Password</label>
-                <input
-                  required
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="At least 6 characters"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-emerald-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Confirm New Password</label>
-                <input
-                  required
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter new password"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-emerald-500 outline-none"
-                />
+                <p className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">Section 02</p>
+                <CardTitle className="text-lg">Access Control &amp; Password Reset</CardTitle>
               </div>
             </div>
+            <CardDescription className="pt-1">
+              Update your password credentials to maintain account security.
+            </CardDescription>
+          </CardHeader>
 
-            <div className="pt-4">
-              <button
-                type="submit"
-                disabled={updatingPassword}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold px-6 py-2.5 rounded-xl text-xs transition-all border border-slate-700"
-              >
-                {updatingPassword ? 'Updating Password...' : 'Change Password'}
-              </button>
-            </div>
-          </form>
-        </div>
+          <CardContent className="space-y-5 pt-6">
+            <StatusNotice notice={passwordMsg} />
 
+            <form onSubmit={handleUpdatePassword} className="space-y-5">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="profile-new-password">New Password</Label>
+                  <Input
+                    id="profile-new-password"
+                    required
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    autoComplete="new-password"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="profile-confirm-password">Confirm New Password</Label>
+                  <Input
+                    id="profile-confirm-password"
+                    required
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end border-t border-steel-700/60 pt-5">
+                <Button type="submit" variant="outline" loading={updatingPassword}>
+                  {updatingPassword ? 'Updating Password...' : 'Change Password'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
