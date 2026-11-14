@@ -161,4 +161,4 @@ Why not all 26 say "Integrated": 12 are on live pages (counting Toast as mounted
 
 25. Centred Hero with Inline Pills — ✅ built as a generic layout. The reference was a light-only incident-alerting hero with brand logos and colours (Discord, Telegram, WhatsApp, Google Chat, Mattermost), `motion/react`, `lucide-react`, a `background-cubes-grid` that was not supplied, many arbitrary values, `href="#"` links, invented claims, and an entrance animation that left the paragraph and buttons at opacity 0 until JavaScript ran (plus a stray `customDelay` prop that does nothing). Kept the one good idea: a pill inside the headline. `InlinePill` is sized entirely in em through `.inline-pill` classes (so it scales with the heading with no arbitrary Tailwind values) and its `suffix` keeps a comma on the same line as the pill. The pill's label stays in the heading text for screen readers; its icon is `aria-hidden`. The optional `grid` prop reuses `.stack-grid`. Everything renders immediately. Demo copy makes no claims. `components/hero.tsx` is untouched.
 
-Next up: #26 (waiting for your next file).
+#26: never supplied.
