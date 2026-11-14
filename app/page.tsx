@@ -194,7 +194,6 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row">
           <p>© 2027 EARTH SP NDA. Enterprise-grade defence examination portal.</p>
           <div className="flex gap-4">
-            <Link href="/ui-demo" className="text-steel-400 hover:text-white">Developer UI Showcase</Link>
             <Link href="/admin/login" className="text-gold-400 hover:underline">Admin Command Portal</Link>
           </div>
         </div>
