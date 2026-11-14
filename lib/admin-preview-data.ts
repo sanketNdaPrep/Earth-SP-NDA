@@ -1,3 +1,5 @@
+import type { ActivityEvent } from "@/components/admin/dashboard/types";
+
 export interface StudentPreview {
   id: string;
   name: string;
@@ -80,10 +82,10 @@ export const ADMIN_EXAM_STATS_PREVIEW: ExamStatPreview[] = [
   { exam: "AFCAT Flying/Tech", totalEnrolled: 650, avgScore: 210, passRate: "74%" },
 ];
 
-export const PREVIEW_ACTIVITY: any[] = [
-  { id: "act-1", label: "Mock Exam", text: "Attempted NDA Mathematics Mock 4", at: "10m ago", tone: "info", title: "Attempted NDA Mathematics Mock 4", time: "10m ago", category: "mock" },
-  { id: "act-2", label: "Study Log", text: "Submitted Study Log: 2h Physics", at: "1h ago", tone: "success", title: "Submitted Study Log: 2h Physics", time: "1h ago", category: "study" },
-  { id: "act-3", label: "New User", text: "New Cadet Registered: Rahul Verma", at: "3h ago", tone: "warning", title: "New Cadet Registered: Rahul Verma", time: "3h ago", category: "user" },
+export const PREVIEW_ACTIVITY: ActivityEvent[] = [
+  { id: "act-1", label: "Mock Exam", text: "Attempted NDA Mathematics Mock 4", at: "10m ago", tone: "info" },
+  { id: "act-2", label: "Study Log", text: "Submitted Study Log: 2h Physics", at: "1h ago", tone: "ok" },
+  { id: "act-3", label: "New User", text: "New Cadet Registered: Rahul Verma", at: "3h ago", tone: "highlight" },
 ];
 
 export const PREVIEW_KPIS = Object.assign(
