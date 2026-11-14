@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export type AdminLogAction = "added" | "edited" | "deleted" | "activated" | "deactivated";
-export type AdminLogEntity = "subject" | "question";
+export type AdminLogEntity = "subject" | "question" | "resource";
 
 export interface AdminLogInput {
   action: AdminLogAction;
