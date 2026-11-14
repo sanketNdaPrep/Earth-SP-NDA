@@ -2,6 +2,11 @@
 
 Status: ✅ done · 🟡 planned · 🔒 protected logic (do not modify)
 
+## Final state (cleanup and audit)
+The PDF-to-Quiz and AI Tutor features are dropped permanently and the redesign is closed. `app/dev` (28 preview pages) and every link to `/dev` and `/ui-demo` were removed after checking that nothing outside `app/dev` imported from it. Every `/dev/...` mention below is historical. `tsc` is clean, `eslint` has 0 errors (2 warnings), and `next build` passes.
+
+This file lists what is built and what is on a live page. See "Final status of the 26 reference components" below. Known gaps that remain are listed at the end of that section.
+
 ## Foundation (Phase 2)
 | File | Status |
 |---|---|
@@ -62,8 +67,51 @@ Admin: all non-hook files in `admin/seed/` and `admin/dashboard/`.
 Pages: `login`, `signup`, `profile`, `quizzes`, `admin/login`, `admin/signup` (markup only).
 
 ## Integration queue (26 reference components)
+### Final status of the 26 reference components
+**Integrated** = used by a live page. **Built, not placed** = finished and tested but no live page uses it. **Not provided** = never supplied.
+
+| # | Component | Final status | Where it is used |
+|---|---|---|---|
+| 1 | Icons & Visual Assets | Integrated | App-wide (the 3 older icon sets are still in the repo) |
+| 2 | Border Beam Login Card | Built, not placed | - |
+| 3 | Tabbed Auth Form | Built, not placed | - |
+| 4 | Feature Cards | Built, not placed | - |
+| 5 | Card Spread | Built, not placed | - |
+| 6 | Shiny Checklist Card | Built, not placed | - |
+| 7 | Performance Bento | Integrated | Homepage, dashboard |
+| 8 | Timeline | Integrated | Homepage (placeholder copy) |
+| 9 | Stats Grid | Integrated | Homepage, dashboard, analytics, mock result |
+| 10 | Alert Dialog | Integrated | Admin resources, admin question bank |
+| 11 | Accordion | Built, not placed | - |
+| 12 | Toast | Mounted, never called | `Toaster` is in `app/layout.tsx`; nothing calls `toast.add` yet |
+| 13 | Progress | Integrated | Dashboard subject breakdown |
+| 14 | Radial Progress | Integrated | Analytics |
+| 15 | Skeleton | Integrated | Quizzes, study tracker, study material, header actions |
+| 16 | Skeleton Media Card | Built, not placed | - |
+| 17 | Badge | Integrated | Many pages |
+| 18 | Not Found | Integrated | `app/not-found.tsx` |
+| 19 | Layout Text Flip | Built, not placed | - |
+| 20 | Stacked Sections | Integrated | Homepage (placeholder copy) |
+| 21 | Dock | Built, not placed | - |
+| 22 | Modern Footer | Built, not placed | - |
+| 23 | FAB | Built, not placed | - |
+| 24 | Hero Split | Built, not placed | - |
+| 25 | Hero Centered | Built, not placed | - |
+| 26 | (never supplied) | Not provided | - |
+
+Why not all 26 say "Integrated": 12 are on live pages (counting Toast as mounted), 13 are built but unused, and #26 was never given to me. Marking them Integrated would make this file wrong.
+
+### Known gaps in the final state
+- `/dashboard/analytics` shows hard-coded sample numbers, not the student's own results.
+- `/admin` (Overview) and `/admin/students` show sample students and exam stats; `/admin/dashboard` shows preview figures while `SHOW_SAMPLE_DATA` is on.
+- The homepage Timeline and Stacked Sections carry placeholder copy.
+- `/mocks/[id]` is a demo runner with 4 fixed questions; `mock_tests` rows are not linked to questions.
+- The sidebar "Mock Tests" link, the dashboard button and links on `/exams/[id]` point to `/dashboard/mocks` and `/dashboard/mocks/{id}`, which do not exist.
+- Two lint warnings: `app/error.tsx` (window.location.href) and `app/signup/page.tsx` (unused `data`).
+- Next.js 16.4.0 reports a security advisory; the upgrade has not been run.
+
+### Build notes (kept for reference)
 1. Icons & Visual Assets (+ demo) — ✅ Integrated and Verified; migrating the 3 old icon sets and pruning unused brand icons is pending
-2–26. Not started.
 
 2. Border Beam Login Card — ✅ built, awaiting your confirmation; adoption into `app/login` and `app/admin/login` is a separate approved step.
 
