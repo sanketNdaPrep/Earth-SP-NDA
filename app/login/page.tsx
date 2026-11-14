@@ -80,7 +80,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
         <CardFooter className="flex justify-center border-t border-steel-700/50 pt-4 text-xs text-steel-300">
-          <span>Don't have an account? </span>
+          <span>Don&apos;t have an account? </span>
           <Link href="/register" className="ml-1 font-semibold text-gold-300 hover:underline">
             Register Candidate Profile
           </Link>
