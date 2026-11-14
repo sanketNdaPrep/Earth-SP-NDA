@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { DRIVE_FOLDERS } from '@/lib/landing-content';
+import { resourceKind } from '@/lib/resources';
 import { useLandingData, type ResourcePdf } from './landing-data';
 import { CheckIcon, DownloadIcon, ExternalIcon, SearchIcon } from './icons';
 
@@ -88,7 +89,7 @@ export function Vault() {
           Study notes and planners
         </h2>
         <p className="mt-3 max-w-[60ch] text-steel-300">
-          Free PDFs for revision. Search by title or exam, or filter by type.
+          Free PDFs and images for revision. Search by title or exam, or filter by type.
         </p>
 
         {resourcesState === 'loading' && <SkeletonCards />}
@@ -174,7 +175,8 @@ export function Vault() {
 
                       <div className="mt-6 flex items-center justify-between gap-3 border-t border-steel-700/70 pt-4">
                         <span className="font-mono text-xs text-steel-300">
-                          PDF{file.size ? ` · ${file.size}` : ''}
+                          {resourceKind(file) === 'image' ? 'Image' : 'PDF'}
+                          {file.size ? ` · ${file.size}` : ''}
                         </span>
                         <button
                           type="button"
