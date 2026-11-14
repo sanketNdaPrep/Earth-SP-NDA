@@ -113,6 +113,7 @@ create table public.resources (
   download_url     text not null,
   file_path        text,   -- object path in the study-materials bucket (null for external links)
   file_type        text,   -- 'pdf' or 'image'
+  description      text check (description is null or char_length(description) <= 300),
   downloads        int  not null default 0 check (downloads >= 0),
   created_by       uuid default auth.uid() references auth.users (id) on delete set null,
   created_at       timestamptz not null default now()
