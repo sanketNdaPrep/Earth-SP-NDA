@@ -108,9 +108,6 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/ui-demo">
-              <Button variant="outline" size="sm">UI Demo</Button>
-            </Link>
             <ProfileMenu />
           </div>
         </header>
