@@ -114,6 +114,9 @@ export default function Home() {
                   Explore Exam Roadmap
                 </Button>
               </Link>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/study-material">Get Free Study Material</Link>
+              </Button>
             </div>
           </div>
 
