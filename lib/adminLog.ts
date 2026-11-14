@@ -47,9 +47,15 @@ const PHRASES: Record<AdminLogAction, string> = {
   deactivated: "deactivated",
 };
 
+const ENTITY_NAMES: Record<AdminLogEntity, string> = {
+  subject: "subject",
+  question: "question",
+  resource: "study material",
+};
+
 /** "Admin Sanket added new subject: NDA 2027" */
 export function describeLog(row: AdminLogRow): string {
   const who = row.admin_profiles?.full_name?.trim().split(/\s+/)[0] || row.admin_profiles?.email?.split("@")[0];
   const label = row.details?.label ?? "(no name)";
-  return `${who ? `Admin ${who}` : "An admin"} ${PHRASES[row.action]} ${row.entity_type}: ${label}`;
+  return `${who ? `Admin ${who}` : "An admin"} ${PHRASES[row.action]} ${ENTITY_NAMES[row.entity_type] ?? row.entity_type}: ${label}`;
 }
