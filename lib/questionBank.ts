@@ -37,3 +37,24 @@ export function clip(text: string | null, max = 120): string {
   const value = text ?? "";
   return value.length > max ? `${value.slice(0, max)}...` : value;
 }
+
+/** True when a request failed only because the questions.topic column has not been added yet. */
+export function isMissingTopicColumn(error: { message?: string; code?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const message = error.message ?? "";
+  return /topic/i.test(message) && (error.code === "PGRST204" || error.code === "42703" || /column/i.test(message));
+}
+
+/** The next free position in a module: one after the highest, so deleted questions never cause a repeat. */
+export async function nextQuestionPosition(
+  supabaseClient: typeof import("@/lib/supabaseClient").supabase,
+  quizId: string,
+): Promise<number> {
+  const { data } = await supabaseClient
+    .from("questions")
+    .select("position")
+    .eq("quiz_id", quizId)
+    .order("position", { ascending: false, nullsFirst: false })
+    .limit(1);
+  return ((data?.[0]?.position as number | null | undefined) ?? 0) + 1;
+}
