@@ -17,8 +17,22 @@ export const ACCEPT_ATTRIBUTE = ".pdf,.png,.jpg,.jpeg,.webp,application/pdf,imag
 
 export type ResourceKind = "pdf" | "image";
 
-/** Categories shown as filter buttons in the student Vault. */
-export const RESOURCE_CATEGORIES = ["Notes", "Planner", "Formula Sheet", "Previous Year Paper", "Practice Sheet", "Other"];
+/** Suggestions for the category box. An admin can type any other category. */
+export const RESOURCE_CATEGORIES = [
+  "Maths Notes",
+  "Physics Notes",
+  "Chemistry Notes",
+  "English Notes",
+  "General Studies Notes",
+  "Flashcards",
+  "Formula Sheet",
+  "Previous Year Paper",
+  "Practice Sheet",
+  "Planner",
+];
+
+export const MAX_DESCRIPTION = 300;
+export const MAX_CATEGORY = 60;
 
 export const RESOURCE_EXAMS = ["NDA", "CDS", "AFCAT", "NDA, CDS and AFCAT"];
 
@@ -32,12 +46,13 @@ export interface StoredResource {
   download_url: string;
   file_path: string | null;
   file_type: string | null;
+  description: string | null;
   downloads: number;
   created_at: string;
 }
 
 export const RESOURCE_COLUMNS =
-  "id, title, category, size, recommended_for, download_url, file_path, file_type, downloads, created_at";
+  "id, title, description, category, size, recommended_for, download_url, file_path, file_type, downloads, created_at";
 
 /** "2.4 MB", "310 KB". */
 export function formatSize(bytes: number): string {
