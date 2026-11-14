@@ -22,7 +22,7 @@ export default function AdminLogsPage() {
   const [rows, setRows] = React.useState<AdminLogRow[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [version, setVersion] = React.useState(0);
-  const [entity, setEntity] = React.useState<"all" | "subject" | "question">("all");
+  const [entity, setEntity] = React.useState<"all" | "subject" | "question" | "resource">("all");
 
   React.useEffect(() => {
     let active = true;
@@ -52,7 +52,7 @@ export default function AdminLogsPage() {
         <Badge variant="gold" className="mb-2">Security</Badge>
         <h1 className="text-3xl font-bold tracking-tight text-white">Audit Logs</h1>
         <p className="mt-1 text-sm text-steel-300">
-          The latest {LIMIT} admin actions on subjects and questions. Entries cannot be edited or deleted.
+          The latest {LIMIT} admin actions on subjects, questions and study materials. Entries cannot be edited or deleted.
         </p>
       </div>
 
@@ -65,6 +65,7 @@ export default function AdminLogsPage() {
               <option value="all">All actions</option>
               <option value="subject">Subjects only</option>
               <option value="question">Questions only</option>
+              <option value="resource">Study materials only</option>
             </Select>
             <Button variant="outline" size="sm" onClick={() => setVersion((v) => v + 1)}>
               Refresh
