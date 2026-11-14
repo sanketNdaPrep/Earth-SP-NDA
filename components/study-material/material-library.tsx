@@ -75,7 +75,10 @@ export function MaterialLibrary() {
   const countDownload = (id: string) => {
     if (counted.has(id)) return;
     setCounted((prev) => new Set(prev).add(id));
-    void supabase.rpc("increment_resource_downloads", { p_resource_id: id });
+    // Supabase only sends the request once the call is awaited or chained with then.
+    supabase
+      .rpc("increment_resource_downloads", { p_resource_id: id })
+      .then(() => undefined);
   };
 
   if (items === null) {
@@ -182,7 +185,7 @@ export function MaterialLibrary() {
                               onClick={() => countDownload(m.id)}
                             >
                               <Icons.download className="size-4" />
-                              Download<span className="sr-only">: {m.title} (opens in a new tab)</span>
+                              Download<span className="sr-only"> {m.title} (opens in a new tab)</span>
                             </a>
                           </Button>
                         ) : (
