@@ -8,6 +8,7 @@ import { StackedSectionsDemo } from "@/components/ui/stacked-sections-demo";
 import { StatsGrid, type StatItem } from "@/components/ui/stats-grid";
 import { TimelineDemo } from "@/components/ui/timeline-demo";
 import { EntrySchemes, EntrySchemesSkeleton } from "@/components/landing/entry-schemes";
+import { HeaderActions } from "@/components/landing/header-actions";
 import { FEATURE_ITEMS, HERO_CONTENT } from "@/lib/landing-content";
 
 const HERO_STATS: StatItem[] = [
@@ -79,14 +80,7 @@ export default function Home() {
             <Link href="#roadmap" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Roadmap</Link>
           </nav>
 
-          <div className="flex items-center gap-3">
-            <Link href="/admin/login">
-              <Button variant="gold" size="sm">Admin Login</Button>
-            </Link>
-            <Link href="/register">
-              <Button variant="primary" size="sm">Get Started</Button>
-            </Link>
-          </div>
+          <HeaderActions />
         </div>
       </header>
 
