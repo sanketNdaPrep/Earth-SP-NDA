@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
                   <td className="p-3"><Badge variant="gold">Moderate</Badge></td>
                 </tr>
                 <tr className="hover:bg-navy-800/40">
-                  <td className="p-3 font-semibold text-white">Newton's Laws & Mechanics</td>
+                  <td className="p-3 font-semibold text-white">Newton&apos;s Laws & Mechanics</td>
                   <td className="p-3 font-mono text-gold-300">Physics</td>
                   <td className="p-3 font-mono text-steel-300">95</td>
                   <td className="p-3 font-mono font-bold text-danger-400">62%</td>
