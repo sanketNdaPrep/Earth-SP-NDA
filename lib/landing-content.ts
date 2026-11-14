@@ -31,7 +31,7 @@ export const HERO_CONTENT: HeroContent = {
   title: "Master the Written Exam with Tactical Precision",
   subtitle: "Enterprise-grade study tracking, interactive mock papers, and real-time performance analytics tailored for NDA, CDS, and AFCAT defence aspirants.",
   primaryCtaText: "Start Free Practice",
-  primaryCtaHref: "/ui-demo",
+  primaryCtaHref: "/quizzes",
   secondaryCtaText: "Explore Exam Roadmap",
   secondaryCtaHref: "#roadmap",
 };
@@ -123,8 +123,8 @@ export const FAQS = [
   {
     q: "Is EARTH SP NDA free to use?",
     question: "Is EARTH SP NDA free to use?",
-    a: "Yes, fundamental practice features and UI showcases are accessible to all candidates.",
-    answer: "Yes, fundamental practice features and UI showcases are accessible to all candidates.",
+    a: "Yes, the core practice features and free study material are available to all candidates.",
+    answer: "Yes, the core practice features and free study material are available to all candidates.",
   },
   {
     q: "Which exams are supported?",
