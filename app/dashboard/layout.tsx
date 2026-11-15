@@ -19,7 +19,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: "target" },
   { label: "Study Tracker", href: "/dashboard/study-tracker", icon: "book" },
-  { label: "Mock Tests", href: "/dashboard/mocks", icon: "calculator" },
+  { label: "Mock Tests", href: "/quizzes", icon: "calculator" },
   { label: "Analytics", href: "/dashboard/analytics", icon: "sigma" },
   { label: "Study Materials", href: "/dashboard/resources", icon: "component" },
 ];

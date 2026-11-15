@@ -148,7 +148,7 @@ export default function QuizzesPage() {
                         </Button>
                         {test.total_questions > 0 ? (
                           <Button asChild variant="primary" size="sm">
-                            <Link href={`/mocks/${test.id}`}>
+                            <Link href={`/quizzes/${test.id}`}>
                               Start Test<span className="sr-only">: {test.title}</span>
                             </Link>
                           </Button>

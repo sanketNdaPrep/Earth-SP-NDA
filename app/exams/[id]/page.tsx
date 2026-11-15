@@ -175,7 +175,7 @@ function ExamDetailContent() {
                 All Entry Schemes
               </Button>
             </Link>
-            <Link href="/dashboard/mocks">
+            <Link href="/quizzes">
               <Button variant="primary" size="sm">Mock Test Center</Button>
             </Link>
           </div>
@@ -274,7 +274,7 @@ function ExamDetailContent() {
                 <h2 className="text-2xl font-bold text-white">Available Mock Papers</h2>
                 <p className="text-xs text-steel-300">Practice timed UPSC standard mock examinations for {exam.code}</p>
               </div>
-              <Link href="/dashboard/mocks">
+              <Link href="/quizzes">
                 <Button variant="outline" size="sm">View All Mocks</Button>
               </Link>
             </div>
@@ -309,7 +309,7 @@ function ExamDetailContent() {
                           <div className="mt-1 font-mono font-bold text-gold-300">{mock.total_marks}</div>
                         </div>
                       </div>
-                      <Link href={`/dashboard/mocks/${mock.id}`} className="block">
+                      <Link href={`/quizzes/${mock.id}`} className="block">
                         <Button variant="primary" className="w-full">Start Mock Exam</Button>
                       </Link>
                     </CardContent>
@@ -342,7 +342,7 @@ function ExamDetailContent() {
                         <div className="mt-1 font-mono font-bold text-gold-300">300</div>
                       </div>
                     </div>
-                    <Link href="/dashboard/mocks/nda-maths-01" className="block">
+                    <Link href="/quizzes" className="block">
                       <Button variant="primary" className="w-full">
                         <Icons.calculator className="size-4" />
                         Start Mock Exam

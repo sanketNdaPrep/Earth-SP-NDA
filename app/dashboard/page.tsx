@@ -8,12 +8,42 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { StatsGrid, type StatItem } from "@/components/ui/stats-grid";
 import { PerformanceBento } from "@/components/ui/performance-bento";
+import { useLiveStats, type LiveStats } from "@/components/dashboard/use-live-stats";
 
-const DASHBOARD_STATS: StatItem[] = [
-  { id: "1", title: "Target Score", value: "450/600", description: "NDA Written Goal", icon: "target", trend: { direction: "up", text: "+25 pts from last mock" } },
-  { id: "2", title: "Mathematics", value: "82%", description: "Accuracy (Algebra & Trig)", icon: "sigma", trend: { direction: "up", text: "5% gain" } },
-  { id: "3", title: "Study Streak", value: "14 Days", description: "Daily study targets met", icon: "checkCircle" },
-];
+/** The three tiles, from the cadet's real attempts and study logs. "-" while loading. */
+function buildStats(stats: LiveStats): StatItem[] {
+  const ready = stats.status === "ready" ? stats : null;
+  const days = ready?.streak ?? 0;
+  return [
+    {
+      id: "1",
+      title: "Mock Accuracy",
+      value: ready ? (ready.mockAccuracy === null ? "-" : `${ready.mockAccuracy}%`) : "-",
+      description: ready
+        ? ready.mockTests === 0
+          ? "Take a mock test to see this"
+          : `Across ${ready.mockTests} mock test${ready.mockTests === 1 ? "" : "s"}`
+        : stats.status === "error"
+          ? "Could not load your results"
+          : "Loading your results",
+      icon: "target",
+    },
+    {
+      id: "2",
+      title: "Best Mock Score",
+      value: ready ? (ready.bestMock === null ? "-" : `${ready.bestMock}%`) : "-",
+      description: "Your highest mock test",
+      icon: "calculator",
+    },
+    {
+      id: "3",
+      title: "Study Streak",
+      value: ready ? `${days} ${days === 1 ? "Day" : "Days"}` : "-",
+      description: "In a row with a test or study session",
+      icon: "checkCircle",
+    },
+  ];
+}
 
 const SAMPLE_BENTO_DATA = {
   scores: [
@@ -55,6 +85,9 @@ const SAMPLE_BENTO_DATA = {
 };
 
 export default function DashboardPage() {
+  const liveStats = useLiveStats();
+  const dashboardStats = React.useMemo(() => buildStats(liveStats), [liveStats]);
+
   return (
     <div className="space-y-8">
       {/* Header Banner */}
@@ -73,7 +106,7 @@ export default function DashboardPage() {
               Log Study Session
             </Button>
           </Link>
-          <Link href="/dashboard/mocks">
+          <Link href="/quizzes">
             <Button variant="primary" size="md">
               <Icons.calculator className="size-4" />
               Start Mock Test
@@ -83,7 +116,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Metrics Row */}
-      <StatsGrid stats={DASHBOARD_STATS} label="Cadet Overview Metrics" />
+      <StatsGrid stats={dashboardStats} label="Cadet Overview Metrics" />
 
       {/* Performance Bento Grid */}
       <div className="space-y-4">
@@ -111,7 +144,7 @@ export default function DashboardPage() {
                 <div className="font-semibold text-white">NDA Mathematics Full Paper 04</div>
                 <div className="text-xs text-steel-300">120 Questions // 300 Marks // 150 Mins</div>
               </div>
-              <Link href="/dashboard/mocks">
+              <Link href="/quizzes">
                 <Button variant="primary" size="sm">Launch</Button>
               </Link>
             </div>
@@ -120,7 +153,7 @@ export default function DashboardPage() {
                 <div className="font-semibold text-white">General Ability Test (GAT) Mock 03</div>
                 <div className="text-xs text-steel-300">150 Questions // 600 Marks // 150 Mins</div>
               </div>
-              <Link href="/dashboard/mocks">
+              <Link href="/quizzes">
                 <Button variant="outline" size="sm">Launch</Button>
               </Link>
             </div>
