@@ -90,7 +90,6 @@ export default function DashboardPage() {
 
       {/* Performance Bento Grid */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-white">Comprehensive Performance Analytics</h2>
         {data.status === "loading" ? (
           <SkeletonGroup label="Loading your performance" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Skeleton className="h-52 rounded-panel sm:col-span-2" />
@@ -108,6 +107,7 @@ export default function DashboardPage() {
             eyebrow="Your results"
             heading="Your preparation at a glance"
             intro="Built from the tests you take and the study sessions you log."
+            className="px-0 py-0 sm:px-0 sm:py-0"
             scores={ready.insights.mockScores}
             subjectStats={ready.insights.subjectStats}
             log={ready.insights.log.map((entry) => ({ text: entry.text, detail: entry.detail || undefined }))}
