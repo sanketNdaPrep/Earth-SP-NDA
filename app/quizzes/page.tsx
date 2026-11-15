@@ -136,13 +136,26 @@ export default function QuizzesPage() {
                       <Stat label="Time" value={`${test.duration_minutes}m`} />
                       <Stat label="Marks" value={test.total_marks} />
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-steel-300">Pass mark: {test.passing_marks}</span>
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/exams/${test.target_exam.toLowerCase()}`}>
-                          View exam details<span className="sr-only"> for {test.title}</span>
-                        </Link>
-                      </Button>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-steel-700/60 pt-4">
+                      <span className="text-xs text-steel-300">
+                        {test.passing_marks > 0 ? `Pass mark: ${test.passing_marks}` : "\u00a0"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/exams/${test.target_exam.toLowerCase()}`}>
+                            Details<span className="sr-only"> for {test.title}</span>
+                          </Link>
+                        </Button>
+                        {test.total_questions > 0 ? (
+                          <Button asChild variant="primary" size="sm">
+                            <Link href={`/mocks/${test.id}`}>
+                              Start Test<span className="sr-only">: {test.title}</span>
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Badge variant="outline">Questions coming soon</Badge>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
