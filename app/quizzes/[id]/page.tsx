@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { TestRunner } from "@/components/mock-test/test-runner";
 
 export const metadata: Metadata = {
@@ -11,7 +12,16 @@ export function generateStaticParams() {
   return [{ id: "placeholder" }];
 }
 
-export default async function MockTestPage({ params }: { params: Promise<{ id: string }> }) {
+// Reading params is request data, so it sits inside Suspense: the page shell can then be served instantly.
+async function MockTestContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return <TestRunner testId={id} />;
+}
+
+export default function MockTestPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={null}>
+      <MockTestContent params={params} />
+    </Suspense>
+  );
 }

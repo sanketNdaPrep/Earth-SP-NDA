@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { QuestionForm } from "@/components/admin/questions/question-form";
 
 export const metadata: Metadata = {
@@ -11,7 +12,16 @@ export function generateStaticParams() {
   return [{ id: "placeholder" }];
 }
 
-export default async function EditQuestionPage({ params }: { params: Promise<{ id: string }> }) {
+// Reading params is request data, so it sits inside Suspense: the page shell can then be served instantly.
+async function EditQuestionContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return <QuestionForm questionId={id} />;
+}
+
+export default function EditQuestionPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={null}>
+      <EditQuestionContent params={params} />
+    </Suspense>
+  );
 }
