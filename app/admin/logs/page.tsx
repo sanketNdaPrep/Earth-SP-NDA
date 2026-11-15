@@ -22,7 +22,7 @@ export default function AdminLogsPage() {
   const [rows, setRows] = React.useState<AdminLogRow[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [version, setVersion] = React.useState(0);
-  const [entity, setEntity] = React.useState<"all" | "subject" | "question" | "resource">("all");
+  const [entity, setEntity] = React.useState<"all" | "subject" | "question" | "resource" | "mock_test">("all");
 
   React.useEffect(() => {
     let active = true;
@@ -66,6 +66,7 @@ export default function AdminLogsPage() {
               <option value="subject">Subjects only</option>
               <option value="question">Questions only</option>
               <option value="resource">Study materials only</option>
+              <option value="mock_test">Mock tests only</option>
             </Select>
             <Button variant="outline" size="sm" onClick={() => setVersion((v) => v + 1)}>
               Refresh
