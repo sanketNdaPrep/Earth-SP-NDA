@@ -164,18 +164,24 @@ export async function submitMockTest(mockTestId: string, answers: Record<string,
   }
 
   // The answer key: read here, used here, never returned.
-  const keyResult = await admin
+  const linkResult = await admin
     .from("test_questions")
-    .select("position, questions(id, correct_option)")
+    .select("question_id, position")
     .eq("mock_test_id", mockTestId)
     .order("position", { ascending: true });
-  if (keyResult.error) return fail("error", "Your answers could not be checked. Try again.");
+  if (linkResult.error) return fail("error", "Your answers could not be checked. Try again.");
+  const linkedIds = ((linkResult.data ?? []) as { question_id: string }[]).map((link) => link.question_id);
 
-  const key: KeyEntry[] = [];
-  for (const link of (keyResult.data ?? []) as unknown as { questions: { id: string; correct_option: string | null } | { id: string; correct_option: string | null }[] | null }[]) {
-    const q = Array.isArray(link.questions) ? link.questions[0] : link.questions;
-    if (q) key.push({ id: q.id, correct: isLetter(q.correct_option) ? q.correct_option : null });
-  }
+  const answerResult = linkedIds.length
+    ? await admin.from("question_answers").select("question_id, correct_option").in("question_id", linkedIds)
+    : { data: [], error: null };
+  if (answerResult.error) return fail("error", "Your answers could not be checked. Try again.");
+  const letters = new Map(((answerResult.data ?? []) as { question_id: string; correct_option: string | null }[]).map((a) => [a.question_id, a.correct_option]));
+
+  const key: KeyEntry[] = linkedIds.map((id) => {
+    const letter = letters.get(id);
+    return { id, correct: isLetter(letter) ? letter : null };
+  });
 
   const summary = scoreSubmission(key, clean);
   if (summary.total === 0) return fail("empty", "This test has no scorable questions.");
@@ -242,11 +248,21 @@ export async function getMockResult(attemptId: string): Promise<ResultFetch> {
   const details = attempt.details;
   const ids = details.items.map((item) => item.question_id);
   const questionResult = ids.length
-    ? await admin.from("questions").select("id, question_text, option_a, option_b, option_c, option_d, explanation").in("id", ids)
+    ? await admin.from("questions").select("id, question_text, option_a, option_b, option_c, option_d").in("id", ids)
     : { data: [], error: null };
   if (questionResult.error) return { ok: false, reason: "error", message: "The questions could not be loaded." };
+  const solutionResult = ids.length
+    ? await admin.from("question_answers").select("question_id, explanation").in("question_id", ids)
+    : { data: [], error: null };
+  if (solutionResult.error) return { ok: false, reason: "error", message: "The solutions could not be loaded." };
+  const solutions = new Map(((solutionResult.data ?? []) as { question_id: string; explanation: string | null }[]).map((a) => [a.question_id, a.explanation]));
 
-  const byId = new Map(((questionResult.data ?? []) as NonNullable<ResultItem["question"]>[]).map((q) => [q.id, q]));
+  const byId = new Map(
+    ((questionResult.data ?? []) as Omit<NonNullable<ResultItem["question"]>, "explanation">[]).map((q) => [
+      q.id,
+      { ...q, explanation: solutions.get(q.id) ?? null } as NonNullable<ResultItem["question"]>,
+    ]),
+  );
   const items: ResultItem[] = details.items.map((item) => ({
     question: byId.get(item.question_id) ?? null,
     chosen: item.chosen,

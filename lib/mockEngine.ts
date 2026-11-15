@@ -88,3 +88,14 @@ export interface AttemptDetails {
   unanswered: number;
   items: AnswerItem[];
 }
+
+/** One question's answer key, handed to a signed-in cadet only after they finish a practice module. */
+export interface PracticeKeyRow {
+  id: string;
+  correct: Letter | null;
+  explanation: string | null;
+}
+
+export type PracticeKeyResult =
+  | { ok: true; key: PracticeKeyRow[] }
+  | { ok: false; reason: "auth" | "missing" | "config" | "error"; message: string };

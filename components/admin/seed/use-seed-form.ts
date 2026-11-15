@@ -10,6 +10,7 @@ import {
   type FormEvent,
 } from 'react';
 import { logAdminAction } from '@/lib/adminLog';
+import { saveAnswerKey } from '@/lib/questionBank';
 import { supabase } from '@/lib/supabaseClient';
 import { OPTS, TAXONOMY } from './data';
 import { clearDraft, isEmptyDraft, loadDraft, saveDraft } from './draft-storage';
@@ -305,21 +306,31 @@ export function useSeedForm() {
       .limit(1);
     const nextPosition = ((last?.[0]?.position as number | null | undefined) ?? 0) + 1;
 
-    const { error } = await supabase.from('questions').insert({
-      quiz_id: quizId,
-      question_text: question.trim(),
-      option_a: options.A.trim(),
-      option_b: options.B.trim(),
-      option_c: options.C.trim(),
-      option_d: options.D.trim(),
-      correct_option: correct,
-      explanation: explanation.trim() || null,
-      position: nextPosition,
-    });
+    const { data: inserted, error } = await supabase
+      .from('questions')
+      .insert({
+        quiz_id: quizId,
+        question_text: question.trim(),
+        option_a: options.A.trim(),
+        option_b: options.B.trim(),
+        option_c: options.C.trim(),
+        option_d: options.D.trim(),
+        position: nextPosition,
+      })
+      .select('id');
 
-    if (error) {
+    if (error || !inserted?.length) {
       setSaving(false);
-      setBanner({ type: 'error', text: `Failed to add question: ${error.message}` });
+      setBanner({ type: 'error', text: `Failed to add question: ${error?.message ?? 'you may not have permission'}` });
+      return;
+    }
+
+    // The answer key goes in its own admin-only table. If that fails, remove the half-saved question.
+    const keyError = await saveAnswerKey(supabase, String(inserted[0].id), correct as Opt, explanation.trim() || null);
+    if (keyError) {
+      await supabase.from('questions').delete().eq('id', inserted[0].id);
+      setSaving(false);
+      setBanner({ type: 'error', text: `Failed to add question: ${keyError}. Has the latest SQL (008) been run?` });
       return;
     }
 

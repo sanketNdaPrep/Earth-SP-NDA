@@ -19,6 +19,8 @@ import {
   clip,
   isMissingTopicColumn,
   nextQuestionPosition,
+  saveAnswerKey,
+  toBankQuestion,
   type BankModule,
   type BankQuestion,
 } from "@/lib/questionBank";
@@ -109,7 +111,7 @@ export function QuestionForm({ questionId }: QuestionFormProps) {
         setLoadState("missing");
         return;
       }
-      const row = rowResult.data as unknown as BankQuestion & { topic?: string | null };
+      const row = toBankQuestion(rowResult.data as unknown as Record<string, unknown>) as unknown as BankQuestion & { topic?: string | null };
       const stored = { ...row, topic: row.topic ?? null };
       setOriginal(stored);
       setGroup(groupOf(stored.topic));
@@ -197,7 +199,10 @@ export function QuestionForm({ questionId }: QuestionFormProps) {
     if (!editing || !original) {
       setSaving(true);
       const position = await nextQuestionPosition(supabase, quizId);
-      const row: Record<string, string | number | null> = { quiz_id: quizId, ...fields, position };
+      const { correct_option: _key, explanation: _solution, ...questionFields } = fields;
+      void _key;
+      void _solution;
+      const row: Record<string, string | number | null> = { quiz_id: quizId, ...questionFields, position };
       let topicStored = topicSupported && topicValue !== null;
       let result = await supabase.from("questions").insert(topicStored ? { ...row, topic: topicValue } : row).select("id");
       if (result.error && topicStored && isMissingTopicColumn(result.error)) {
@@ -205,12 +210,22 @@ export function QuestionForm({ questionId }: QuestionFormProps) {
         setTopicSupported(false);
         result = await supabase.from("questions").insert(row).select("id");
       }
-      setSaving(false);
 
       if (result.error || !result.data?.length) {
+        setSaving(false);
         setBanner({ type: "error", text: `The question was not saved: ${result.error?.message ?? "you may not have permission"}.` });
         return;
       }
+
+      // The answer key goes in its own admin-only table. If it fails, remove the half-saved question.
+      const keyError = await saveAnswerKey(supabase, result.data[0].id as string, correct, fields.explanation);
+      if (keyError) {
+        await supabase.from("questions").delete().eq("id", result.data[0].id);
+        setSaving(false);
+        setBanner({ type: "error", text: `The question was not saved: ${keyError}. Has the latest SQL (008) been run?` });
+        return;
+      }
+      setSaving(false);
 
       await logAdminAction({
         action: "added",
@@ -256,17 +271,35 @@ export function QuestionForm({ questionId }: QuestionFormProps) {
     }
 
     setSaving(true);
-    const update: Record<string, string | number | null> = { ...next };
-    if (quizId !== original.quiz_id) update.position = await nextQuestionPosition(supabase, quizId);
-    const { data, error } = await supabase.from("questions").update(update).eq("id", original.id).select(BANK_COLUMNS);
+    const { correct_option: _nextKey, explanation: _nextSolution, ...questionNext } = next;
+    void _nextKey;
+    void _nextSolution;
+    const questionChanged = Object.keys(questionNext).some((key) => questionNext[key] !== before[key]);
+    const answerChanged = changed.includes("correct_option") || changed.includes("explanation");
+
+    let saved: BankQuestion = original;
+    if (questionChanged) {
+      const update: Record<string, string | number | null> = { ...questionNext };
+      if (quizId !== original.quiz_id) update.position = await nextQuestionPosition(supabase, quizId);
+      const { data, error } = await supabase.from("questions").update(update).eq("id", original.id).select(BANK_COLUMNS);
+      if (error || !data?.length) {
+        setSaving(false);
+        setBanner({ type: "error", text: `The changes were not saved: ${error?.message ?? "you may not have permission"}.` });
+        return;
+      }
+      saved = toBankQuestion(data[0] as unknown as Record<string, unknown>) as unknown as BankQuestion;
+    }
+    if (answerChanged) {
+      const keyError = await saveAnswerKey(supabase, original.id, correct, fields.explanation);
+      if (keyError) {
+        setSaving(false);
+        setBanner({ type: "error", text: `The answer key was not saved: ${keyError}. Has the latest SQL (008) been run?` });
+        return;
+      }
+    }
+    saved = { ...saved, correct_option: correct, explanation: fields.explanation };
     setSaving(false);
 
-    if (error || !data?.length) {
-      setBanner({ type: "error", text: `The changes were not saved: ${error?.message ?? "you may not have permission"}.` });
-      return;
-    }
-
-    const saved = data[0] as unknown as BankQuestion;
     const changes: Record<string, { from: string; to: string }> = {};
     for (const key of changed) changes[key] = { from: clip(before[key]), to: clip(next[key]) };
     await logAdminAction({

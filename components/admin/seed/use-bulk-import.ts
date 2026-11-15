@@ -82,16 +82,17 @@ export function useBulkImport(shared: Shared) {
       .limit(1);
     const base = (last?.[0]?.position as number | null | undefined) ?? 0;
 
+    // Ids are made here so each question's answer key can be saved against it.
     const payload = toImport.map((row, i) => ({
+      id: crypto.randomUUID(),
       quiz_id: quizId,
       question_text: row.question,
       option_a: row.options.A,
       option_b: row.options.B,
       option_c: row.options.C,
       option_d: row.options.D,
-      correct_option: row.correct,
-      explanation: row.explanation || null,
       position: base + i + 1,
+      key: { question_id: '', correct_option: row.correct, explanation: row.explanation || null },
     }));
 
     const logBulk = (count: number) =>
@@ -105,8 +106,25 @@ export function useBulkImport(shared: Shared) {
     let saved = 0;
     for (let start = 0; start < payload.length; start += BULK_CHUNK) {
       const chunk = payload.slice(start, start + BULK_CHUNK);
-      const { error } = await supabase.from('questions').insert(chunk);
-      if (error) {
+      const rows = chunk.map(({ key: _key, ...row }) => {
+        void _key;
+        return row;
+      });
+      let failure: string | null = null;
+      const { error: insertError } = await supabase.from('questions').insert(rows);
+      if (insertError) {
+        failure = insertError.message;
+      } else {
+        const keys = chunk.map((item) => ({ ...item.key, question_id: item.id }));
+        const { error: keyError } = await supabase.from('question_answers').insert(keys);
+        if (keyError) {
+          // Never leave questions without an answer key behind.
+          await supabase.from('questions').delete().in('id', chunk.map((item) => item.id));
+          failure = `${keyError.message}. Has the latest SQL (008) been run?`;
+        }
+      }
+      if (failure) {
+        const error = { message: failure };
         setImporting(false);
         if (saved > 0) await logBulk(saved);
         setBanner({

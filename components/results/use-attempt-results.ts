@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getPracticeKey } from '@/app/quizzes/practice-actions';
 import { supabase } from '@/lib/supabaseClient';
 import { loadAttemptDetails, pairAttemptDetail } from '@/components/quiz/attempt-detail';
 import { sortByPosition, toQuestion } from '@/components/quiz/question-loader';
@@ -57,11 +58,13 @@ export function useAttemptResults(attemptId: string | undefined): { state: Resul
         attempted_at: typeof row.attempted_at === 'string' ? row.attempted_at : null,
       };
 
-      const [quizResult, questionResult, cohortResult] = await Promise.all([
+      const [quizResult, questionResult, cohortResult, keyResponse] = await Promise.all([
         supabase.from('quizzes').select('*').eq('id', record.quiz_id).single(),
         supabase.from('questions').select('*').eq('quiz_id', record.quiz_id),
         // Depends on the table's read policy: usually only this cadet's own rows come back.
         supabase.from('user_quiz_attempts').select('score, total_questions').eq('quiz_id', record.quiz_id),
+        // The answer key is kept on the server, so it is fetched here for this cadet's own finished attempt.
+        getPracticeKey(record.quiz_id),
       ]);
 
       if (quizResult.error || !quizResult.data) {
@@ -70,6 +73,8 @@ export function useAttemptResults(attemptId: string | undefined): { state: Resul
           : { status: 'missing' };
       }
       if (questionResult.error) return { status: 'error', message: questionResult.error.message };
+      if (!keyResponse.ok) return { status: 'error', message: keyResponse.message };
+      const keyById = new Map(keyResponse.key.map((row) => [row.id, row]));
 
       const quizRow = quizResult.data as Record<string, unknown>;
       const quiz: QuizRecord = {
@@ -100,7 +105,13 @@ export function useAttemptResults(attemptId: string | undefined): { state: Resul
         status: 'ready',
         attempt: record,
         quiz,
-        questions: sortByPosition((questionResult.data ?? []).map((item) => toQuestion(item))),
+        questions: sortByPosition(
+          (questionResult.data ?? []).map((item) => {
+            const base = toQuestion(item);
+            const row = keyById.get(base.id);
+            return { ...base, correct_option: row?.correct ?? null, explanation: row?.explanation ?? null };
+          }),
+        ),
         detail,
         cohort,
       };

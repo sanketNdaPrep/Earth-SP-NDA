@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { logAdminAction } from '@/lib/adminLog';
+import { toBankQuestion } from '@/lib/questionBank';
 import { supabase } from '@/lib/supabaseClient';
 import type { LoadState, ModuleQuestion } from './types';
 
@@ -23,7 +24,7 @@ export function useModuleQuestions(quizId: string) {
     }
     const { data, error } = await supabase
       .from('questions')
-      .select('id, question_text, correct_option, position, explanation')
+      .select('id, question_text, position, question_answers(correct_option, explanation)')
       .eq('quiz_id', quizId)
       .order('position', { ascending: true });
 
@@ -33,7 +34,7 @@ export function useModuleQuestions(quizId: string) {
       setState('error');
       return;
     }
-    setItems((data ?? []) as ModuleQuestion[]);
+    setItems(((data ?? []) as unknown as Record<string, unknown>[]).map((row) => toBankQuestion(row)) as unknown as ModuleQuestion[]);
     setState('ready');
   }, [quizId]);
 

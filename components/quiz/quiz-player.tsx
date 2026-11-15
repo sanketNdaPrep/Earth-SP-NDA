@@ -1,9 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
+import { getPracticeKey } from '@/app/quizzes/practice-actions';
+import type { PracticeKeyRow } from '@/lib/mockEngine';
 import { supabase } from '@/lib/supabaseClient';
 import { BriefingScreen } from './briefing-screen';
 import { Dialog } from './dialog';
@@ -193,7 +195,18 @@ export function QuizPlayer() {
 
 type DialogState = 'none' | 'confirm' | 'result' | 'palette';
 
-function QuizRunner({ quiz, questions, userKey }: { quiz: QuizRecord; questions: QuizQuestion[]; userKey: string }) {
+function QuizRunner({ quiz, questions: loaded, userKey }: { quiz: QuizRecord; questions: QuizQuestion[]; userKey: string }) {
+  // The answer key is not in the browser while the test runs. It is fetched from the server after submitting.
+  const [key, setKey] = useState<Record<string, PracticeKeyRow> | null>(null);
+  const [keyError, setKeyError] = useState<string | null>(null);
+  const [keyTry, setKeyTry] = useState(0);
+  const questions = useMemo(
+    () =>
+      key
+        ? loaded.map((item) => ({ ...item, correct_option: key[item.id]?.correct ?? null, explanation: key[item.id]?.explanation ?? null }))
+        : loaded,
+    [loaded, key],
+  );
   const scheme = useMemo(() => resolveMarkingScheme(quiz), [quiz]);
   const questionIds = useMemo(() => questions.map((question) => question.id), [questions]);
   const limitSecs = quiz.time_limit_mins && quiz.time_limit_mins > 0 ? Math.round(quiz.time_limit_mins * 60) : null;
@@ -206,6 +219,7 @@ function QuizRunner({ quiz, questions, userKey }: { quiz: QuizRecord; questions:
 
   const running = state.phase === 'running';
   const review = state.phase === 'submitted';
+  const pendingLog = useRef(false);
   const last = questions.length - 1;
   const current = state.current;
   const question = questions[current];
@@ -242,11 +256,30 @@ function QuizRunner({ quiz, questions, userKey }: { quiz: QuizRecord; questions:
   }, [statuses, questions.length]);
 
   const result = useMemo(() => {
-    if (!review || state.startedAt === null || state.finishedAt === null) return null;
+    if (!review || !key || state.startedAt === null || state.finishedAt === null) return null;
     // A deadline that passed while the tab was closed is counted at the deadline, not at the late submit.
     const end = state.endsAt === null ? state.finishedAt : Math.min(state.finishedAt, state.endsAt);
     return scoreAttempt(questions, state.answers, scheme, Math.max(0, Math.round((end - state.startedAt) / 1000)));
-  }, [review, questions, state.answers, state.startedAt, state.finishedAt, state.endsAt, scheme]);
+  }, [review, key, questions, state.answers, state.startedAt, state.finishedAt, state.endsAt, scheme]);
+
+  // Fetch the key once the paper is handed in (also after a reload of a finished paper).
+  useEffect(() => {
+    if (!review || key) return;
+    let cancelled = false;
+    getPracticeKey(quiz.id).then(
+      (response) => {
+        if (cancelled) return;
+        if (response.ok) setKey(Object.fromEntries(response.key.map((row) => [row.id, row])));
+        else setKeyError(response.message);
+      },
+      () => {
+        if (!cancelled) setKeyError('The paper could not be marked. Check your connection and try again.');
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [review, key, quiz.id, keyTry]);
 
   // ----------------------------------------------------------- attempt log
 
@@ -273,13 +306,19 @@ function QuizRunner({ quiz, questions, userKey }: { quiz: QuizRecord; questions:
   const finalize = useCallback(() => {
     if (state.phase !== 'running' || state.startedAt === null) return;
     const now = Date.now();
-    const end = state.endsAt === null ? now : Math.min(now, state.endsAt);
-    const final = scoreAttempt(questions, state.answers, scheme, Math.max(0, Math.round((end - state.startedAt) / 1000)));
     dispatch({ type: 'submit', now });
     setDialog('result');
-    void logAttempt(final.correct);
+    // The attempt is saved as soon as the server has returned the key and the paper is marked.
+    pendingLog.current = true;
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
-  }, [state.phase, state.startedAt, state.endsAt, state.answers, questions, scheme, dispatch, logAttempt]);
+  }, [state.phase, state.startedAt, dispatch]);
+
+  useEffect(() => {
+    if (result && pendingLog.current) {
+      pendingLog.current = false;
+      void logAttempt(result.correct);
+    }
+  }, [result, logAttempt]);
 
   const remaining = useCountdown(state.endsAt, running, finalize);
 
@@ -548,6 +587,29 @@ function QuizRunner({ quiz, questions, userKey }: { quiz: QuizRecord; questions:
             onConfirm={finalize}
             onCancel={() => setDialog('none')}
           />
+        ) : null}
+
+        {review && !key ? (
+          <Dialog labelledBy="marking-title" describedBy="marking-desc" onClose={() => undefined}>
+            <div className="p-6 text-center">
+              <h2 id="marking-title" className="text-lg font-semibold text-white">
+                {keyError ? 'Your paper could not be marked' : 'Marking your paper...'}
+              </h2>
+              <p id="marking-desc" role={keyError ? 'alert' : 'status'} className="mt-2 text-sm text-steel-300">
+                {keyError ?? 'The answer key is being fetched from the server.'}
+              </p>
+              {keyError ? (
+                <button type="button" onClick={() => {
+                    setKeyError(null);
+                    setKeyTry((count) => count + 1);
+                  }} className={`${primaryButton} mt-5`}>
+                  Try again
+                </button>
+              ) : (
+                <SpinnerIcon className="mx-auto mt-5 size-6 text-emerald-400" />
+              )}
+            </div>
+          </Dialog>
         ) : null}
 
         {dialog === 'result' && result ? (

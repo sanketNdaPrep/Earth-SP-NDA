@@ -29,6 +29,7 @@ import {
   clip,
   isMissingTopicColumn,
   optionText,
+  toBankQuestion,
   type BankModule,
   type BankQuestion,
 } from "@/lib/questionBank";
@@ -210,7 +211,7 @@ export default function AdminQuestionsPage() {
         return;
       }
       setError(null);
-      setRows((data ?? []) as unknown as ListQuestion[]);
+      setRows(((data ?? []) as unknown as Record<string, unknown>[]).map((row) => toBankQuestion(row)) as unknown as ListQuestion[]);
       setTotal(count ?? 0);
     });
     return () => {
