@@ -270,10 +270,16 @@ function MissionLogCard({ log }: { log: LogEntry[] }) {
   return (
     <GlowCard accent="steel" className="min-h-85 sm:col-span-2 lg:col-span-1 lg:row-span-2">
       <CardTitle>Mission log</CardTitle>
+      {log.length === 0 ? (
+        <p className="text-sm text-steel-300">Nothing logged yet. Your tests and study sessions will appear here.</p>
+      ) : null}
       <ul
         aria-label="Recent activity"
         tabIndex={0}
-        className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-panel border border-steel-700 bg-navy-950/60 p-4 text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300"
+        className={cn(
+          "flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-panel border border-steel-700 bg-navy-950/60 p-4 text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300",
+          log.length === 0 && "hidden",
+        )}
       >
         {log.map((entry, i) => (
           <li key={`${entry.text}-${i}`} className="bento-slide flex gap-2" style={{ "--delay": `${i * 70}ms` } as React.CSSProperties}>
@@ -294,7 +300,8 @@ function AccuracyCard({ rings }: { rings: AccuracyRing[] }) {
   return (
     <GlowCard accent="emerald" className="min-h-50">
       <CardTitle>Section accuracy</CardTitle>
-      <ul className="flex flex-1 items-center justify-between gap-1">
+      {rings.length === 0 ? <p className="text-sm text-steel-300">Finish a practice module to see accuracy by section.</p> : null}
+      <ul className={cn("flex flex-1 items-center justify-between gap-1", rings.length === 0 && "hidden")}>
         {rings.map((ring) => (
           <li key={ring.label} className="bento-ring-group flex flex-col items-center gap-2">
             <div className="relative size-14">
@@ -337,6 +344,16 @@ function DailyCard({ daily }: { daily: DayCount[] }) {
   const latest = daily[daily.length - 1]?.count ?? 0;
   const animated = useAnimatedNumber(latest, 600);
   const max = Math.max(1, ...daily.map((d) => d.count));
+  const total = daily.reduce((sum, d) => sum + d.count, 0);
+
+  if (total === 0) {
+    return (
+      <GlowCard accent="gold" className="min-h-50">
+        <CardTitle>Questions per day</CardTitle>
+        <p className="text-sm text-steel-300">No questions in the last 7 days. Take a test to start your week.</p>
+      </GlowCard>
+    );
+  }
 
   return (
     <GlowCard accent="gold" className="min-h-50">

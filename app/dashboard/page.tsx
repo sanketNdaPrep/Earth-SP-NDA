@@ -8,7 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { StatsGrid, type StatItem } from "@/components/ui/stats-grid";
 import { PerformanceBento } from "@/components/ui/performance-bento";
+import { formatMinutes } from "@/components/dashboard/insights";
+import { useDashboardInsights } from "@/components/dashboard/use-dashboard-insights";
 import { useLiveStats, type LiveStats } from "@/components/dashboard/use-live-stats";
+import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 
 /** The three tiles, from the cadet's real attempts and study logs. "-" while loading. */
 function buildStats(stats: LiveStats): StatItem[] {
@@ -45,48 +48,15 @@ function buildStats(stats: LiveStats): StatItem[] {
   ];
 }
 
-const SAMPLE_BENTO_DATA = {
-  scores: [
-    { label: "Mock 1", score: 60 },
-    { label: "Mock 2", score: 68 },
-    { label: "Mock 3", score: 75 },
-    { label: "Mock 4", score: 82 },
-  ],
-  subjectStats: [
-    { name: "Mathematics", accuracy: 82 },
-    { name: "English", accuracy: 76 },
-    { name: "Physics", accuracy: 70 },
-    { name: "Chemistry", accuracy: 74 },
-  ],
-  log: [
-    { text: "Attempted NDA Mathematics Mock 3", detail: "82% marks" },
-    { text: "Logged 2.5h Physical Organic Chemistry study", detail: "Today" },
-    { text: "Reviewed 12 incorrect answers in Trigonometry", detail: "Yesterday" },
-  ],
-  rings: [
-    { label: "Maths", value: 82 },
-    { label: "English", value: 76 },
-    { label: "Science", value: 70 },
-  ],
-  daily: [
-    { label: "Mon", count: 40 },
-    { label: "Tue", count: 60 },
-    { label: "Wed", count: 45 },
-    { label: "Thu", count: 70 },
-    { label: "Fri", count: 55 },
-    { label: "Sat", count: 85 },
-    { label: "Sun", count: 90 },
-  ],
-  subjects: [
-    { id: "maths", name: "Maths", description: "Algebra, Trigonometry, Calculus.", icon: "sigma" as const },
-    { id: "english", name: "English", description: "Grammar & Reading Comprehension.", icon: "book" as const },
-    { id: "physics", name: "Physics", description: "Mechanics, Electricity & Magnetism.", icon: "atom" as const },
-  ],
-};
+const BENTO_ICONS = ["sigma", "triangle", "calculator", "target", "atom", "flask", "landmark", "globe", "book"] as const;
+type BentoIcon = (typeof BENTO_ICONS)[number];
+const bentoIcon = (name: string): BentoIcon => (BENTO_ICONS as readonly string[]).includes(name) ? (name as BentoIcon) : "target";
 
 export default function DashboardPage() {
   const liveStats = useLiveStats();
   const dashboardStats = React.useMemo(() => buildStats(liveStats), [liveStats]);
+  const data = useDashboardInsights();
+  const ready = data.status === "ready" ? data : null;
 
   return (
     <div className="space-y-8">
@@ -121,15 +91,37 @@ export default function DashboardPage() {
       {/* Performance Bento Grid */}
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-white">Comprehensive Performance Analytics</h2>
-        <PerformanceBento
-          scores={SAMPLE_BENTO_DATA.scores}
-          subjectStats={SAMPLE_BENTO_DATA.subjectStats}
-          log={SAMPLE_BENTO_DATA.log}
-          rings={SAMPLE_BENTO_DATA.rings}
-          daily={SAMPLE_BENTO_DATA.daily}
-          subjects={SAMPLE_BENTO_DATA.subjects}
-          sample={true}
-        />
+        {data.status === "loading" ? (
+          <SkeletonGroup label="Loading your performance" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-52 rounded-panel sm:col-span-2" />
+            <Skeleton className="h-52 rounded-panel" />
+            <Skeleton className="h-52 rounded-panel" />
+          </SkeletonGroup>
+        ) : null}
+        {data.status === "error" ? (
+          <p role="alert" className="rounded-panel border border-danger-400/40 bg-danger-400/10 p-4 text-sm text-danger-400">
+            Your performance could not be loaded: {data.message}
+          </p>
+        ) : null}
+        {ready ? (
+          <PerformanceBento
+            eyebrow="Your results"
+            heading="Your preparation at a glance"
+            intro="Built from the tests you take and the study sessions you log."
+            scores={ready.insights.mockScores}
+            subjectStats={ready.insights.subjectStats}
+            log={ready.insights.log.map((entry) => ({ text: entry.text, detail: entry.detail || undefined }))}
+            rings={ready.insights.rings}
+            daily={ready.insights.daily}
+            subjects={ready.subjects.map((subject) => ({
+              id: subject.id,
+              name: subject.name,
+              description: subject.description,
+              icon: bentoIcon(subject.icon),
+              href: subject.href,
+            }))}
+          />
+        ) : null}
       </div>
 
       {/* Quick Launch Cards */}
@@ -139,24 +131,25 @@ export default function DashboardPage() {
             <CardTitle className="text-lg">Upcoming Mock Tests</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between border-b border-steel-700/50 pb-3">
-              <div>
-                <div className="font-semibold text-white">NDA Mathematics Full Paper 04</div>
-                <div className="text-xs text-steel-300">120 Questions // 300 Marks // 150 Mins</div>
+            {ready && ready.upcoming.length === 0 ? (
+              <p className="text-sm text-steel-300">
+                {ready.insights.mockCount > 0 ? "You have taken every published mock test. New ones will appear here." : "No mock tests are published yet. Check back soon."}
+              </p>
+            ) : null}
+            {ready?.upcoming.map((test, index) => (
+              <div key={test.id} className="flex items-center justify-between gap-3 border-b border-steel-700/50 pb-3 last:border-b-0 last:pb-1">
+                <div className="min-w-0">
+                  <div className="truncate font-semibold text-white">{test.title}</div>
+                  <div className="text-xs text-steel-300">
+                    {test.questions} Questions // {test.totalMarks} Marks // {test.minutes} Mins
+                  </div>
+                </div>
+                <Link href={`/quizzes/${test.id}`}>
+                  <Button variant={index === 0 ? "primary" : "outline"} size="sm">Launch</Button>
+                </Link>
               </div>
-              <Link href="/quizzes">
-                <Button variant="primary" size="sm">Launch</Button>
-              </Link>
-            </div>
-            <div className="flex items-center justify-between pb-1">
-              <div>
-                <div className="font-semibold text-white">General Ability Test (GAT) Mock 03</div>
-                <div className="text-xs text-steel-300">150 Questions // 600 Marks // 150 Mins</div>
-              </div>
-              <Link href="/quizzes">
-                <Button variant="outline" size="sm">Launch</Button>
-              </Link>
-            </div>
+            ))}
+            {!ready && data.status === "loading" ? <Skeleton className="h-12 w-full rounded-control" /> : null}
           </CardContent>
         </Card>
 
@@ -165,18 +158,22 @@ export default function DashboardPage() {
             <CardTitle className="text-lg">Recent Study Logs</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <div className="flex justify-between border-b border-steel-700/50 pb-2">
-              <span className="font-medium text-white">Physical Organic Chemistry</span>
-              <span className="font-mono text-gold-300">120 mins</span>
-            </div>
-            <div className="flex justify-between border-b border-steel-700/50 pb-2">
-              <span className="font-medium text-white">Higher Algebra & Real Analysis</span>
-              <span className="font-mono text-gold-300">90 mins</span>
-            </div>
-            <div className="flex justify-between pb-1">
-              <span className="font-medium text-white">English Idioms & Spotting Errors</span>
-              <span className="font-mono text-gold-300">60 mins</span>
-            </div>
+            {ready && ready.recentStudy.length === 0 ? (
+              <p className="text-steel-300">
+                No study sessions logged yet.{" "}
+                <Link href="/dashboard/study-tracker" className="font-semibold text-gold-300 underline-offset-4 hover:underline">
+                  Log your first session
+                </Link>
+                .
+              </p>
+            ) : null}
+            {ready?.recentStudy.map((log) => (
+              <div key={log.id} className="flex justify-between gap-3 border-b border-steel-700/50 pb-2 last:border-b-0 last:pb-1">
+                <span className="min-w-0 truncate font-medium text-white">{log.subject}</span>
+                <span className="shrink-0 font-mono text-gold-300">{formatMinutes(log.minutes)}</span>
+              </div>
+            ))}
+            {!ready && data.status === "loading" ? <Skeleton className="h-12 w-full rounded-control" /> : null}
           </CardContent>
         </Card>
       </div>
