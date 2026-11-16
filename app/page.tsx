@@ -8,6 +8,8 @@ import { StatsGrid, type StatItem } from "@/components/ui/stats-grid";
 import { TimelineDemo } from "@/components/ui/timeline-demo";
 import { EntrySchemes, EntrySchemesSkeleton } from "@/components/landing/entry-schemes";
 import { HeaderActions } from "@/components/landing/header-actions";
+import { SiteFooter } from "@/components/landing/site-footer";
+import { SiteMenu } from "@/components/landing/site-menu";
 import { FEATURE_ITEMS, HERO_CONTENT } from "@/lib/landing-content";
 
 // Plain facts about the portal. No user counts or accuracy figures: those are only shown once they are real.
@@ -36,7 +38,10 @@ export default function Home() {
             <Link href="/flashcards" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Flashcards</Link>
           </nav>
 
-          <HeaderActions />
+          <div className="flex items-center gap-3">
+            <HeaderActions />
+            <SiteMenu />
+          </div>
         </div>
       </header>
 
@@ -132,12 +137,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-steel-700 bg-navy-950 py-10 text-center text-xs text-steel-500">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row">
-          <p>EARTH SP NDA. Free preparation portal for NDA, CDS and AFCAT aspirants.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

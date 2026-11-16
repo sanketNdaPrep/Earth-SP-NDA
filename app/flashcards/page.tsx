@@ -4,6 +4,7 @@ import { DeckLibrary } from "@/components/flashcards/deck-library";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
+import { SiteMenu } from "@/components/landing/site-menu";
 
 export const metadata: Metadata = {
   title: "Flashcards",
@@ -23,6 +24,7 @@ export default function FlashcardsPage() {
           <div className="flex gap-2">
             <Button asChild variant="outline" size="sm"><Link href="/study-material">Study material</Link></Button>
             <Button asChild variant="outline" size="sm"><Link href="/">Home</Link></Button>
+            <SiteMenu />
           </div>
         </div>
       </header>

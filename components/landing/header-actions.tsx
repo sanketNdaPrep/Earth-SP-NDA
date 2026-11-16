@@ -25,7 +25,7 @@ type AuthState =
   | { status: "in"; email: string; isAdmin: boolean };
 
 /** Tracks whether someone is signed in, and updates when they sign in or out. */
-function useAuthState(): AuthState {
+export function useAuthState(): AuthState {
   const [state, setState] = React.useState<AuthState>({ status: "loading" });
 
   React.useEffect(() => {

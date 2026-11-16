@@ -251,7 +251,7 @@ function ExamDetailContent() {
           </div>
 
           {/* Official Syllabus Breakdown */}
-          <Card>
+          <Card id="syllabus" className="scroll-mt-24">
             <CardHeader>
               <CardTitle className="text-lg">Official Syllabus & Core Topics</CardTitle>
             </CardHeader>

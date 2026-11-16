@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MaterialLibrary } from "@/components/study-material/material-library";
 import { Badge } from "@/components/ui/badge";
+import { SiteMenu } from "@/components/landing/site-menu";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
 
@@ -27,6 +28,7 @@ export default function StudyMaterialPage() {
             <Button asChild variant="outline" size="sm">
               <Link href="/">Home</Link>
             </Button>
+            <SiteMenu />
           </div>
         </div>
       </header>

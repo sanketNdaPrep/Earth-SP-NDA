@@ -757,4 +757,43 @@ export const Icons = {
       <path d="M5 21h14" />
     </svg>
   ),
+  menu: (props: IconProps) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M4 6h16" />
+      <path d="M4 12h16" />
+      <path d="M4 18h16" />
+    </svg>
+  ),
+  key: (props: IconProps) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="7.5" cy="15.5" r="4.5" />
+      <path d="m10.7 12.3 9.8-9.8" />
+      <path d="m17 6 3 3" />
+      <path d="m14.5 8.5 2 2" />
+    </svg>
+  ),
 };
