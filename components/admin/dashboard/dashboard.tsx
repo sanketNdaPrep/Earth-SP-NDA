@@ -7,13 +7,6 @@ import { useSignOut } from '@/hooks/use-sign-out';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import {
-  PREVIEW_ACTIVITY,
-  PREVIEW_KPIS,
-  PREVIEW_QUERIES,
-  SHOW_SAMPLE_DATA,
-} from '@/lib/admin-preview-data';
-import { ActivityLog } from './activity-log';
-import {
   BookStackIcon,
   ClipboardCheckIcon,
   LifebuoyIcon,
@@ -30,12 +23,6 @@ import { ReplyDialog } from './reply-dialog';
 import { AssignedTasks, AssignWorkForm } from './tasks-panel';
 import type { AdminProfile, QueryItem, Task } from './types';
 
-const previewPill = (
-  <span className="rounded-sm border border-steel-700 px-1.5 py-0.5 text-xs text-steel-300">
-    Preview data
-  </span>
-);
-
 export function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -48,7 +35,7 @@ export function AdminDashboard() {
   // Tasks and queries
   const [tasks, setTasks] = useState<Task[]>([]);
   const [queries, setQueries] = useState<QueryItem[]>([]);
-  const [sampleQueries, setSampleQueries] = useState<QueryItem[]>(PREVIEW_QUERIES);
+  const [totals, setTotals] = useState<{ cadets: number; questions: number; attempts: number } | null>(null);
   const [openQueryId, setOpenQueryId] = useState<string | null>(null);
 
   // Super admin controls
@@ -96,6 +83,20 @@ export function AdminDashboard() {
       setQuestionsAdded(qCount || 0);
       setResourcesAdded(rCount || 0);
 
+      // Platform totals for the KPI tiles (real counts)
+      const [examRows, bankCount, attemptCount] = await Promise.all([
+        supabase.rpc('admin_exam_summary'),
+        supabase.from('questions').select('*', { count: 'exact', head: true }),
+        supabase.from('user_quiz_attempts').select('*', { count: 'exact', head: true }),
+      ]);
+      if (!examRows.error && bankCount.count !== null && attemptCount.count !== null) {
+        const enrolled = ((examRows.data ?? []) as { enrolled: number | string }[]).reduce(
+          (sum, row) => sum + Number(row.enrolled || 0),
+          0,
+        );
+        setTotals({ cadets: enrolled, questions: bankCount.count, attempts: attemptCount.count });
+      }
+
       // Fetch assigned tasks
       const { data: taskData } = await supabase
         .from('admin_tasks')
@@ -126,9 +127,7 @@ export function AdminDashboard() {
     return () => clearTimeout(timer);
   }, [statusMsg]);
 
-  // Sample queries stand in only while the real table is empty.
-  const showingSamples = SHOW_SAMPLE_DATA && queries.length === 0;
-  const shownQueries = showingSamples ? sampleQueries : queries;
+  const shownQueries = queries;
   const openQuery = shownQueries.find((query) => query.id === openQueryId) ?? null;
   const pendingCount = shownQueries.filter((query) => !isDone(query.status)).length;
 
@@ -136,19 +135,6 @@ export function AdminDashboard() {
   const handleResolveQuery = async (queryId: string, text: string): Promise<string | null> => {
     if (!text) return 'Write a reply first.';
 
-    const target = shownQueries.find((query) => query.id === queryId);
-    if (target?.preview) {
-      setSampleQueries((previous) =>
-        previous.map((query) =>
-          query.id === queryId ? { ...query, status: 'resolved', admin_response: text } : query,
-        ),
-      );
-      setStatusMsg({
-        type: 'success',
-        text: 'Sample reply shown on this screen only. Nothing was saved.',
-      });
-      return null;
-    }
 
     const { error } = await supabase
       .from('student_queries')
@@ -202,29 +188,30 @@ export function AdminDashboard() {
     );
   }
 
-  const sampleKpi = (value: number, hint: string) =>
-    SHOW_SAMPLE_DATA
-      ? { value, hint, source: 'preview' as const }
-      : { value: null, hint: 'Not connected to Supabase yet', source: 'live' as const };
+  const liveKpi = (value: number | undefined, hint: string) => ({
+    value: value ?? null,
+    hint: value === undefined ? 'Could not be loaded' : hint,
+    source: 'live' as const,
+  });
 
   const kpis: Kpi[] = [
     {
       id: 'cadets',
       label: 'Total enrolled cadets',
       icon: <UsersIcon className="size-5" />,
-      ...sampleKpi(PREVIEW_KPIS.enrolledCadets.value, PREVIEW_KPIS.enrolledCadets.hint),
+      ...liveKpi(totals?.cadets, 'Registered students'),
     },
     {
       id: 'questions',
       label: 'Questions in bank',
       icon: <BookStackIcon className="size-5" />,
-      ...sampleKpi(PREVIEW_KPIS.questionsInBank.value, PREVIEW_KPIS.questionsInBank.hint),
+      ...liveKpi(totals?.questions, 'Across all modules'),
     },
     {
       id: 'attempts',
       label: 'Tests attempted',
       icon: <ClipboardCheckIcon className="size-5" />,
-      ...sampleKpi(PREVIEW_KPIS.testsAttempted.value, PREVIEW_KPIS.testsAttempted.hint),
+      ...liveKpi(totals?.attempts, 'Practice and mock attempts'),
     },
     {
       id: 'pending',
@@ -232,7 +219,7 @@ export function AdminDashboard() {
       icon: <LifebuoyIcon className="size-5" />,
       value: pendingCount,
       hint: pendingCount === 0 ? 'Every query has a reply' : `${pendingCount} waiting for a reply`,
-      source: showingSamples ? 'preview' : 'live',
+      source: 'live',
       tone: pendingCount > 0 ? 'attention' : 'default',
     },
   ];
@@ -318,21 +305,12 @@ export function AdminDashboard() {
           <KpiGrid items={kpis} />
         </div>
 
-        <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="mt-6 grid items-start gap-6 ">
           <QueriesPanel
             queries={shownQueries}
-            showingSamples={showingSamples}
+            showingSamples={false}
             onOpen={(query) => setOpenQueryId(query.id)}
           />
-
-          <Panel
-            title="Platform activity"
-            description="Latest events across the portal."
-            action={SHOW_SAMPLE_DATA ? previewPill : undefined}
-            delay={0.45}
-          >
-            <ActivityLog events={SHOW_SAMPLE_DATA ? PREVIEW_ACTIVITY : []} />
-          </Panel>
         </div>
 
         <div className="mt-6 grid items-start gap-6 lg:grid-cols-2">

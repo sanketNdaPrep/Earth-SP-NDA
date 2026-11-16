@@ -7,9 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { ApprovalsPanel } from "@/components/admin/approvals-panel";
-import { ADMIN_STUDENTS_PREVIEW, ADMIN_EXAM_STATS_PREVIEW } from "@/lib/admin-preview-data";
+import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
+import { useRoster } from "@/components/admin/use-roster";
+import { formatDay } from "@/lib/adminRoster";
+
+const RECENT_COUNT = 6;
 
 export default function AdminOverviewPage() {
+  const { state, retry } = useRoster();
+  const ready = state.status === "ready" ? state : null;
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -32,71 +39,91 @@ export default function AdminOverviewPage() {
 
       <ApprovalsPanel />
 
-      {/* Exam Performance Overview */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {ADMIN_EXAM_STATS_PREVIEW.map((stat) => (
-          <Card key={stat.exam}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base text-gold-300">{stat.exam}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-steel-300">Total Enrolled:</span>
-                <span className="font-mono font-bold text-white">{stat.totalEnrolled}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-steel-300">Average Score:</span>
-                <span className="font-mono font-bold text-white">{stat.avgScore}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-steel-300">Pass Rate:</span>
-                <span className="font-mono font-bold text-emerald-300">{stat.passRate}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {state.status === "error" ? (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-panel border border-danger-400/40 bg-danger-400/10 p-4 text-sm text-danger-400">
+          <span>Student numbers could not be loaded: {state.message}</span>
+          <Button variant="outline" size="sm" onClick={retry}>Try again</Button>
+        </div>
+      ) : null}
 
-      {/* Candidate Roster Preview Table */}
+      {/* Enrolled students by target exam */}
+      {state.status === "loading" ? (
+        <SkeletonGroup label="Loading enrolment numbers" className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <Skeleton className="h-32 rounded-panel" />
+          <Skeleton className="h-32 rounded-panel" />
+          <Skeleton className="h-32 rounded-panel" />
+        </SkeletonGroup>
+      ) : null}
+      {ready ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {ready.exams.map((stat) => (
+            <Card key={stat.exam}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-gold-300">{stat.exam}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-steel-300">Total Enrolled:</span>
+                  <span className="font-mono font-bold text-white">{stat.enrolled}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-steel-300">Tests Taken:</span>
+                  <span className="font-mono font-bold text-white">{stat.testsTaken}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-steel-300">Average Accuracy:</span>
+                  <span className="font-mono font-bold text-emerald-300">{stat.accuracy === null ? "-" : `${stat.accuracy}%`}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Newest students */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Recent Candidate Enrollments</CardTitle>
+          <CardTitle className="text-lg">
+            Recent Candidate Enrollments{ready ? ` (${ready.totalStudents} enrolled)` : ""}
+          </CardTitle>
           <Link href="/admin/students">
             <Button variant="outline" size="sm">View Full Roster</Button>
           </Link>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-steel-700 bg-navy-950 font-mono text-steel-400 uppercase">
-                <tr>
-                  <th className="p-3">Candidate</th>
-                  <th className="p-3">Target Exam</th>
-                  <th className="p-3">Score</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Joined Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-steel-700/50">
-                {ADMIN_STUDENTS_PREVIEW.map((std) => (
-                  <tr key={std.id} className="hover:bg-navy-800/40">
-                    <td className="p-3">
-                      <div className="font-semibold text-white">{std.name}</div>
-                      <div className="text-steel-500">{std.email}</div>
-                    </td>
-                    <td className="p-3 font-mono text-gold-300">{std.targetExam}</td>
-                    <td className="p-3 font-mono font-bold text-white">{std.score}</td>
-                    <td className="p-3">
-                      <Badge variant={std.status === "Active" ? "emerald" : "outline"}>
-                        {std.status}
-                      </Badge>
-                    </td>
-                    <td className="p-3 text-steel-400">{std.joinedDate}</td>
+          {state.status === "loading" ? <Skeleton className="h-32 w-full rounded-control" /> : null}
+          {ready && ready.students.length === 0 ? (
+            <p className="py-6 text-sm text-steel-300">No students have registered yet. New sign-ups will appear here.</p>
+          ) : null}
+          {ready && ready.students.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-steel-700 bg-navy-950 font-mono text-steel-400 uppercase">
+                  <tr>
+                    <th className="p-3">Candidate</th>
+                    <th className="p-3">Target Exam</th>
+                    <th className="p-3">Tests Taken</th>
+                    <th className="p-3">Accuracy</th>
+                    <th className="p-3">Joined Date</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-steel-700/50">
+                  {ready.students.slice(0, RECENT_COUNT).map((std) => (
+                    <tr key={std.id} className="hover:bg-navy-800/40">
+                      <td className="p-3">
+                        <div className="font-semibold text-white">{std.name}</div>
+                        <div className="text-steel-500">{std.email}</div>
+                      </td>
+                      <td className="p-3 font-mono text-gold-300">{std.targetExam}</td>
+                      <td className="p-3 font-mono text-white">{std.testsTaken}</td>
+                      <td className="p-3 font-mono font-bold text-white">{std.accuracy === null ? "-" : `${std.accuracy}%`}</td>
+                      <td className="p-3 text-steel-400">{formatDay(std.joinedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>
