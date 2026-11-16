@@ -34,6 +34,8 @@ import {
   storagePath,
   type StoredResource,
 } from "@/lib/resources";
+import { useTaxonomy } from "@/hooks/use-taxonomy";
+import { sortChapters } from "@/lib/taxonomy";
 import { supabase } from "@/lib/supabaseClient";
 
 type Message = { type: "success" | "error"; text: string } | null;
@@ -51,6 +53,9 @@ export default function AdminResourcesPage() {
   const [description, setDescription] = React.useState("");
   const [category, setCategory] = React.useState(RESOURCE_CATEGORIES[0]);
   const [exam, setExam] = React.useState(RESOURCE_EXAMS[0]);
+  const [subjectId, setSubjectId] = React.useState("");
+  const [chapterId, setChapterId] = React.useState("");
+  const taxonomy = useTaxonomy();
   const [file, setFile] = React.useState<File | null>(null);
   const [fileKey, setFileKey] = React.useState(0); // changing this clears the file picker
   const [uploading, setUploading] = React.useState(false);
@@ -131,6 +136,10 @@ export default function AdminResourcesPage() {
       return;
     }
 
+    // Only sent when a subject is picked, so uploads still work before migration 013 has been run.
+    const chosenChapter = taxonomy.chapters.find((c) => c.id === chapterId && c.subject_id === subjectId);
+    const filing = subjectId ? { subject_id: subjectId, chapter_id: chosenChapter?.id ?? null } : {};
+
     const url = bucket.getPublicUrl(path).data.publicUrl;
     const kind = resourceKind({ download_url: url, file_type: file.type.startsWith("image/") ? "image" : "pdf" });
 
@@ -142,6 +151,7 @@ export default function AdminResourcesPage() {
         category: cleanCategory,
         size: formatSize(file.size),
         recommended_for: exam,
+        ...filing,
         download_url: url,
         file_path: path,
         file_type: kind,
@@ -168,12 +178,14 @@ export default function AdminResourcesPage() {
         file_type: kind,
         size: formatSize(file.size),
         file_path: path,
+        ...filing,
       },
     });
 
     setUploading(false);
     setTitle("");
     setDescription("");
+    setChapterId("");
     setFile(null);
     setFileKey((k) => k + 1);
     setMsg({ type: "success", text: `"${cleanTitle}" is uploaded. Students can download it from the Study Material page now.` });
@@ -310,6 +322,38 @@ export default function AdminResourcesPage() {
                   {RESOURCE_EXAMS.map((c) => (
                     <option key={c} value={c}>
                       {c}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="res-subject">Subject (optional)</Label>
+                <Select
+                  id="res-subject"
+                  value={subjectId}
+                  onChange={(e) => {
+                    setSubjectId(e.target.value);
+                    setChapterId("");
+                  }}
+                >
+                  <option value="">No subject</option>
+                  {taxonomy.subjects.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="res-chapter">Chapter (optional)</Label>
+                <Select id="res-chapter" value={chapterId} disabled={!subjectId} onChange={(e) => setChapterId(e.target.value)}>
+                  <option value="">{subjectId ? "No chapter" : "Pick a subject first"}</option>
+                  {sortChapters(taxonomy.chapters.filter((c) => c.subject_id === subjectId)).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
                     </option>
                   ))}
                 </Select>

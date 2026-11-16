@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
+import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { resourceKind } from "@/lib/resources";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -20,9 +21,13 @@ interface Material {
   download_url: string;
   file_type: string | null;
   downloads: number;
+  subject_id: string | null;
+  chapter_id: string | null;
 }
 
-const COLUMNS = "id, title, description, category, size, recommended_for, download_url, file_type, downloads";
+const OLD_COLUMNS = "id, title, description, category, size, recommended_for, download_url, file_type, downloads";
+// The subject and chapter columns arrive with migration 013. Until then files load without them.
+const COLUMNS = `${OLD_COLUMNS}, subject_id, chapter_id`;
 const UNCATEGORISED = "Other";
 
 /**
@@ -34,23 +39,28 @@ export function MaterialLibrary() {
   const [error, setError] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState("all");
+  const [subject, setSubject] = React.useState("all");
+  const taxonomy = useTaxonomy();
   const [counted, setCounted] = React.useState<ReadonlySet<string>>(new Set());
 
   React.useEffect(() => {
     let active = true;
-    supabase
-      .from("resources")
-      .select(COLUMNS)
-      .order("created_at", { ascending: false })
-      .then(({ data, error: loadError }) => {
-        if (!active) return;
-        if (loadError) {
-          setError(loadError.message);
-          setItems([]);
-          return;
-        }
-        setItems((data ?? []) as Material[]);
-      });
+    const load = async () => {
+      type Result = { data: unknown; error: { message: string } | null };
+      let result: Result = await supabase.from("resources").select(COLUMNS).order("created_at", { ascending: false });
+      if (result.error && /subject_id|chapter_id/.test(result.error.message)) {
+        result = await supabase.from("resources").select(OLD_COLUMNS).order("created_at", { ascending: false });
+      }
+      if (!active) return;
+      if (result.error) {
+        setError(result.error.message);
+        setItems([]);
+        return;
+      }
+      const rows = (result.data ?? []) as Partial<Material>[];
+      setItems(rows.map((m) => ({ subject_id: null, chapter_id: null, ...m })) as Material[]);
+    };
+    void load();
     return () => {
       active = false;
     };
@@ -61,15 +71,30 @@ export function MaterialLibrary() {
     return [...names].sort((a, b) => a.localeCompare(b));
   }, [items]);
 
+  const subjectChips = React.useMemo(() => {
+    const used = new Set((items ?? []).map((m) => m.subject_id).filter(Boolean));
+    return taxonomy.subjects.filter((x) => used.has(x.id));
+  }, [items, taxonomy.subjects]);
+
+  const filedLabel = React.useCallback(
+    (m: Material) => {
+      const subjectName = taxonomy.subjects.find((x) => x.id === m.subject_id)?.name;
+      const chapterName = taxonomy.chapters.find((x) => x.id === m.chapter_id)?.name;
+      return [subjectName, chapterName].filter(Boolean).join(" > ");
+    },
+    [taxonomy.subjects, taxonomy.chapters],
+  );
+
   const visible = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     return (items ?? []).filter((m) => {
       const cat = m.category?.trim() || UNCATEGORISED;
       if (category !== "all" && cat !== category) return false;
+      if (subject !== "all" && m.subject_id !== subject) return false;
       if (!q) return true;
-      return [m.title, m.description, cat, m.recommended_for].some((field) => field?.toLowerCase().includes(q));
+      return [m.title, m.description, cat, m.recommended_for, filedLabel(m)].some((field) => field?.toLowerCase().includes(q));
     });
-  }, [items, search, category]);
+  }, [items, search, category, subject, filedLabel]);
 
   // Count each file once per visit. The counter is a convenience, so a failure is ignored.
   const countDownload = (id: string) => {
@@ -126,6 +151,15 @@ export function MaterialLibrary() {
                 autoComplete="off"
               />
             </div>
+            {subjectChips.length > 0 ? (
+              <div role="group" aria-label="Filter by subject" className="flex flex-wrap gap-2">
+                {[{ id: "all", name: "All subjects" }, ...subjectChips].map((chip) => (
+                  <Button key={chip.id} size="sm" variant={subject === chip.id ? "primary" : "outline"} aria-pressed={subject === chip.id} onClick={() => setSubject(chip.id)}>
+                    {chip.name}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
             <div role="group" aria-label="Filter by category" className="flex flex-wrap gap-2">
               {["all", ...categories].map((name) => (
                 <Button
@@ -166,6 +200,7 @@ export function MaterialLibrary() {
                       </div>
                       <CardTitle className="text-lg">{m.title}</CardTitle>
                       {m.description ? <p className="text-sm text-steel-300">{m.description}</p> : null}
+                      {filedLabel(m) ? <p className="font-mono text-xs text-gold-300">{filedLabel(m)}</p> : null}
                       {m.recommended_for ? (
                         <p className="text-xs text-steel-500">Recommended for {m.recommended_for}</p>
                       ) : null}
