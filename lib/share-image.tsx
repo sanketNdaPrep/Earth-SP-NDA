@@ -74,7 +74,7 @@ export function generateShareImage(title?: string, description?: string) {
           }}
         >
           {description ||
-            "Enterprise-grade study tracking, interactive mock papers, and real-time performance analytics."}
+            "Study tracking, timed mock papers and performance analytics."}
         </p>
       </div>
     ),

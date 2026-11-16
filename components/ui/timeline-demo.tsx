@@ -54,7 +54,7 @@ const ENTRIES: TimelineEntry[] = [
         <StatTiles
           tiles={[
             { label: "Maths topics", value: "4", note: "Algebra to Vectors" },
-            { label: "Daily study", value: "30 min", note: "Untimed", tone: "emerald" },
+            { label: "Daily study", value: "2 h", note: "Steady pace", tone: "emerald" },
           ]}
         />
       </div>

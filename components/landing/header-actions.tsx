@@ -95,7 +95,7 @@ function AccountMenu({ email, isAdmin }: { email: string; isAdmin: boolean }) {
 
 /**
  * The right side of the Home page header.
- * Signed out: Admin Login and Get Started. Signed in: the person's avatar with a menu.
+ * Signed out: Log in and Get Started. Signed in: the person's avatar with a menu.
  */
 export function HeaderActions() {
   const auth = useAuthState();
@@ -111,8 +111,8 @@ export function HeaderActions() {
 
   return (
     <div className="flex items-center gap-3">
-      <Button asChild variant="gold" size="sm">
-        <Link href="/admin/login">Admin Login</Link>
+      <Button asChild variant="outline" size="sm">
+        <Link href="/login">Log in</Link>
       </Button>
       <Button asChild variant="primary" size="sm">
         <Link href="/register">Get Started</Link>

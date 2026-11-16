@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
-import { PerformanceBento } from "@/components/ui/performance-bento";
 import { StackedSectionsDemo } from "@/components/ui/stacked-sections-demo";
 import { StatsGrid, type StatItem } from "@/components/ui/stats-grid";
 import { TimelineDemo } from "@/components/ui/timeline-demo";
@@ -11,55 +10,12 @@ import { EntrySchemes, EntrySchemesSkeleton } from "@/components/landing/entry-s
 import { HeaderActions } from "@/components/landing/header-actions";
 import { FEATURE_ITEMS, HERO_CONTENT } from "@/lib/landing-content";
 
+// Plain facts about the portal. No user counts or accuracy figures: those are only shown once they are real.
 const HERO_STATS: StatItem[] = [
-  { id: "1", title: "Active Aspirants", value: "2,400+", description: "Targeting NDA & CDS 2027", icon: "users", trend: { direction: "up", text: "+18% this month" } },
-  { id: "2", title: "Question Bank", value: "15,000+", description: "UPSC Standard Questions", icon: "target" },
-  { id: "3", title: "Mock Accuracy", value: "84%", description: "Average user retention", icon: "checkCircle", trend: { direction: "up", text: "Top quartile percentile" } },
+  { id: "1", title: "Entry schemes", value: "3", description: "NDA, CDS and AFCAT", icon: "shield" },
+  { id: "2", title: "Cost to start", value: "Free", description: "Practice, study material and tracking", icon: "checkCircle" },
+  { id: "3", title: "Answer review", value: "After every test", description: "Marks, explanations and weak topics", icon: "target" },
 ];
-
-const BENTO_PREVIEW_DATA = {
-  scores: [
-    { label: "Paper 1", score: 58 },
-    { label: "Paper 2", score: 64 },
-    { label: "Paper 3", score: 72 },
-    { label: "Paper 4", score: 79 },
-    { label: "Paper 5", score: 85 },
-  ],
-  subjectStats: [
-    { name: "Mathematics", accuracy: 85 },
-    { name: "English", accuracy: 78 },
-    { name: "Physics", accuracy: 72 },
-    { name: "Chemistry", accuracy: 74 },
-    { name: "General Studies", accuracy: 68 },
-  ],
-  log: [
-    { text: "Completed NDA Full Syllabus Mock 4", detail: "85% Score" },
-    { text: "Analyzed Trigonometry & Matrix errors", detail: "30m ago" },
-    { text: "Revised Modern History Timeline notes", detail: "2h ago" },
-  ],
-  rings: [
-    { label: "Maths", value: 85 },
-    { label: "English", value: 78 },
-    { label: "GAT", value: 72 },
-  ],
-  daily: [
-    { label: "Mon", count: 30 },
-    { label: "Tue", count: 45 },
-    { label: "Wed", count: 50 },
-    { label: "Thu", count: 65 },
-    { label: "Fri", count: 55 },
-    { label: "Sat", count: 80 },
-    { label: "Sun", count: 95 },
-  ],
-  subjects: [
-    { id: "maths", name: "Maths", description: "Algebra, Trigonometry, Calculus, Matrices & Statistics.", icon: "sigma" as const },
-    { id: "english", name: "English", description: "Grammar, Comprehension, Idioms & Spotting Errors.", icon: "book" as const },
-    { id: "physics", name: "Physics", description: "Mechanics, Electricity, Optics & Thermodynamics.", icon: "atom" as const },
-    { id: "chemistry", name: "Chemistry", description: "Elements, Compounds, Acids & Physical Chemistry.", icon: "flask" as const },
-    { id: "geography", name: "Geography", description: "Physical Geography, Map Work & Climate Systems.", icon: "globe" as const },
-    { id: "history", name: "History", description: "Freedom Movement, Constitution & Defence History.", icon: "landmark" as const },
-  ],
-};
 
 export default function Home() {
   return (
@@ -76,7 +32,6 @@ export default function Home() {
           <nav className="hidden gap-6 md:flex">
             <Link href="#features" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Features</Link>
             <Link href="#exams" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Exams</Link>
-            <Link href="#analytics" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Analytics</Link>
             <Link href="#roadmap" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Roadmap</Link>
           </nav>
 
@@ -165,19 +120,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Performance Bento Preview */}
-        <section id="analytics" className="border-t border-steel-700 bg-navy-900/30">
-          <PerformanceBento
-            scores={BENTO_PREVIEW_DATA.scores}
-            subjectStats={BENTO_PREVIEW_DATA.subjectStats}
-            log={BENTO_PREVIEW_DATA.log}
-            rings={BENTO_PREVIEW_DATA.rings}
-            daily={BENTO_PREVIEW_DATA.daily}
-            subjects={BENTO_PREVIEW_DATA.subjects}
-            sample={true}
-          />
-        </section>
-
         {/* Roadmap Timeline */}
         <section id="roadmap" className="border-t border-steel-700">
           <TimelineDemo />
@@ -192,10 +134,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-steel-700 bg-navy-950 py-10 text-center text-xs text-steel-500">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row">
-          <p>© 2027 EARTH SP NDA. Enterprise-grade defence examination portal.</p>
-          <div className="flex gap-4">
-            <Link href="/admin/login" className="text-gold-400 hover:underline">Admin Command Portal</Link>
-          </div>
+          <p>EARTH SP NDA. Free preparation portal for NDA, CDS and AFCAT aspirants.</p>
         </div>
       </footer>
     </div>

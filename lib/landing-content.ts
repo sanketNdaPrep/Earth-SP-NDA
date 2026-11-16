@@ -29,7 +29,7 @@ export type JourneyOutcome = "cleared" | "ssb" | "failed" | "start";
 export const HERO_CONTENT: HeroContent = {
   badgeText: "Targeting NDA I & II 2027",
   title: "Master the Written Exam with Tactical Precision",
-  subtitle: "Enterprise-grade study tracking, interactive mock papers, and real-time performance analytics tailored for NDA, CDS, and AFCAT defence aspirants.",
+  subtitle: "Study tracking, timed mock papers and performance analytics built for NDA, CDS, and AFCAT defence aspirants.",
   primaryCtaText: "Start Free Practice",
   primaryCtaHref: "/quizzes",
   secondaryCtaText: "Explore Exam Roadmap",
