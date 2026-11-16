@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icons } from '@/components/ui/icons';
+import { registerAdmin } from './actions';
 
 export default function AdminSignupPage() {
   const router = useRouter();
@@ -42,23 +43,18 @@ export default function AdminSignupPage() {
 
     // The server checks the passcode and decides the account status.
     try {
-      const res = await fetch('/api/admin/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: signupMode,
-          passcode: secretPasscode,
-          fullName,
-          email,
-          phone,
-          about,
-          password,
-        }),
+      const data = await registerAdmin({
+        mode: signupMode,
+        passcode: secretPasscode,
+        fullName,
+        email,
+        phone,
+        about,
+        password,
       });
-      const data = (await res.json()) as { ok: boolean; approved?: boolean; error?: string };
 
       if (!data.ok) {
-        setMsg({ type: 'error', text: data.error ?? 'Registration failed.' });
+        setMsg({ type: 'error', text: data.error });
       } else if (data.approved) {
         setMsg({ type: 'success', text: 'Passcode Verified! Account created & activated. Redirecting to login...' });
         setTimeout(() => {
