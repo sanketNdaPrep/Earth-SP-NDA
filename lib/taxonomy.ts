@@ -1,0 +1,80 @@
+/** Subjects and their chapters, as the pickers and the student pages use them. */
+export interface TaxSubject {
+  id: string;
+  name: string;
+  sort_order: number;
+}
+
+export interface Chapter {
+  id: string;
+  subject_id: string;
+  name: string;
+  sort_order: number;
+}
+
+export const CHAPTER_NAME = { min: 2, max: 60 } as const;
+
+/** Why a chapter name cannot be used, or null. Names are unique inside a subject, ignoring case. */
+export function chapterNameProblem(name: string, siblings: readonly Pick<Chapter, "id" | "name">[], editingId?: string): string | null {
+  const clean = name.trim();
+  if (clean.length < CHAPTER_NAME.min || clean.length > CHAPTER_NAME.max) {
+    return `A chapter name must be ${CHAPTER_NAME.min} to ${CHAPTER_NAME.max} characters.`;
+  }
+  if (siblings.some((c) => c.id !== editingId && c.name.trim().toLowerCase() === clean.toLowerCase())) {
+    return "This subject already has a chapter with that name.";
+  }
+  return null;
+}
+
+export function sortChapters<T extends Pick<Chapter, "name" | "sort_order">>(chapters: readonly T[]): T[] {
+  return [...chapters].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+}
+
+export interface Filed {
+  subject_id: string | null;
+  chapter_id: string | null;
+}
+
+export interface Section<T> {
+  key: string;
+  subjectId: string | null;
+  subjectName: string;
+  chapters: { key: string; chapterId: string | null; chapterName: string | null; items: T[] }[];
+}
+
+/**
+ * Groups filed items as Subject, then Chapter. Items with no subject go last under "Other".
+ * Items with a subject but no chapter sit first inside that subject, with no chapter heading.
+ */
+export function groupBySubject<T extends Filed>(items: readonly T[], subjects: readonly TaxSubject[], chapters: readonly Chapter[]): Section<T>[] {
+  const subjectById = new Map(subjects.map((s) => [s.id, s]));
+  const chapterById = new Map(chapters.map((c) => [c.id, c]));
+  const bySubject = new Map<string | null, T[]>();
+  for (const item of items) {
+    const key = item.subject_id && subjectById.has(item.subject_id) ? item.subject_id : null;
+    bySubject.set(key, [...(bySubject.get(key) ?? []), item]);
+  }
+
+  const ordered = [...subjects].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  const sections: Section<T>[] = [];
+  for (const subject of [...ordered.map((s) => s.id), null]) {
+    const members = bySubject.get(subject);
+    if (!members?.length) continue;
+    const byChapter = new Map<string | null, T[]>();
+    for (const m of members) {
+      const key = m.chapter_id && chapterById.has(m.chapter_id) ? m.chapter_id : null;
+      byChapter.set(key, [...(byChapter.get(key) ?? []), m]);
+    }
+    const chapterOrder = sortChapters(chapters.filter((c) => c.subject_id === subject)).map((c) => c.id);
+    const groups = [null, ...chapterOrder]
+      .filter((id) => byChapter.has(id))
+      .map((id) => ({
+        key: id ?? "none",
+        chapterId: id,
+        chapterName: id ? (chapterById.get(id)?.name ?? null) : null,
+        items: byChapter.get(id) ?? [],
+      }));
+    sections.push({ key: subject ?? "other", subjectId: subject, subjectName: subject ? (subjectById.get(subject)?.name ?? "Other") : "Other", chapters: groups });
+  }
+  return sections;
+}

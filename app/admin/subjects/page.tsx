@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
+import { ChaptersManager } from "@/components/admin/chapters-manager";
 import { logAdminAction } from "@/lib/adminLog";
 import { slugify, SUBJECT_ICONS, type Subject } from "@/lib/subjects";
 import { supabase } from "@/lib/supabaseClient";
@@ -40,6 +41,7 @@ export default function AdminSubjectsPage() {
   const [saving, setSaving] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [msg, setMsg] = React.useState<Message>(null);
+  const [chaptersOpen, setChaptersOpen] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -277,6 +279,15 @@ export default function AdminSubjectsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant={s.is_active ? "emerald" : "outline"}>{s.is_active ? "Shown" : "Hidden"}</Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-expanded={chaptersOpen === s.id}
+                      onClick={() => setChaptersOpen(chaptersOpen === s.id ? null : s.id)}
+                      aria-label={`Chapters of ${s.name}`}
+                    >
+                      Chapters
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => startEdit(s)} aria-label={`Edit ${s.name}`}>
                       Edit
                     </Button>
@@ -290,6 +301,7 @@ export default function AdminSubjectsPage() {
                       {s.is_active ? "Hide" : "Show"}
                     </Button>
                   </div>
+                  {chaptersOpen === s.id ? <ChaptersManager subjectId={s.id} subjectName={s.name} /> : null}
                 </li>
               ))}
             </ul>
