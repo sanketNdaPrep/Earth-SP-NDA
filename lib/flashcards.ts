@@ -4,6 +4,8 @@ export interface Deck {
   category: string;
   description: string;
   created_at: string;
+  subject_id: string | null;
+  chapter_id: string | null;
   /** Filled by the list query: flashcards(count). */
   flashcards?: { count: number }[] | null;
 }

@@ -6,19 +6,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
+import { useTaxonomy } from "@/hooks/use-taxonomy";
+import { sortChapters } from "@/lib/taxonomy";
 import { logAdminAction } from "@/lib/adminLog";
-import { cardCount, DECK_CATEGORIES, DECK_LIMITS, formatCards, parseCards, type Card as FlashCard, type Deck } from "@/lib/flashcards";
+import { cardCount, DECK_LIMITS, formatCards, parseCards, type Card as FlashCard, type Deck } from "@/lib/flashcards";
 import { supabase } from "@/lib/supabaseClient";
 
 type Message = { type: "success" | "error"; text: string } | null;
 interface FormState {
   title: string;
-  category: string;
+  subjectId: string;
+  chapterId: string;
   description: string;
   cards: string;
 }
 
-const EMPTY_FORM: FormState = { title: "", category: "Maths", description: "", cards: "" };
+function filedLabel(deck: Deck, tax: { subjects: { id: string; name: string }[]; chapters: { id: string; name: string }[] }): string {
+  const subject = tax.subjects.find((x) => x.id === deck.subject_id)?.name;
+  const chapter = tax.chapters.find((x) => x.id === deck.chapter_id)?.name;
+  return [subject, chapter].filter(Boolean).join(" > ") || "Not filed";
+}
+
+const EMPTY_FORM: FormState = { title: "", subjectId: "", chapterId: "", description: "", cards: "" };
 const inputClass =
   "w-full rounded-control border border-steel-700 bg-navy-950 px-3 py-2 text-sm text-steel-100 placeholder:text-steel-500 focus:border-gold-400 focus:outline-none";
 const labelClass = "block text-xs font-semibold uppercase tracking-wider text-steel-300";
@@ -32,12 +41,13 @@ export default function AdminFlashcardsPage() {
   const [saving, setSaving] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [msg, setMsg] = React.useState<Message>(null);
+  const taxonomy = useTaxonomy();
 
   React.useEffect(() => {
     let active = true;
     supabase
       .from("flashcard_decks")
-      .select("id, title, category, description, created_at, flashcards(count)")
+      .select("id, title, category, description, created_at, subject_id, chapter_id, flashcards(count)")
       .order("created_at", { ascending: true })
       .then(({ data, error }) => {
         if (!active) return;
@@ -64,7 +74,7 @@ export default function AdminFlashcardsPage() {
     setBusyId(null);
     if (error) return setMsg({ type: "error", text: error.message });
     setEditing(deck);
-    setForm({ title: deck.title, category: deck.category, description: deck.description, cards: formatCards((data ?? []) as FlashCard[]) });
+    setForm({ title: deck.title, subjectId: deck.subject_id ?? "", chapterId: deck.chapter_id ?? "", description: deck.description, cards: formatCards((data ?? []) as FlashCard[]) });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -79,6 +89,14 @@ export default function AdminFlashcardsPage() {
     if (description.length > DECK_LIMITS.descriptionMax) {
       return setMsg({ type: "error", text: `Description can be at most ${DECK_LIMITS.descriptionMax} characters.` });
     }
+    const subject = taxonomy.subjects.find((x) => x.id === form.subjectId);
+    const chapter = taxonomy.chapters.find((x) => x.id === form.chapterId && x.subject_id === form.subjectId);
+    // "category" stays filled (chapter, else subject) so older readers of the table keep working.
+    const filing = {
+      subject_id: subject?.id ?? null,
+      chapter_id: subject && chapter ? chapter.id : null,
+      category: chapter?.name ?? subject?.name ?? "General",
+    };
     const parsed = parseCards(form.cards);
     if (!parsed.ok) return setMsg({ type: "error", text: parsed.error });
 
@@ -88,7 +106,7 @@ export default function AdminFlashcardsPage() {
     if (editing) {
       const { data, error } = await supabase
         .from("flashcard_decks")
-        .update({ title, category: form.category, description })
+        .update({ title, ...filing, description })
         .eq("id", editing.id)
         .select("id");
       if (error || !data?.length) {
@@ -96,7 +114,7 @@ export default function AdminFlashcardsPage() {
         return setMsg({ type: "error", text: error?.code === "23505" ? "A deck with this title already exists." : (error?.message ?? "Could not save the deck.") });
       }
     } else {
-      const { data, error } = await supabase.from("flashcard_decks").insert({ title, category: form.category, description }).select("id");
+      const { data, error } = await supabase.from("flashcard_decks").insert({ title, ...filing, description }).select("id");
       if (error || !data?.length) {
         setSaving(false);
         return setMsg({ type: "error", text: error?.code === "23505" ? "A deck with this title already exists." : (error?.message ?? "Could not save the deck.") });
@@ -180,12 +198,23 @@ export default function AdminFlashcardsPage() {
                 <input id="deck-title" required maxLength={DECK_LIMITS.titleMax} value={form.title} onChange={(e) => setField("title", e.target.value)} placeholder="Maths formulas" className={inputClass} />
               </div>
               <div className="space-y-1">
-                <label htmlFor="deck-category" className={labelClass}>Category</label>
-                <Select id="deck-category" value={form.category} onChange={(e) => setField("category", e.target.value)}>
-                  {[...new Set([...DECK_CATEGORIES, form.category])].map((name) => (
-                    <option key={name} value={name}>{name}</option>
+                <label htmlFor="deck-subject" className={labelClass}>Subject</label>
+                <Select id="deck-subject" value={form.subjectId} onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value, chapterId: "" }))}>
+                  <option value="">No subject (shown under Other)</option>
+                  {taxonomy.subjects.map((x) => (
+                    <option key={x.id} value={x.id}>{x.name}</option>
                   ))}
                 </Select>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <label htmlFor="deck-chapter" className={labelClass}>Chapter</label>
+                <Select id="deck-chapter" value={form.chapterId} disabled={!form.subjectId} onChange={(e) => setField("chapterId", e.target.value)}>
+                  <option value="">{form.subjectId ? "No chapter" : "Pick a subject first"}</option>
+                  {sortChapters(taxonomy.chapters.filter((c) => c.subject_id === form.subjectId)).map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </Select>
+                <p className="text-xs text-steel-500">Add subjects and chapters under Admin Suite, Subjects, Chapters.</p>
               </div>
             </div>
 
@@ -234,7 +263,7 @@ export default function AdminFlashcardsPage() {
                 <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                   <div className="min-w-0">
                     <div className="font-semibold text-white">{d.title}</div>
-                    <p className="mt-0.5 text-xs text-steel-300">{d.category} · {cardCount(d)} cards</p>
+                    <p className="mt-0.5 text-xs text-steel-300">{filedLabel(d, taxonomy)} · {cardCount(d)} cards</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Button variant="outline" size="sm" disabled={busyId === d.id} onClick={() => void startEdit(d)} aria-label={`Edit ${d.title}`}>Edit</Button>

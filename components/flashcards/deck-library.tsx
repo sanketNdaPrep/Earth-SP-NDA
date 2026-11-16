@@ -7,10 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
+import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { cardCount, type Deck } from "@/lib/flashcards";
+import { groupBySubject } from "@/lib/taxonomy";
 import { supabase } from "@/lib/supabaseClient";
 
-const COLUMNS = "id, title, category, description, created_at, flashcards(count)";
+const COLUMNS = "id, title, category, description, created_at, subject_id, chapter_id, flashcards(count)";
+// Used until migration 013 has been run: decks load, they are just not filed under subjects yet.
+const OLD_COLUMNS = "id, title, category, description, created_at, flashcards(count)";
 
 /** Every flashcard deck, with search and category filters. Open to everyone. */
 export function DeckLibrary() {
@@ -21,31 +25,42 @@ export function DeckLibrary() {
 
   React.useEffect(() => {
     let active = true;
-    supabase
-      .from("flashcard_decks")
-      .select(COLUMNS)
-      .order("created_at", { ascending: true })
-      .then(({ data, error: loadError }) => {
-        if (!active) return;
-        // A missing table just means the decks have not been set up yet: show the empty state, not a red error.
-        const notSetUp = loadError?.code === "PGRST205" || /schema cache|does not exist/i.test(loadError?.message ?? "");
-        if (loadError && !notSetUp) setError(loadError.message);
-        setDecks(loadError ? [] : ((data ?? []) as unknown as Deck[]));
-      });
+    const load = async () => {
+      type Result = { data: unknown; error: { code?: string; message: string } | null };
+      let result: Result = await supabase.from("flashcard_decks").select(COLUMNS).order("created_at", { ascending: true });
+      if (result.error && /subject_id|chapter_id/.test(result.error.message)) {
+        result = await supabase.from("flashcard_decks").select(OLD_COLUMNS).order("created_at", { ascending: true });
+      }
+      if (!active) return;
+      const { data, error: loadError } = result;
+      // A missing table just means the decks have not been set up yet: show the empty state, not a red error.
+      const notSetUp = loadError?.code === "PGRST205" || /schema cache|does not exist/i.test(loadError?.message ?? "");
+      if (loadError && !notSetUp) setError(loadError.message);
+      const rows = loadError ? [] : ((data ?? []) as unknown as Partial<Deck>[]);
+      setDecks(rows.map((d) => ({ subject_id: null, chapter_id: null, ...d })) as Deck[]);
+    };
+    void load();
     return () => {
       active = false;
     };
   }, []);
 
-  const categories = React.useMemo(() => [...new Set((decks ?? []).map((d) => d.category))].sort((a, b) => a.localeCompare(b)), [decks]);
+  const taxonomy = useTaxonomy();
 
-  const visible = React.useMemo(() => {
+  const subjectChips = React.useMemo(() => {
+    const used = new Set((decks ?? []).map((d) => d.subject_id).filter(Boolean));
+    const named = taxonomy.subjects.filter((x) => used.has(x.id)).map((x) => ({ id: x.id, name: x.name }));
+    const hasOther = (decks ?? []).some((d) => !d.subject_id || !taxonomy.subjects.some((x) => x.id === d.subject_id));
+    return hasOther && named.length > 0 ? [...named, { id: "other", name: "Other" }] : named;
+  }, [decks, taxonomy.subjects]);
+
+  const sections = React.useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (decks ?? []).filter((d) => {
-      if (category !== "all" && d.category !== category) return false;
-      return !q || [d.title, d.description, d.category].some((field) => field.toLowerCase().includes(q));
-    });
-  }, [decks, search, category]);
+    const matching = (decks ?? []).filter((d) => !q || [d.title, d.description, d.category].some((field) => field.toLowerCase().includes(q)));
+    return groupBySubject(matching, taxonomy.subjects, taxonomy.chapters).filter(
+      (section) => category === "all" || (category === "other" ? section.subjectId === null : section.subjectId === category),
+    );
+  }, [decks, search, category, taxonomy.subjects, taxonomy.chapters]);
 
   if (decks === null) {
     return (
@@ -83,35 +98,49 @@ export function DeckLibrary() {
               </label>
               <Input id="deck-search" type="search" placeholder="Search decks..." value={search} onChange={(e) => setSearch(e.target.value)} autoComplete="off" />
             </div>
-            <div role="group" aria-label="Filter by category" className="flex flex-wrap gap-2">
-              {["all", ...categories].map((name) => (
-                <Button key={name} size="sm" variant={category === name ? "primary" : "outline"} aria-pressed={category === name} onClick={() => setCategory(name)}>
-                  {name === "all" ? "All" : name}
+            <div role="group" aria-label="Filter by subject" className="flex flex-wrap gap-2">
+              {[{ id: "all", name: "All" }, ...subjectChips].map((chip) => (
+                <Button key={chip.id} size="sm" variant={category === chip.id ? "primary" : "outline"} aria-pressed={category === chip.id} onClick={() => setCategory(chip.id)}>
+                  {chip.name}
                 </Button>
               ))}
             </div>
           </div>
 
-          {visible.length === 0 ? (
+          {sections.length === 0 ? (
             <p className="text-sm text-steel-300">No decks match your search.</p>
           ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {visible.map((deck) => (
-                <Card key={deck.id} className="flex flex-col justify-between">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <Badge variant="gold">{deck.category}</Badge>
-                      <span className="font-mono text-xs text-steel-300">{cardCount(deck)} cards</span>
+            <div className="space-y-10">
+              {sections.map((section) => (
+                <section key={section.key} aria-label={section.subjectName} className="space-y-6">
+                  {sections.length > 1 || section.subjectId ? (
+                    <h2 className="border-b border-steel-700/60 pb-2 text-xl font-bold tracking-tight text-white">{section.subjectName}</h2>
+                  ) : null}
+                  {section.chapters.map((group) => (
+                    <div key={group.key} className="space-y-4">
+                      {group.chapterName ? <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{group.chapterName}</h3> : null}
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {group.items.map((deck) => (
+                          <Card key={deck.id} className="flex flex-col justify-between">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <Badge variant="gold">{group.chapterName ?? section.subjectName}</Badge>
+                                <span className="font-mono text-xs text-steel-300">{cardCount(deck)} cards</span>
+                              </div>
+                              <CardTitle className="mt-2 text-lg">{deck.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {deck.description ? <p className="text-sm text-steel-300">{deck.description}</p> : null}
+                              <Button asChild variant="primary" className="w-full">
+                                <Link href={`/flashcards/${deck.id}`}>Study this deck</Link>
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
-                    <CardTitle className="mt-2 text-lg">{deck.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {deck.description ? <p className="text-sm text-steel-300">{deck.description}</p> : null}
-                    <Button asChild variant="primary" className="w-full">
-                      <Link href={`/flashcards/${deck.id}`}>Study this deck</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
+                  ))}
+                </section>
               ))}
             </div>
           )}
