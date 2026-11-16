@@ -317,39 +317,9 @@ function ExamDetailContent() {
                 ))}
               </div>
             ) : (
-              /* Fallback default sample mock card */
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Card className="flex flex-col justify-between">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-gold-300">{examId.toUpperCase()}-FULL-01</span>
-                      <Badge variant="gold">{exam.code}</Badge>
-                    </div>
-                    <CardTitle className="mt-2 text-lg">{exam.name} Full Mock Paper 01</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-3 gap-2 rounded-control border border-steel-700 bg-navy-950 p-3 text-center text-xs">
-                      <div>
-                        <div className="text-steel-500 uppercase font-semibold">Questions</div>
-                        <div className="mt-1 font-mono font-bold text-white">120</div>
-                      </div>
-                      <div>
-                        <div className="text-steel-500 uppercase font-semibold">Duration</div>
-                        <div className="mt-1 font-mono font-bold text-white">150m</div>
-                      </div>
-                      <div>
-                        <div className="text-steel-500 uppercase font-semibold">Marks</div>
-                        <div className="mt-1 font-mono font-bold text-gold-300">300</div>
-                      </div>
-                    </div>
-                    <Link href="/quizzes" className="block">
-                      <Button variant="primary" className="w-full">
-                        <Icons.calculator className="size-4" />
-                        Start Mock Exam
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+              <div className="rounded-panel border border-dashed border-steel-700 bg-navy-900/50 p-8 text-center">
+                <p className="font-bold text-white">No mock tests published yet</p>
+                <p className="mt-1 text-sm text-steel-300">Full papers for {exam.name} will appear here as soon as they go live.</p>
               </div>
             )}
           </div>
