@@ -27,7 +27,9 @@ export function DeckLibrary() {
       .order("created_at", { ascending: true })
       .then(({ data, error: loadError }) => {
         if (!active) return;
-        if (loadError) setError(loadError.message);
+        // A missing table just means the decks have not been set up yet: show the empty state, not a red error.
+        const notSetUp = loadError?.code === "PGRST205" || /schema cache|does not exist/i.test(loadError?.message ?? "");
+        if (loadError && !notSetUp) setError(loadError.message);
         setDecks(loadError ? [] : ((data ?? []) as unknown as Deck[]));
       });
     return () => {

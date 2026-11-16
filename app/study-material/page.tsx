@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MaterialLibrary } from "@/components/study-material/material-library";
 import { Badge } from "@/components/ui/badge";
+import { AdminShortcut } from "@/components/landing/admin-shortcut";
 import { SiteMenu } from "@/components/landing/site-menu";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
@@ -22,6 +23,7 @@ export default function StudyMaterialPage() {
             <span>EARTH SP NDA</span>
           </Link>
           <div className="flex gap-2">
+            <AdminShortcut href="/admin/resources" label="Manage" />
             <Button asChild variant="outline" size="sm">
               <Link href="/flashcards">Flashcards</Link>
             </Button>

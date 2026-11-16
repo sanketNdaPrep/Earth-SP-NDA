@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { AdminShortcut } from "@/components/landing/admin-shortcut";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,7 +88,8 @@ export default function QuizzesPage() {
             <h1 className="mt-3 text-balance text-3xl font-bold tracking-tight text-white">Examination Modules</h1>
             <p className="mt-1 text-sm text-steel-300">Select a test to measure your preparation.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <AdminShortcut href="/admin/mock-tests" label="Manage tests" />
             <Button asChild variant="primary" size="sm">
               <Link href="/dashboard">Cadet Dashboard</Link>
             </Button>
