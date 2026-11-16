@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
 
@@ -11,6 +12,8 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
   React.useEffect(() => {
     console.error("Runtime exception caught:", error);
   }, [error]);
@@ -30,7 +33,7 @@ export default function GlobalError({
         <Button variant="primary" onClick={() => reset()}>
           Try Execution Again
         </Button>
-        <Button variant="outline" onClick={() => (window.location.href = "/dashboard")}>
+        <Button variant="outline" onClick={() => router.push("/dashboard")}>
           Return to Command Portal
         </Button>
       </div>
