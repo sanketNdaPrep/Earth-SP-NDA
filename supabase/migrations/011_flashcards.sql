@@ -22,6 +22,10 @@ create table if not exists public.flashcards (
 );
 create index if not exists flashcards_deck_idx on public.flashcards (deck_id, position);
 
+-- Table privileges (this project does not hand them out automatically). Row rules below decide who can do what.
+grant select on public.flashcard_decks, public.flashcards to anon;
+grant select, insert, update, delete on public.flashcard_decks, public.flashcards to authenticated;
+
 alter table public.flashcard_decks enable row level security;
 alter table public.flashcards      enable row level security;
 
