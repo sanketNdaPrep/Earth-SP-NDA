@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export type AdminLogAction = "added" | "edited" | "deleted" | "activated" | "deactivated";
-export type AdminLogEntity = "subject" | "question" | "resource" | "mock_test";
+export type AdminLogEntity = "subject" | "question" | "resource" | "mock_test" | "flashcard_deck";
 
 export interface AdminLogInput {
   action: AdminLogAction;
@@ -52,6 +52,7 @@ const ENTITY_NAMES: Record<AdminLogEntity, string> = {
   question: "question",
   resource: "study material",
   mock_test: "mock test",
+  flashcard_deck: "flashcard deck",
 };
 
 /** "Admin Sanket added new subject: NDA 2027" */

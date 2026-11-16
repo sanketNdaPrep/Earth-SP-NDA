@@ -20,9 +20,14 @@ export default function StudyMaterialPage() {
             <Icons.logo className="size-6 text-gold-400" />
             <span>EARTH SP NDA</span>
           </Link>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/">Home</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/flashcards">Flashcards</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/">Home</Link>
+            </Button>
+          </div>
         </div>
       </header>
 

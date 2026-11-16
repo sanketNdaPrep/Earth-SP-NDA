@@ -22,6 +22,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Mock Tests", href: "/quizzes", icon: "calculator" },
   { label: "Analytics", href: "/dashboard/analytics", icon: "sigma" },
   { label: "Study Materials", href: "/dashboard/resources", icon: "component" },
+  { label: "Flashcards", href: "/flashcards", icon: "book" },
 ];
 
 const ADMIN_NAV_ITEM: NavItem = { label: "Admin Suite", href: "/admin", icon: "shield" };

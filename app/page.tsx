@@ -33,6 +33,7 @@ export default function Home() {
             <Link href="#features" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Features</Link>
             <Link href="#exams" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Exams</Link>
             <Link href="#roadmap" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Roadmap</Link>
+            <Link href="/flashcards" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Flashcards</Link>
           </nav>
 
           <HeaderActions />

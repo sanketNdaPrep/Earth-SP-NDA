@@ -20,6 +20,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Question Bank", href: "/admin/questions", icon: "book" },
   { label: "Mock Tests", href: "/admin/mock-tests", icon: "calculator" },
   { label: "Study Materials", href: "/admin/resources", icon: "component" },
+  { label: "Flashcards", href: "/admin/flashcards", icon: "book" },
   { label: "Subjects", href: "/admin/subjects", icon: "target" },
   { label: "Audit Logs", href: "/admin/logs", icon: "clipboardCheck" },
 ];
