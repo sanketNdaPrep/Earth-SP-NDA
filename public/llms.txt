@@ -1,0 +1,16 @@
+# EARTH SP NDA
+
+> A free preparation portal for Indian defence exams: NDA, CDS and AFCAT. It offers study notes, flashcards, mock tests and personal guidance from mentors. It is an independent study site and is not an official government website.
+
+## Main pages
+- [Home](https://earth-sp-nda.vercel.app/): what the portal offers and how to get started
+- [NDA exam guide](https://earth-sp-nda.vercel.app/exams/nda): exam pattern, syllabus and preparation for the National Defence Academy exam
+- [CDS exam guide](https://earth-sp-nda.vercel.app/exams/cds): exam pattern and syllabus for the Combined Defence Services exam
+- [AFCAT exam guide](https://earth-sp-nda.vercel.app/exams/afcat): exam pattern and syllabus for the Air Force Common Admission Test
+- [Study material](https://earth-sp-nda.vercel.app/study-material): free notes, PDFs and official links, grouped by subject and chapter
+- [Flashcards](https://earth-sp-nda.vercel.app/flashcards): quick-recall decks by subject and chapter
+- [Mock tests](https://earth-sp-nda.vercel.app/quizzes): timed practice papers
+
+## Notes for readers
+- Official exam dates, eligibility and notifications are published by UPSC and the respective service bodies. Check the official sites before relying on anything here.
+- Student accounts, dashboards and the admin area are private and are not meant to be indexed.
