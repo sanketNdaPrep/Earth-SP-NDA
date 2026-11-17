@@ -2,12 +2,30 @@ import type { Metadata } from "next";
 import "@/app/globals.css";
 import { ThemeSync } from "@/components/theme/theme-sync";
 import { Toaster } from "@/components/ui/toast";
+import { SITE_URL } from "@/lib/site";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
+const SITE_TITLE = "EARTH SP NDA - Defence Exam Prep";
+const SITE_DESCRIPTION =
+  "Free study material, flashcards, mock tests and mentor guidance for NDA, CDS and AFCAT aspirants.";
+
 export const metadata: Metadata = {
-  title: "EARTH SP NDA - Tactical Defence Exam Prep",
-  description:
-    "Enterprise-grade study tracking, interactive mock papers, and real-time performance analytics tailored for NDA, CDS, and AFCAT defence aspirants.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: "%s | EARTH SP NDA" },
+  description: SITE_DESCRIPTION,
+  applicationName: "EARTH SP NDA",
+  openGraph: {
+    type: "website",
+    siteName: "EARTH SP NDA",
+    locale: "en_IN",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
