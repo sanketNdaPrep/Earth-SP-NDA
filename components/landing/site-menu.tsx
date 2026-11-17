@@ -24,7 +24,7 @@ const EXPLORE: { label: string; href: string }[] = [
 ];
 
 /**
- * The three-line menu at the top right of public pages.
+ * The three-line menu at the top left of public pages.
  * Everyone sees the same pages. Signed-out visitors also get Create account and Log in.
  * "Apply for mentorship" opens the Ask a Mentor page; signed-out visitors are sent to log in first.
  */
@@ -42,7 +42,7 @@ export function SiteMenu() {
           <Icons.menu className="size-5" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent align="start" className="w-64">
         <DropdownMenuLabel>
           <p className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">Explore</p>
         </DropdownMenuLabel>

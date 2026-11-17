@@ -18,10 +18,13 @@ export default function StudyMaterialPage() {
     <div className="min-h-screen bg-navy-950 text-steel-100">
       <header className="border-b border-steel-700 bg-navy-950/80">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-8">
-          <Link href="/" className="flex items-center gap-2 font-mono text-sm font-bold uppercase tracking-wider text-white">
-            <Icons.logo className="size-6 text-gold-400" />
-            <span>EARTH SP NDA</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <SiteMenu />
+            <Link href="/" className="flex items-center gap-2 font-mono text-sm font-bold uppercase tracking-wider text-white">
+              <Icons.logo className="size-6 text-gold-400" />
+              <span>EARTH SP NDA</span>
+            </Link>
+          </div>
           <div className="flex gap-2">
             <AdminShortcut href="/admin/resources" label="Manage" />
             <Button asChild variant="outline" size="sm">
@@ -30,7 +33,6 @@ export default function StudyMaterialPage() {
             <Button asChild variant="outline" size="sm">
               <Link href="/">Home</Link>
             </Button>
-            <SiteMenu />
           </div>
         </div>
       </header>
