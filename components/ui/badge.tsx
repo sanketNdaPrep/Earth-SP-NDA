@@ -22,7 +22,7 @@ const base =
 
 const variants: Record<CoreVariant, string> = {
   neutral: "bg-navy-800 text-steel-300",
-  gold: "bg-gold-400/15 text-gold-300",
+  gold: "bg-chip-bg text-chip-text",
   emerald: "bg-emerald-400/15 text-emerald-300",
   danger: "bg-danger-500/15 text-danger-400",
   outline: "border border-steel-700 text-steel-300",
