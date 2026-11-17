@@ -3,14 +3,12 @@ import Link from "next/link";
 import { MaterialLibrary } from "@/components/study-material/material-library";
 import { Badge } from "@/components/ui/badge";
 import { AdminShortcut } from "@/components/landing/admin-shortcut";
+import { pageMeta } from "@/lib/seo";
 import { SiteMenu } from "@/components/landing/site-menu";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
 
-export const metadata: Metadata = {
-  title: "Free Study Material",
-  description: "Free notes, flashcards and papers for NDA, CDS and AFCAT revision.",
-};
+export const metadata: Metadata = pageMeta("Free Study Material", "Free notes, flashcards and papers for NDA, CDS and AFCAT revision.");
 
 /** Public page behind the "Get Free Study Material" button. Anyone can download. */
 export default function StudyMaterialPage() {

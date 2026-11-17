@@ -2,14 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DeckLibrary } from "@/components/flashcards/deck-library";
 import { AdminShortcut } from "@/components/landing/admin-shortcut";
+import { pageMeta } from "@/lib/seo";
 import { SiteMenu } from "@/components/landing/site-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = {
-  title: "Flashcards",
-  description: "Quick-recall flashcards for NDA, CDS and AFCAT: formulas, laws, chemistry basics and defence awareness.",
-};
+export const metadata: Metadata = pageMeta("Flashcards", "Quick-recall flashcards for NDA, CDS and AFCAT: formulas, laws, chemistry basics and defence awareness.");
 
 /** Public flashcard decks, laid out like the Test Center. No sign-in needed. */
 export default function FlashcardsPage() {
