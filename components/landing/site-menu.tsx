@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Icons } from "@/components/ui/icons";
+import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import { useAuthState } from "@/components/landing/header-actions";
 
 const EXPLORE: { label: string; href: string }[] = [
@@ -73,6 +74,7 @@ export function SiteMenu() {
             </DropdownMenuItem>
           </>
         ) : null}
+        <ThemeSwitcher />
       </DropdownMenuContent>
     </DropdownMenu>
   );
