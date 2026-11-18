@@ -4,6 +4,13 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Icons } from "@/components/ui/icons";
 import { ProfileMenu } from "@/components/profile/profile-menu";
 import { useSignOut } from "@/hooks/use-sign-out";
@@ -90,13 +97,53 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Admin Area */}
-      <div className="flex flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between border-b border-steel-700/60 bg-navy-900/60 px-6 backdrop-blur-md">
-          <div className="font-mono text-xs uppercase tracking-wider text-gold-300">
-            System Control // Command Center
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-16 items-center justify-between gap-3 border-b border-steel-700/60 bg-navy-900/60 px-4 backdrop-blur-md sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            {/* Phones have no sidebar, so the same pages live in this menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Open admin menu"
+                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-control border border-steel-700 text-steel-100 transition-colors hover:border-gold-400 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400 md:hidden"
+                >
+                  <Icons.menu className="size-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                {ADMIN_NAV_ITEMS.map((item) => {
+                  const Icon = Icons[item.icon] || Icons.shield;
+                  const isActive = pathname === item.href;
+                  return (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href} className={isActive ? "font-semibold text-gold-300" : undefined}>
+                        <Icon className="size-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard">
+                    <Icons.chevronRight className="size-4 rotate-180" />
+                    <span>Exit Admin Portal</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleSignOut}>
+                  <Icons.close className="size-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="truncate font-mono text-xs uppercase tracking-wider text-gold-300">
+              <span className="md:hidden">Admin Suite</span>
+              <span className="hidden md:inline">System Control // Command Center</span>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-emerald-400/10 border border-emerald-400/30 px-3 py-1 font-mono text-xs font-bold text-emerald-300">
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="hidden rounded-full bg-emerald-400/10 border border-emerald-400/30 px-3 py-1 font-mono text-xs font-bold text-emerald-300 sm:inline-block">
               ● System Active
             </span>
             <ProfileMenu />
