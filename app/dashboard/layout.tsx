@@ -4,6 +4,13 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Icons } from "@/components/ui/icons";
 import { ProfileMenu } from "@/components/profile/profile-menu";
 import { getAdminStatus } from "@/lib/adminAuth";
@@ -97,19 +104,50 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Container */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* Top Header Mobile/Desktop */}
-        <header className="flex h-16 items-center justify-between border-b border-steel-700/60 bg-navy-900/60 px-6 backdrop-blur-md">
-          <div className="flex items-center gap-3 md:hidden">
-            <Icons.logo className="size-6 text-gold-400" />
-            <span className="font-mono text-sm font-bold text-white">EARTH SP NDA</span>
+        <header className="flex h-16 items-center justify-between gap-3 border-b border-steel-700/60 bg-navy-900/60 px-4 backdrop-blur-md sm:px-6">
+          <div className="flex min-w-0 items-center gap-3 md:hidden">
+            {/* Phones have no sidebar, so the same pages live in this menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Open dashboard menu"
+                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-control border border-steel-700 text-steel-100 transition-colors hover:border-gold-400 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400"
+                >
+                  <Icons.menu className="size-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                {navItems.map((item) => {
+                  const Icon = Icons[item.icon] || Icons.target;
+                  const isActive = pathname === item.href;
+                  return (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href} className={isActive ? "font-semibold text-gold-300" : undefined}>
+                        <Icon className="size-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={handleSignOut}>
+                  <Icons.close className="size-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Icons.logo className="size-6 shrink-0 text-gold-400" />
+            <span className="truncate font-mono text-sm font-bold text-white">EARTH SP NDA</span>
           </div>
 
           <div className="hidden font-mono text-xs uppercase tracking-wider text-steel-300 md:block">
             Cadet Dashboard // NDA Command Portal
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex shrink-0 items-center gap-4">
             <ProfileMenu />
           </div>
         </header>
