@@ -2,9 +2,6 @@
 
 export const RESOURCE_BUCKET = "study-materials";
 
-/** Matches the 20 MB limit set on the bucket. */
-export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
-
 export const ACCEPTED_TYPES: Record<string, { label: string; kind: ResourceKind }> = {
   "application/pdf": { label: "PDF", kind: "pdf" },
   "image/png": { label: "PNG image", kind: "image" },
@@ -64,7 +61,6 @@ export function formatSize(bytes: number): string {
 export function checkFile(file: File): string | null {
   if (!ACCEPTED_TYPES[file.type]) return "Only PDF, PNG, JPG and WebP files can be uploaded.";
   if (file.size === 0) return "That file is empty.";
-  if (file.size > MAX_UPLOAD_BYTES) return `That file is ${formatSize(file.size)}. The limit is ${formatSize(MAX_UPLOAD_BYTES)}.`;
   return null;
 }
 

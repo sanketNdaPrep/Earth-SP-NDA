@@ -25,7 +25,6 @@ import {
   formatSize,
   MAX_CATEGORY,
   MAX_DESCRIPTION,
-  MAX_UPLOAD_BYTES,
   RESOURCE_BUCKET,
   RESOURCE_CATEGORIES,
   RESOURCE_COLUMNS,
@@ -249,7 +248,7 @@ export default function AdminResourcesPage() {
       <Card className="max-w-3xl">
         <CardHeader>
           <CardTitle className="text-lg">Upload a File</CardTitle>
-          <CardDescription>PDF, PNG, JPG or WebP. Up to {formatSize(MAX_UPLOAD_BYTES)}.</CardDescription>
+          <CardDescription>PDF, PNG, JPG or WebP.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={upload} className="space-y-5">
