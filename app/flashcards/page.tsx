@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DeckLibrary } from "@/components/flashcards/deck-library";
+import { PictureLibrary } from "@/components/flashcards/picture-library";
 import { AdminShortcut } from "@/components/landing/admin-shortcut";
 import { pageMeta } from "@/lib/seo";
 import { SiteMenu } from "@/components/landing/site-menu";
@@ -20,11 +21,11 @@ export default function FlashcardsPage() {
             <div>
               <Badge variant="gold">Quick Recall</Badge>
               <h1 className="mt-3 text-balance text-3xl font-bold tracking-tight text-white">Flashcards</h1>
-              <p className="mt-1 text-sm text-steel-300">Flip a card, say whether you knew it, and the ones you missed come back.</p>
+              <p className="mt-1 text-sm text-steel-300">Pictures of formulas, facts and notes, grouped by subject and chapter.</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <AdminShortcut href="/admin/flashcards" label="Manage decks" />
+            <AdminShortcut href="/admin/flashcards" label="Manage flashcards" />
             <Button asChild variant="primary" size="sm">
               <Link href="/dashboard">Cadet Dashboard</Link>
             </Button>
@@ -33,7 +34,8 @@ export default function FlashcardsPage() {
             </Button>
           </div>
         </header>
-        <DeckLibrary />
+        <PictureLibrary />
+        <DeckLibrary hideWhenEmpty />
       </div>
     </div>
   );

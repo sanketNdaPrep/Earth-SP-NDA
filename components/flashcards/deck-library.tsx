@@ -17,7 +17,7 @@ const COLUMNS = "id, title, category, description, created_at, subject_id, chapt
 const OLD_COLUMNS = "id, title, category, description, created_at, flashcards(count)";
 
 /** Every flashcard deck, with search and category filters. Open to everyone. */
-export function DeckLibrary() {
+export function DeckLibrary({ hideWhenEmpty = false }: { hideWhenEmpty?: boolean } = {}) {
   const [decks, setDecks] = React.useState<Deck[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
@@ -71,6 +71,8 @@ export function DeckLibrary() {
       </SkeletonGroup>
     );
   }
+
+  if (hideWhenEmpty && decks.length === 0 && !error) return null;
 
   return (
     <div className="space-y-6">

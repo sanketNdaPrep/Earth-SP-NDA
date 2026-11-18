@@ -1,0 +1,79 @@
+"use client";
+
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Icons } from "@/components/ui/icons";
+import { pictureUrl } from "@/components/flashcards/picture-url";
+import { stepIndex, type FlashcardImage } from "@/lib/flashcard-images";
+
+interface PictureViewerProps {
+  items: readonly FlashcardImage[];
+  index: number;
+  /** Heading for the open picture, for example "Maths > Trigonometry". */
+  label: (item: FlashcardImage) => string;
+  onIndex: (next: number) => void;
+  onClose: () => void;
+}
+
+/** A full-screen look at one picture, with next and previous. Esc closes it, the arrow keys move. */
+export function PictureViewer({ items, index, label, onIndex, onClose }: PictureViewerProps) {
+  const closeRef = React.useRef<HTMLButtonElement>(null);
+  const item = items[index];
+
+  React.useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = overflow;
+      opener?.focus?.();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") onIndex(stepIndex(index, 1, items.length));
+      if (e.key === "ArrowLeft") onIndex(stepIndex(index, -1, items.length));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [index, items.length, onIndex, onClose]);
+
+  if (!item) return null;
+  const many = items.length > 1;
+
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Flashcard picture" className="fixed inset-0 z-50 flex flex-col bg-navy-950/95 backdrop-blur-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-steel-700/60 px-4 py-3">
+        <div className="min-w-0">
+          <p className="truncate font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{label(item)}</p>
+          {many ? <p className="font-mono text-xs text-steel-300">{index + 1} of {items.length}</p> : null}
+        </div>
+        <Button ref={closeRef} variant="outline" size="sm" onClick={onClose} aria-label="Close picture">
+          <Icons.close className="size-4" aria-hidden />
+          Close
+        </Button>
+      </div>
+
+      <div className="flex min-h-0 flex-1 items-center justify-center p-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={pictureUrl(item.image_path)} alt={item.caption || label(item)} className="max-h-full max-w-full rounded-control object-contain" />
+      </div>
+
+      {many ? (
+        <div className="flex items-center justify-center gap-3 border-t border-steel-700/60 px-4 py-3">
+          <Button variant="outline" onClick={() => onIndex(stepIndex(index, -1, items.length))} aria-label="Previous picture">
+            <Icons.arrowLeft className="size-4" aria-hidden />
+            Previous
+          </Button>
+          <Button variant="primary" onClick={() => onIndex(stepIndex(index, 1, items.length))} aria-label="Next picture">
+            Next
+            <Icons.arrowRight className="size-4" aria-hidden />
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
