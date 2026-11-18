@@ -4,6 +4,7 @@ import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PictureManager } from "@/components/flashcards/picture-manager";
 import { Icons } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
@@ -171,7 +172,14 @@ export default function AdminFlashcardsPage() {
       <div>
         <Badge variant="gold" className="mb-2">Content Management</Badge>
         <h1 className="text-3xl font-bold tracking-tight text-white">Flashcards</h1>
-        <p className="mt-1 text-sm text-steel-300">Add, edit or delete the decks students see on the Flashcards page.</p>
+        <p className="mt-1 text-sm text-steel-300">Add pictures under a subject and chapter. Students see them on the Flashcards page.</p>
+      </div>
+
+      <PictureManager />
+
+      <div className="border-t border-steel-700/60 pt-8">
+        <h2 className="text-2xl font-bold tracking-tight text-white">Text decks</h2>
+        <p className="mt-1 text-sm text-steel-300">The older question and answer decks. They only show to students while at least one exists.</p>
       </div>
 
       {msg ? (
