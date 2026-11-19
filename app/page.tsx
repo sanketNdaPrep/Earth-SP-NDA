@@ -7,6 +7,7 @@ import { StackedSectionsDemo } from "@/components/ui/stacked-sections-demo";
 import { StatsGrid, type StatItem } from "@/components/ui/stats-grid";
 import { TimelineDemo } from "@/components/ui/timeline-demo";
 import { EntrySchemes, EntrySchemesSkeleton } from "@/components/landing/entry-schemes";
+import { StudyFolders } from "@/components/landing/study-folders";
 import { HeaderActions } from "@/components/landing/header-actions";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteMenu } from "@/components/landing/site-menu";
@@ -37,6 +38,7 @@ export default function Home() {
           <nav className="hidden gap-6 md:flex">
             <Link href="#features" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Features</Link>
             <Link href="#exams" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Exams</Link>
+            <Link href="#study-material" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Study Material</Link>
             <Link href="#roadmap" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Roadmap</Link>
             <Link href="/flashcards" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Flashcards</Link>
           </nav>
@@ -100,6 +102,23 @@ export default function Home() {
             <React.Suspense fallback={<EntrySchemesSkeleton />}>
               <EntrySchemes />
             </React.Suspense>
+          </div>
+        </section>
+
+        {/* Free Study Material: exam folders and the four vaults, always shown */}
+        <section id="study-material" className="border-t border-steel-700 px-4 py-16 md:px-8">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-12 text-center">
+              <Badge variant="gold" className="mb-2">Free Resources</Badge>
+              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Free Study Material</h2>
+              <p className="mt-2 text-steel-300">Open an exam folder to browse its subjects and chapters, or go straight to a vault.</p>
+            </div>
+            <StudyFolders />
+            <div className="mt-8 text-center">
+              <Button asChild variant="outline">
+                <Link href="/study-material">Open the full Study Material page</Link>
+              </Button>
+            </div>
           </div>
         </section>
 
