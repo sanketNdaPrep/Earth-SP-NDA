@@ -80,3 +80,33 @@ export function groupBySubject<T extends Filed>(items: readonly T[], subjects: r
   }
   return sections;
 }
+
+export interface ChapterFolder {
+  id: string;
+  name: string;
+  count: number;
+}
+
+export interface SubjectFolder {
+  subject: TaxSubject;
+  chapters: ChapterFolder[];
+  /** Items filed under the subject but under no chapter. */
+  looseCount: number;
+  count: number;
+}
+
+/**
+ * One folder per subject, in the admin's order, whether or not it holds anything yet.
+ * Each folder lists every chapter of the subject (empty ones too) with how many items it holds.
+ */
+export function buildFolders(items: readonly Filed[], subjects: readonly TaxSubject[], chapters: readonly Chapter[]): SubjectFolder[] {
+  const ordered = [...subjects].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  return ordered.map((subject) => {
+    const own = chapters.filter((c) => c.subject_id === subject.id);
+    const chapterIds = new Set(own.map((c) => c.id));
+    const inSubject = items.filter((i) => i.subject_id === subject.id);
+    const chapterFolders = sortChapters(own).map((c) => ({ id: c.id, name: c.name, count: inSubject.filter((i) => i.chapter_id === c.id).length }));
+    const looseCount = inSubject.filter((i) => !i.chapter_id || !chapterIds.has(i.chapter_id)).length;
+    return { subject, chapters: chapterFolders, looseCount, count: inSubject.length };
+  });
+}

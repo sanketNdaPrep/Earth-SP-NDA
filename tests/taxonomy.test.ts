@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chapterNameProblem, groupBySubject } from "../lib/taxonomy";
+import { buildFolders, chapterNameProblem, groupBySubject } from "../lib/taxonomy";
 
 const subjects = [
   { id: "s2", name: "CDS", sort_order: 2, cover_path: null, exams: [] },
@@ -52,5 +52,39 @@ describe("exam tags and cover paths", () => {
   it("builds a cover path from the file type, not the name", () => {
     expect(coverPath({ name: "My Biology Cover.PNG", type: "image/webp" }, "abc")).toBe("covers/abc-my-biology-cover.webp");
     expect(coverPath({ name: "???", type: "image/png" }, "abc")).toBe("covers/abc-cover.png");
+  });
+});
+
+describe("buildFolders", () => {
+  const subjects = [
+    { id: "s2", name: "Physics", sort_order: 2, cover_path: null, exams: [] },
+    { id: "s1", name: "Mathematics", sort_order: 1, cover_path: null, exams: [] },
+    { id: "s3", name: "Biology", sort_order: 3, cover_path: null, exams: [] },
+  ];
+  const chapters = [
+    { id: "c1", subject_id: "s1", name: "Algebra", sort_order: 1 },
+    { id: "c2", subject_id: "s1", name: "Calculus", sort_order: 2 },
+  ];
+  const items = [
+    { subject_id: "s1", chapter_id: "c1" },
+    { subject_id: "s1", chapter_id: "c1" },
+    { subject_id: "s1", chapter_id: null },
+    { subject_id: "s2", chapter_id: null },
+  ];
+
+  it("lists every subject in order, even empty ones", () => {
+    const folders = buildFolders(items, subjects, chapters);
+    expect(folders.map((f) => f.subject.name)).toEqual(["Mathematics", "Physics", "Biology"]);
+    expect(folders[2].count).toBe(0);
+  });
+
+  it("counts chapters, keeps empty chapters and counts loose items", () => {
+    const [maths] = buildFolders(items, subjects, chapters);
+    expect(maths.chapters).toEqual([
+      { id: "c1", name: "Algebra", count: 2 },
+      { id: "c2", name: "Calculus", count: 0 },
+    ]);
+    expect(maths.looseCount).toBe(1);
+    expect(maths.count).toBe(3);
   });
 });
