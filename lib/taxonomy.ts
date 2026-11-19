@@ -110,3 +110,20 @@ export function buildFolders(items: readonly Filed[], subjects: readonly TaxSubj
     return { subject, chapters: chapterFolders, looseCount, count: inSubject.length };
   });
 }
+
+/** An item with no exam tags is for everyone. A tagged item shows only under the exams it is tagged with. */
+export function itemInExam(itemExams: readonly string[] | null | undefined, exam: string | null): boolean {
+  if (!exam) return true;
+  const tags = itemExams ?? [];
+  return tags.length === 0 || tags.includes(exam);
+}
+
+/**
+ * Whether a subject folder shows under an exam: the subject is for that exam, or for no exam in particular,
+ * or one of its items is tagged for that exam.
+ */
+export function subjectInExam(subject: Pick<TaxSubject, "id" | "exams">, items: readonly { subject_id: string | null; exams?: readonly string[] | null }[], exam: string | null): boolean {
+  if (!exam) return true;
+  if (subject.exams.length === 0 || subject.exams.includes(exam)) return true;
+  return items.some((i) => i.subject_id === subject.id && (i.exams ?? []).includes(exam));
+}

@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { Metadata } from "next";
 import { MaterialLibrary } from "@/components/study-material/material-library";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,9 @@ export default function StudyMaterialsPage() {
         <h1 className="text-balance text-3xl font-bold tracking-tight text-white">Study Materials</h1>
         <p className="mt-1 text-sm text-steel-300">Notes, flashcards and papers uploaded by your instructors.</p>
       </div>
-      <MaterialLibrary />
+      <React.Suspense fallback={null}>
+        <MaterialLibrary />
+      </React.Suspense>
     </div>
   );
 }

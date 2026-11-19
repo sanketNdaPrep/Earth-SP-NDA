@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MaterialLibrary } from "@/components/study-material/material-library";
@@ -40,10 +41,12 @@ export default function StudyMaterialPage() {
           <Badge variant="gold" className="mb-3">Free Resources</Badge>
           <h1 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">Free Study Material</h1>
           <p className="mt-2 max-w-2xl text-pretty text-steel-300">
-            Notes, flashcards and papers for NDA, CDS and AFCAT. Search, pick a category and download.
+            Notes, flashcards, formulas and question papers for NDA, CDS and AFCAT. Open a vault, pick a subject and chapter, then download.
           </p>
         </div>
-        <MaterialLibrary />
+        <React.Suspense fallback={null}>
+          <MaterialLibrary />
+        </React.Suspense>
         <p className="border-l-2 border-gold-400 bg-navy-900/60 py-3 pl-4 pr-3 text-xs text-steel-300">
           Use these as revision aids. They do not replace the official syllabus, so check dates and eligibility on the
           official exam websites.

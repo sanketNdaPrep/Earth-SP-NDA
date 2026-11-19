@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFolders, chapterNameProblem, groupBySubject } from "../lib/taxonomy";
+import { buildFolders, chapterNameProblem, groupBySubject, itemInExam, subjectInExam } from "../lib/taxonomy";
 
 const subjects = [
   { id: "s2", name: "CDS", sort_order: 2, cover_path: null, exams: [] },
@@ -86,5 +86,21 @@ describe("buildFolders", () => {
     ]);
     expect(maths.looseCount).toBe(1);
     expect(maths.count).toBe(3);
+  });
+});
+
+describe("exam filtering", () => {
+  it("shows untagged items under every exam and tagged items only under theirs", () => {
+    expect(itemInExam([], "nda")).toBe(true);
+    expect(itemInExam(["cds"], "nda")).toBe(false);
+    expect(itemInExam(["nda", "cds"], "nda")).toBe(true);
+    expect(itemInExam(["cds"], null)).toBe(true);
+  });
+  it("shows a subject under its own exams, under every exam when untagged, or when an item is tagged", () => {
+    const physics = { id: "p", exams: ["nda"] };
+    expect(subjectInExam(physics, [], "nda")).toBe(true);
+    expect(subjectInExam(physics, [], "cds")).toBe(false);
+    expect(subjectInExam(physics, [{ subject_id: "p", exams: ["cds"] }], "cds")).toBe(true);
+    expect(subjectInExam({ id: "x", exams: [] }, [], "afcat")).toBe(true);
   });
 });

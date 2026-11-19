@@ -7,12 +7,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { PictureViewer } from "@/components/flashcards/picture-viewer";
 import { downloadChapterPdf } from "@/components/flashcards/download";
-import { pictureUrl, subjectCoverUrl } from "@/components/flashcards/picture-url";
+import { pictureUrl } from "@/components/flashcards/picture-url";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { IMAGE_COLUMNS, recentPictures, type FlashcardImage } from "@/lib/flashcard-images";
 import { supabase } from "@/lib/supabaseClient";
 import { chapterPdfName, pictureFileName } from "@/lib/flashcard-download";
-import { buildFolders, type SubjectFolder } from "@/lib/taxonomy";
+import { BackButton, plural, SubjectFolderCard } from "@/components/vault/folder-parts";
+import { buildFolders, itemInExam, subjectInExam } from "@/lib/taxonomy";
 import { Icons } from "@/components/ui/icons";
 
 interface Open {
@@ -45,48 +46,9 @@ interface Place {
   chapter: string | null;
 }
 
-function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? "" : "s"}`;
-}
-
-function SubjectFolderCard({ folder, onOpen }: { folder: SubjectFolder; onOpen: () => void }) {
-  const { subject } = folder;
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group overflow-hidden rounded-panel border border-steel-700/60 bg-navy-900 text-left transition-colors hover:border-gold-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400"
-    >
-      <div className="flex aspect-4/3 w-full items-center justify-center bg-navy-950">
-        {subject.cover_path ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={subjectCoverUrl(subject.cover_path)} alt="" loading="lazy" className="size-full object-cover" />
-        ) : (
-          <Icons.book className="size-10 text-steel-500 transition-colors group-hover:text-gold-400" aria-hidden />
-        )}
-      </div>
-      <div className="space-y-1 px-3 py-3">
-        <p className="truncate text-sm font-bold text-white group-hover:text-gold-300">{subject.name}</p>
-        <p className="font-mono text-xs text-steel-300">
-          {folder.count === 0 && folder.chapters.length === 0 ? "Empty" : `${plural(folder.chapters.length, "chapter")}, ${plural(folder.count, "card")}`}
-        </p>
-      </div>
-    </button>
-  );
-}
-
-function BackButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <Button variant="outline" size="sm" onClick={onClick}>
-      <Icons.arrowLeft className="size-4" aria-hidden />
-      {label}
-    </Button>
-  );
-}
-
 /** Picture flashcards for students: recently added, then Subject folders, Chapters and the pictures. Open to everyone. */
-export function PictureLibrary() {
-  const [pictures, setPictures] = React.useState<FlashcardImage[] | null>(null);
+export function PictureLibrary({ exam = null, showRecent = true }: { exam?: string | null; showRecent?: boolean } = {}) {
+  const [allPictures, setPictures] = React.useState<FlashcardImage[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [place, setPlace] = React.useState<Place | null>(null);
   const [open, setOpen] = React.useState<Open | null>(null);
@@ -127,10 +89,15 @@ export function PictureLibrary() {
     [taxonomy.subjects, taxonomy.chapters],
   );
 
+  // Under an exam, show the pictures for everyone plus those tagged for that exam.
+  const pictures = React.useMemo(() => (allPictures ? allPictures.filter((p) => itemInExam(p.exams, exam)) : null), [allPictures, exam]);
+
   // Every subject is a folder, even with nothing inside. "Unsorted" is a holding area, so it hides once empty.
   const folders = React.useMemo(
-    () => buildFolders(pictures ?? [], taxonomy.subjects, taxonomy.chapters).filter((f) => f.count > 0 || f.subject.name !== "Unsorted"),
-    [pictures, taxonomy.subjects, taxonomy.chapters],
+    () => buildFolders(pictures ?? [], taxonomy.subjects, taxonomy.chapters).filter(
+        (f) => (f.count > 0 || f.subject.name !== "Unsorted") && subjectInExam(f.subject, allPictures ?? [], exam),
+      ),
+    [pictures, allPictures, exam, taxonomy.subjects, taxonomy.chapters],
   );
 
   const recent = React.useMemo(() => recentPictures(pictures ?? []), [pictures]);
@@ -274,7 +241,7 @@ export function PictureLibrary() {
     <div className="space-y-10">
       {errorBox}
 
-      {recent.length > 0 ? (
+      {showRecent && recent.length > 0 ? (
         <section aria-label="Recently added" className="space-y-4">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold tracking-tight text-white">Recently added</h2>
