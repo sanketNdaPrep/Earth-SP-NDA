@@ -21,9 +21,10 @@ export interface FlashcardImage {
   image_path: string;
   caption: string | null;
   created_at: string;
+  exams: string[];
 }
 
-export const IMAGE_COLUMNS = "id, subject_id, chapter_id, image_path, caption, created_at";
+export const IMAGE_COLUMNS = "id, subject_id, chapter_id, image_path, caption, created_at, exams";
 
 /** Returns why a file cannot be uploaded, or null. There is no size limit. */
 export function imageProblem(file: Pick<File, "type" | "size" | "name">): string | null {

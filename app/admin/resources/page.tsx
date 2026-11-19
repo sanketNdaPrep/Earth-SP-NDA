@@ -23,16 +23,19 @@ import {
   ACCEPT_ATTRIBUTE,
   checkFile,
   formatSize,
-  MAX_CATEGORY,
+  examsLabel,
   MAX_DESCRIPTION,
   RESOURCE_BUCKET,
-  RESOURCE_CATEGORIES,
   RESOURCE_COLUMNS,
-  RESOURCE_EXAMS,
   resourceKind,
   storagePath,
+  VAULTS,
+  vaultLabel,
   type StoredResource,
+  type VaultId,
 } from "@/lib/resources";
+import { ExamPicker } from "@/components/admin/exam-picker";
+import { cleanExams, type ExamId } from "@/lib/subjects";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { sortChapters } from "@/lib/taxonomy";
 import { supabase } from "@/lib/supabaseClient";
@@ -50,8 +53,8 @@ export default function AdminResourcesPage() {
 
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [category, setCategory] = React.useState(RESOURCE_CATEGORIES[0]);
-  const [exam, setExam] = React.useState(RESOURCE_EXAMS[0]);
+  const [vault, setVault] = React.useState<VaultId>(VAULTS[0].id);
+  const [exams, setExams] = React.useState<ExamId[]>([]);
   const [subjectId, setSubjectId] = React.useState("");
   const [chapterId, setChapterId] = React.useState("");
   const taxonomy = useTaxonomy();
@@ -108,9 +111,8 @@ export default function AdminResourcesPage() {
       setMsg({ type: "error", text: "Give the file a title of at least 3 characters." });
       return;
     }
-    const cleanCategory = category.trim();
-    if (!cleanCategory) {
-      setMsg({ type: "error", text: "Add a category, for example Maths Notes or Flashcards." });
+    if (!subjectId) {
+      setMsg({ type: "error", text: "Pick a subject so students can find the file in its folder." });
       return;
     }
     const cleanDescription = description.trim();
@@ -135,9 +137,10 @@ export default function AdminResourcesPage() {
       return;
     }
 
-    // Only sent when a subject is picked, so uploads still work before migration 013 has been run.
     const chosenChapter = taxonomy.chapters.find((c) => c.id === chapterId && c.subject_id === subjectId);
-    const filing = subjectId ? { subject_id: subjectId, chapter_id: chosenChapter?.id ?? null } : {};
+    const filing = { subject_id: subjectId, chapter_id: chosenChapter?.id ?? null, vault, exams };
+    const cleanCategory = vaultLabel(vault);
+    const exam = examsLabel(exams);
 
     const url = bucket.getPublicUrl(path).data.publicUrl;
     const kind = resourceKind({ download_url: url, file_type: file.type.startsWith("image/") ? "image" : "pdf" });
@@ -228,7 +231,7 @@ export default function AdminResourcesPage() {
         <Badge variant="gold" className="mb-2">Content Management</Badge>
         <h1 className="text-3xl font-bold tracking-tight text-white">Study Materials</h1>
         <p className="mt-1 text-sm text-steel-300">
-          Upload PDFs and images. They appear on the student Study Material page straight away, ready to download.
+          Upload PDFs and images into a vault (PDF Notes, Formulas or Questions PDF), under a subject and chapter. Students see them straight away, ready to download.
         </p>
       </div>
 
@@ -297,48 +300,31 @@ export default function AdminResourcesPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="res-category">Category</Label>
-                <Input
-                  id="res-category"
-                  list="res-category-options"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  maxLength={MAX_CATEGORY}
-                  placeholder="e.g. Maths Notes"
-                  required
-                />
-                <datalist id="res-category-options">
-                  {RESOURCE_CATEGORIES.map((c) => (
-                    <option key={c} value={c} />
-                  ))}
-                </datalist>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="res-exam">Recommended for</Label>
-                <Select id="res-exam" value={exam} onChange={(e) => setExam(e.target.value)}>
-                  {RESOURCE_EXAMS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="res-vault">Vault</Label>
+              <Select id="res-vault" value={vault} onChange={(e) => setVault(e.target.value as VaultId)}>
+                {VAULTS.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="res-subject">Subject (optional)</Label>
+                <Label htmlFor="res-subject">Subject</Label>
                 <Select
                   id="res-subject"
                   value={subjectId}
                   onChange={(e) => {
                     setSubjectId(e.target.value);
                     setChapterId("");
+                    // The subject's own exams are the starting point. Change them freely.
+                    setExams(cleanExams(taxonomy.subjects.find((x) => x.id === e.target.value)?.exams));
                   }}
                 >
-                  <option value="">No subject</option>
+                  <option value="">Pick a subject</option>
                   {taxonomy.subjects.map((x) => (
                     <option key={x.id} value={x.id}>
                       {x.name}
@@ -358,6 +344,12 @@ export default function AdminResourcesPage() {
                 </Select>
               </div>
             </div>
+
+            <ExamPicker
+              value={exams}
+              onChange={setExams}
+              hint="Tick the exams this file is for, and it shows in those exam folders too. Leave all unticked if it is for everyone."
+            />
 
             <div className="flex justify-end border-t border-steel-700/60 pt-5">
               <Button type="submit" loading={uploading}>
@@ -388,10 +380,11 @@ export default function AdminResourcesPage() {
                       <p className="truncate text-sm font-semibold text-white">{row.title}</p>
                       {row.description ? <p className="line-clamp-2 text-xs text-steel-300">{row.description}</p> : null}
                       <div className="flex flex-wrap items-center gap-2">
-                        {row.category ? <Badge variant="outline">{row.category}</Badge> : null}
+                        <Badge variant="outline">{vaultLabel(row.vault)}</Badge>
+                        {row.subject_id ? <Badge variant="neutral">{taxonomy.subjects.find((x) => x.id === row.subject_id)?.name ?? "Subject"}</Badge> : null}
                         <Badge variant={kind === "pdf" ? "gold" : "emerald"}>{kind === "pdf" ? "PDF" : "Image"}</Badge>
                         {row.size ? <Badge variant="neutral">{row.size}</Badge> : null}
-                        {row.recommended_for ? <span className="text-xs text-steel-300">For {row.recommended_for}</span> : null}
+                        {row.exams.length > 0 ? <span className="text-xs text-steel-300">For {examsLabel(row.exams)}</span> : row.recommended_for ? <span className="text-xs text-steel-300">For {row.recommended_for}</span> : null}
                         <span className="text-xs tabular-nums text-steel-500">{row.downloads} downloads</span>
                         {!row.file_path ? <span className="text-xs text-steel-500">External link</span> : null}
                       </div>

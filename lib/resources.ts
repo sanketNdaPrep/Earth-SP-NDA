@@ -33,6 +33,24 @@ export const MAX_CATEGORY = 60;
 
 export const RESOURCE_EXAMS = ["NDA", "CDS", "AFCAT", "NDA, CDS and AFCAT"];
 
+/** The vaults a study file can live in. Flashcards are the picture cards, kept in their own table. */
+export const VAULTS = [
+  { id: "notes", label: "PDF Notes" },
+  { id: "formulas", label: "Formulas" },
+  { id: "questions", label: "Questions PDF" },
+] as const;
+export type VaultId = (typeof VAULTS)[number]["id"];
+
+export function vaultLabel(id: string): string {
+  return VAULTS.find((v) => v.id === id)?.label ?? "PDF Notes";
+}
+
+/** The plain-words "Recommended for" text kept on a file: "NDA, CDS" or null when it is not tied to an exam. */
+export function examsLabel(exams: readonly string[]): string | null {
+  const names = exams.map((id) => id.toUpperCase());
+  return names.length === 0 ? null : names.join(", ");
+}
+
 /** A row of the resources table as the admin page reads it. */
 export interface StoredResource {
   id: string;
@@ -46,10 +64,14 @@ export interface StoredResource {
   description: string | null;
   downloads: number;
   created_at: string;
+  vault: string;
+  subject_id: string | null;
+  chapter_id: string | null;
+  exams: string[];
 }
 
 export const RESOURCE_COLUMNS =
-  "id, title, description, category, size, recommended_for, download_url, file_path, file_type, downloads, created_at";
+  "id, title, description, category, size, recommended_for, download_url, file_path, file_type, downloads, created_at, vault, subject_id, chapter_id, exams";
 
 /** "2.4 MB", "310 KB". */
 export function formatSize(bytes: number): string {

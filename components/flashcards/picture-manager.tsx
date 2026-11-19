@@ -4,6 +4,7 @@ import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExamPicker } from "@/components/admin/exam-picker";
 import { Icons } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
 import { pictureUrl } from "@/components/flashcards/picture-url";
@@ -11,6 +12,7 @@ import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { logAdminAction } from "@/lib/adminLog";
 import { FLASHCARD_BUCKET, IMAGE_ACCEPT, IMAGE_COLUMNS, imagePath, imageProblem, type FlashcardImage } from "@/lib/flashcard-images";
 import { supabase } from "@/lib/supabaseClient";
+import { cleanExams, type ExamId } from "@/lib/subjects";
 import { groupBySubject, sortChapters } from "@/lib/taxonomy";
 
 type Message = { type: "success" | "error"; text: string } | null;
@@ -23,6 +25,12 @@ export function PictureManager() {
   const [version, setVersion] = React.useState(0);
   const [subjectId, setSubjectId] = React.useState("");
   const [chapterId, setChapterId] = React.useState("");
+  const [exams, setExams] = React.useState<ExamId[]>([]);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [moveSubject, setMoveSubject] = React.useState("");
+  const [moveChapter, setMoveChapter] = React.useState("");
+  const [moveExams, setMoveExams] = React.useState<ExamId[]>([]);
+  const [moving, setMoving] = React.useState(false);
   const [files, setFiles] = React.useState<File[]>([]);
   const [progress, setProgress] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -81,7 +89,7 @@ export function PictureManager() {
         failed.push(`${file.name}: ${stored.error.message}`);
         continue;
       }
-      const { error } = await supabase.from("flashcard_images").insert({ subject_id: subject.id, chapter_id: chapter?.id ?? null, image_path: path });
+      const { error } = await supabase.from("flashcard_images").insert({ subject_id: subject.id, chapter_id: chapter?.id ?? null, image_path: path, exams });
       if (error) {
         // Do not leave a picture in storage that no student can see.
         await supabase.storage.from(FLASHCARD_BUCKET).remove([path]);
@@ -97,7 +105,7 @@ export function PictureManager() {
         action: "added",
         entityType: "flashcard_image",
         label: `${added} ${added === 1 ? "picture" : "pictures"} in ${[subject.name, chapter?.name].filter(Boolean).join(" > ")}`,
-        details: { subject_id: subject.id, chapter_id: chapter?.id ?? null, count: added },
+        details: { subject_id: subject.id, chapter_id: chapter?.id ?? null, count: added, exams },
       });
       setFiles([]);
       if (fileInput.current) fileInput.current.value = "";
@@ -130,6 +138,61 @@ export function PictureManager() {
     refresh();
   };
 
+  const toggleSelected = (ids: string[], on: boolean) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      for (const id of ids) {
+        if (on) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+
+  /** Moves the ticked pictures to another subject and chapter. Their file and exam tags stay as they are. */
+  const move = async () => {
+    const target = taxonomy.subjects.find((x) => x.id === moveSubject);
+    if (!target) return setMsg({ type: "error", text: "Pick the subject to move the pictures to." });
+    const targetChapter = taxonomy.chapters.find((c) => c.id === moveChapter && c.subject_id === target.id);
+    const ids = [...selected];
+    setMoving(true);
+    setMsg(null);
+    const { data, error } = await supabase
+      .from("flashcard_images")
+      .update({ subject_id: target.id, chapter_id: targetChapter?.id ?? null })
+      .in("id", ids)
+      .select("id");
+    setMoving(false);
+    if (error || !data?.length) return setMsg({ type: "error", text: error?.message ?? "The pictures were not moved. You may not have permission." });
+    await logAdminAction({
+      action: "edited",
+      entityType: "flashcard_image",
+      label: `${data.length} ${data.length === 1 ? "picture" : "pictures"} moved to ${[target.name, targetChapter?.name].filter(Boolean).join(" > ")}`,
+      details: { subject_id: target.id, chapter_id: targetChapter?.id ?? null, count: data.length },
+    });
+    setSelected(new Set());
+    setMsg({ type: "success", text: `Moved ${data.length} ${data.length === 1 ? "picture" : "pictures"} to ${[target.name, targetChapter?.name].filter(Boolean).join(" > ")}.` });
+    refresh();
+  };
+
+  /** Replaces the exam tags of the ticked pictures. */
+  const applyExams = async () => {
+    const ids = [...selected];
+    setMoving(true);
+    setMsg(null);
+    const { data, error } = await supabase.from("flashcard_images").update({ exams: moveExams }).in("id", ids).select("id");
+    setMoving(false);
+    if (error || !data?.length) return setMsg({ type: "error", text: error?.message ?? "The exams were not changed. You may not have permission." });
+    await logAdminAction({
+      action: "edited",
+      entityType: "flashcard_image",
+      label: `Exams set on ${data.length} ${data.length === 1 ? "picture" : "pictures"}`,
+      details: { count: data.length, exams: moveExams },
+    });
+    setSelected(new Set());
+    setMsg({ type: "success", text: moveExams.length > 0 ? `Tagged ${data.length} ${data.length === 1 ? "picture" : "pictures"} for ${moveExams.join(", ").toUpperCase()}.` : `Cleared the exam tags on ${data.length} ${data.length === 1 ? "picture" : "pictures"}.` });
+    refresh();
+  };
+
   const sections = React.useMemo(() => groupBySubject(pictures ?? [], taxonomy.subjects, taxonomy.chapters), [pictures, taxonomy.subjects, taxonomy.chapters]);
 
   return (
@@ -155,7 +218,12 @@ export function PictureManager() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
                 <label htmlFor="pic-subject" className={labelClass}>Subject</label>
-                <Select id="pic-subject" value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setChapterId(""); }}>
+                <Select id="pic-subject" value={subjectId} onChange={(e) => {
+                    setSubjectId(e.target.value);
+                    setChapterId("");
+                    // The subject's own exams are the starting point. Change them freely.
+                    setExams(cleanExams(taxonomy.subjects.find((x) => x.id === e.target.value)?.exams));
+                  }}>
                   <option value="">Pick a subject</option>
                   {taxonomy.subjects.map((x) => (
                     <option key={x.id} value={x.id}>{x.name}</option>
@@ -172,7 +240,9 @@ export function PictureManager() {
                 </Select>
               </div>
             </div>
-            <p className="text-xs text-steel-500">Add subjects and chapters under Admin Suite, Subjects, Chapters.</p>
+            <p className="text-xs text-steel-500">Add subjects and chapters under Admin Suite, Subjects, Study Subjects.</p>
+
+            <ExamPicker value={exams} onChange={setExams} hint="Tick the exams these cards are for, and they show in those exam folders too. Leave all unticked if they are for everyone." />
 
             <div className="space-y-1">
               <label htmlFor="pic-files" className={labelClass}>Pictures</label>
@@ -201,15 +271,61 @@ export function PictureManager() {
           {pictures ? <Badge variant="outline">{pictures.length} total</Badge> : null}
         </CardHeader>
         <CardContent className="space-y-8">
+          {selected.size > 0 ? (
+            <div role="region" aria-label="Selected pictures" className="sticky top-2 z-10 space-y-4 rounded-panel border border-gold-400/60 bg-navy-900 p-4 shadow-panel">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-bold text-white">{selected.size} selected</p>
+                <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>Clear selection</Button>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <label htmlFor="move-subject" className={labelClass}>Move to subject</label>
+                  <Select id="move-subject" value={moveSubject} onChange={(e) => { setMoveSubject(e.target.value); setMoveChapter(""); }}>
+                    <option value="">Pick a subject</option>
+                    {taxonomy.subjects.filter((x) => x.name !== "Unsorted").map((x) => (
+                      <option key={x.id} value={x.id}>{x.name}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="move-chapter" className={labelClass}>Chapter</label>
+                  <Select id="move-chapter" value={moveChapter} disabled={!moveSubject} onChange={(e) => setMoveChapter(e.target.value)}>
+                    <option value="">{moveSubject ? "No chapter" : "Pick a subject first"}</option>
+                    {sortChapters(taxonomy.chapters.filter((c) => c.subject_id === moveSubject)).map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button variant="gold" className="w-full" disabled={moving || !moveSubject} onClick={() => void move()}>
+                    {moving ? "Working..." : "Move selected"}
+                  </Button>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-end justify-between gap-3 border-t border-steel-700/60 pt-3">
+                <ExamPicker legend="Set exams on the selected pictures" value={moveExams} onChange={setMoveExams} />
+                <Button variant="outline" size="sm" disabled={moving} onClick={() => void applyExams()}>Apply exams</Button>
+              </div>
+            </div>
+          ) : null}
           {loadError ? <p role="alert" className="text-xs text-danger-300">Could not load pictures: {loadError}. Have you run migration 014?</p> : null}
           {!pictures && !loadError ? <p className="text-xs text-steel-300">Loading pictures...</p> : null}
           {pictures && pictures.length === 0 ? <p className="text-xs text-steel-300">No pictures yet. Add the first ones above.</p> : null}
           {sections.map((section) => (
             <section key={section.key} aria-label={section.subjectName} className="space-y-4">
               <h3 className="border-b border-steel-700/60 pb-2 text-base font-bold text-white">{section.subjectName}</h3>
-              {section.chapters.map((group) => (
+              {section.chapters.map((group) => {
+                const groupIds = group.items.map((i) => i.id);
+                const allOn = groupIds.every((id) => selected.has(id));
+                return (
                 <div key={group.key} className="space-y-3">
-                  {group.chapterName ? <p className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{group.chapterName}</p> : null}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    {group.chapterName ? <p className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{group.chapterName}</p> : <span />}
+                    <label className="flex items-center gap-2 text-xs text-steel-300">
+                      <input type="checkbox" checked={allOn} onChange={(e) => toggleSelected(groupIds, e.target.checked)} className="size-4 accent-gold-400" />
+                      Select all {groupIds.length} in {group.chapterName ?? section.subjectName}
+                    </label>
+                  </div>
                   <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
                     {group.items.map((item) => (
                       <li key={item.id} className="overflow-hidden rounded-control border border-steel-700/60 bg-navy-950">
@@ -217,7 +333,12 @@ export function PictureManager() {
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={pictureUrl(item.image_path)} alt={`Flashcard in ${group.chapterName ?? section.subjectName}`} loading="lazy" className="size-full object-contain" />
                         </div>
-                        <div className="p-2">
+                        <div className="space-y-2 p-2">
+                          <label className="flex items-center gap-2 text-xs text-steel-300">
+                            <input type="checkbox" checked={selected.has(item.id)} onChange={(e) => toggleSelected([item.id], e.target.checked)} className="size-4 accent-gold-400" />
+                            Select
+                            {item.exams?.length ? <span className="ml-auto font-mono text-xs text-gold-300">{item.exams.join(", ").toUpperCase()}</span> : null}
+                          </label>
                           <Button variant="danger" size="sm" className="w-full" disabled={busyId === item.id} onClick={() => void remove(item)} aria-label={`Delete picture in ${group.chapterName ?? section.subjectName}`}>
                             Delete
                           </Button>
@@ -226,7 +347,8 @@ export function PictureManager() {
                     ))}
                   </ul>
                 </div>
-              ))}
+                );
+              })}
             </section>
           ))}
         </CardContent>
