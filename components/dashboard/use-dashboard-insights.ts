@@ -73,7 +73,7 @@ export function useDashboardInsights(): DashboardInsights {
           .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(30),
-        supabase.from("subjects").select("id, name, slug, description, icon_name").eq("is_active", true).order("sort_order", { ascending: true }),
+        supabase.from("subjects").select("id, name, slug, description, icon_name").eq("kind", "exam").eq("is_active", true).order("sort_order", { ascending: true }),
       ]);
       if (!active) return;
 

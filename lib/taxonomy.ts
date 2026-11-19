@@ -3,6 +3,8 @@ export interface TaxSubject {
   id: string;
   name: string;
   sort_order: number;
+  cover_path: string | null;
+  exams: string[];
 }
 
 export interface Chapter {

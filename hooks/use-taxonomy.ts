@@ -18,7 +18,7 @@ export function useTaxonomy(version = 0): Taxonomy {
   React.useEffect(() => {
     let active = true;
     Promise.all([
-      supabase.from("subjects").select("id, name, sort_order").order("sort_order", { ascending: true }),
+      supabase.from("subjects").select("id, name, sort_order, cover_path, exams").eq("kind", "subject").order("sort_order", { ascending: true }),
       supabase.from("chapters").select("id, subject_id, name, sort_order").order("sort_order", { ascending: true }),
     ]).then(([subjects, chapters]) => {
       if (!active) return;
@@ -27,7 +27,7 @@ export function useTaxonomy(version = 0): Taxonomy {
       const error = subjects.error?.message ?? (chaptersMissing ? null : (chapters.error?.message ?? null));
       setState({
         loading: false,
-        subjects: (subjects.data ?? []) as TaxSubject[],
+        subjects: (subjects.data ?? []) as unknown as TaxSubject[],
         chapters: chaptersMissing ? [] : ((chapters.data ?? []) as Chapter[]),
         error,
       });

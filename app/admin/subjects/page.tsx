@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
-import { ChaptersManager } from "@/components/admin/chapters-manager";
+import { StudySubjectsManager } from "@/components/admin/study-subjects-manager";
 import { logAdminAction } from "@/lib/adminLog";
 import { slugify, SUBJECT_ICONS, type Subject } from "@/lib/subjects";
 import { supabase } from "@/lib/supabaseClient";
@@ -41,13 +41,13 @@ export default function AdminSubjectsPage() {
   const [saving, setSaving] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [msg, setMsg] = React.useState<Message>(null);
-  const [chaptersOpen, setChaptersOpen] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let active = true;
     supabase
       .from("subjects")
       .select("id, name, slug, code, description, icon_name, is_active, sort_order, created_at")
+      .eq("kind", "exam")
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true })
       .then(({ data, error }) => {
@@ -115,7 +115,7 @@ export default function AdminSubjectsPage() {
         const duplicate = error?.code === "23505";
         return setMsg({
           type: "error",
-          text: duplicate ? "A subject with this name already exists." : (error?.message ?? "Could not save the subject."),
+          text: duplicate ? "An entry scheme with this name already exists." : (error?.message ?? "Could not save the subject."),
         });
       }
       await logAdminAction({ action: "added", entityType: "subject", label: name, details: { subject_id: data[0].id } });
@@ -172,7 +172,7 @@ export default function AdminSubjectsPage() {
     <div className="space-y-8">
       <div>
         <Badge variant="gold" className="mb-2">Content Management</Badge>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Subjects</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Entry Schemes</h1>
         <p className="mt-1 text-sm text-steel-300">
           These are the entry schemes on the homepage. Hide one to remove it from the homepage without deleting it.
         </p>
@@ -194,7 +194,7 @@ export default function AdminSubjectsPage() {
 
       <Card className="max-w-3xl">
         <CardHeader>
-          <CardTitle className="text-lg">{editing ? `Edit: ${editing.name}` : "Add New Subject"}</CardTitle>
+          <CardTitle className="text-lg">{editing ? `Edit: ${editing.name}` : "Add New Entry Scheme"}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="space-y-4">
@@ -240,7 +240,7 @@ export default function AdminSubjectsPage() {
 
             <div className="flex gap-3">
               <Button type="submit" variant="gold" disabled={saving}>
-                {saving ? "Saving..." : editing ? "Save changes" : "Add subject"}
+                {saving ? "Saving..." : editing ? "Save changes" : "Add entry scheme"}
               </Button>
               {editing ? (
                 <Button type="button" variant="outline" onClick={resetForm}>
@@ -254,7 +254,7 @@ export default function AdminSubjectsPage() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">All Subjects</CardTitle>
+          <CardTitle className="text-lg">All Entry Schemes</CardTitle>
           {subjects ? <Badge variant="outline">{subjects.length} total</Badge> : null}
         </CardHeader>
         <CardContent>
@@ -279,15 +279,6 @@ export default function AdminSubjectsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant={s.is_active ? "emerald" : "outline"}>{s.is_active ? "Shown" : "Hidden"}</Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      aria-expanded={chaptersOpen === s.id}
-                      onClick={() => setChaptersOpen(chaptersOpen === s.id ? null : s.id)}
-                      aria-label={`Chapters of ${s.name}`}
-                    >
-                      Chapters
-                    </Button>
                     <Button variant="outline" size="sm" onClick={() => startEdit(s)} aria-label={`Edit ${s.name}`}>
                       Edit
                     </Button>
@@ -301,13 +292,14 @@ export default function AdminSubjectsPage() {
                       {s.is_active ? "Hide" : "Show"}
                     </Button>
                   </div>
-                  {chaptersOpen === s.id ? <ChaptersManager subjectId={s.id} subjectName={s.name} /> : null}
                 </li>
               ))}
             </ul>
           ) : null}
         </CardContent>
       </Card>
+
+      <StudySubjectsManager />
     </div>
   );
 }

@@ -21,6 +21,7 @@ async function loadActiveSubjects(): Promise<SchemeCard[] | null> {
     const { data, error } = await createSupabasePublicClient()
       .from("subjects")
       .select("id, name, slug, code, description, icon_name")
+      .eq("kind", "exam")
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
