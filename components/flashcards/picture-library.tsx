@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { PictureViewer } from "@/components/flashcards/picture-viewer";
+import { downloadChapterPdf } from "@/components/flashcards/download";
 import { pictureUrl, subjectCoverUrl } from "@/components/flashcards/picture-url";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { IMAGE_COLUMNS, recentPictures, type FlashcardImage } from "@/lib/flashcard-images";
 import { supabase } from "@/lib/supabaseClient";
+import { chapterPdfName, pictureFileName } from "@/lib/flashcard-download";
 import { buildFolders, type SubjectFolder } from "@/lib/taxonomy";
 import { Icons } from "@/components/ui/icons";
 
@@ -88,6 +90,8 @@ export function PictureLibrary() {
   const [error, setError] = React.useState<string | null>(null);
   const [place, setPlace] = React.useState<Place | null>(null);
   const [open, setOpen] = React.useState<Open | null>(null);
+  const [building, setBuilding] = React.useState(false);
+  const [pdfError, setPdfError] = React.useState<string | null>(null);
   const taxonomy = useTaxonomy();
 
   React.useEffect(() => {
@@ -110,6 +114,7 @@ export function PictureLibrary() {
 
   const go = React.useCallback((next: Place | null) => {
     setPlace(next);
+    setPdfError(null);
     if (typeof window !== "undefined") window.scrollTo({ top: 0 });
   }, []);
 
@@ -164,6 +169,35 @@ export function PictureLibrary() {
             {folder.subject.name} <span className="text-steel-500">/</span> {chapterName}
           </h2>
         </div>
+        {items.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={building}
+              onClick={async () => {
+                setBuilding(true);
+                setPdfError(null);
+                try {
+                  await downloadChapterPdf(items, chapterPdfName(folder.subject.name, chapterName));
+                } catch {
+                  setPdfError("The PDF could not be built. Check your connection and try again.");
+                } finally {
+                  setBuilding(false);
+                }
+              }}
+            >
+              <Icons.download className="size-4" aria-hidden />
+              {building ? "Building PDF" : "Download chapter as PDF"}
+            </Button>
+            <span className="font-mono text-xs text-steel-300">{plural(items.length, "card")}. Open a card to save it on its own.</span>
+          </div>
+        ) : null}
+        {pdfError ? (
+          <p role="alert" className="rounded-control border border-danger-500/40 bg-danger-500/10 p-3 text-xs font-semibold text-danger-400">
+            {pdfError}
+          </p>
+        ) : null}
         {items.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -178,7 +212,16 @@ export function PictureLibrary() {
             ))}
           </div>
         )}
-        {open ? <PictureViewer items={open.items} index={open.index} label={nameOf} onIndex={(index) => setOpen({ ...open, index })} onClose={() => setOpen(null)} /> : null}
+        {open ? (
+          <PictureViewer
+            items={open.items}
+            index={open.index}
+            label={nameOf}
+            fileName={(item, i) => pictureFileName(folder.subject.name, isLoose ? null : chapterName, i + 1, item.image_path)}
+            onIndex={(index) => setOpen({ ...open, index })}
+            onClose={() => setOpen(null)}
+          />
+        ) : null}
       </div>
     );
   }
