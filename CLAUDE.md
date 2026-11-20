@@ -17,7 +17,7 @@ Next.js 16.4 (App Router) · React 19.3 · TypeScript strict · Tailwind CSS v4 
 9. Every `app/dev/*/page.tsx` wraps its content in `bg-navy-950 text-steel-100` so previews and screenshots show the base dark tokens.
 
 ## Known issues / TODO
-- Run tests with `npm test` (vitest, tests in `tests/`).
+- Run tests with `npm test` (vitest, tests in `tests/`). `vite` is listed in devDependencies on purpose: vitest needs it and `--legacy-peer-deps` will not install it by itself.
 - Legacy palettes (slate/zinc/amber) still present in auth/profile/quizzes pages; migrate to tokens during integration.
 - Three duplicate icon sets (`components/icons.tsx`, `components/quiz/icons.tsx`, `components/admin/dashboard/icons.tsx`) to migrate into `components/ui/icons.tsx`.
 - Admin signup passcode lives in the server-only `ADMIN_SIGNUP_PASSCODE` env var and is checked by the `registerAdmin` Server Action (`app/admin/signup/actions.ts`). The first passcode was exposed in the client bundle and git history: never reuse it.
