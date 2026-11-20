@@ -67,7 +67,9 @@ export default function AdminLoginPage() {
             Restricted Access // Command Center
           </Badge>
           <h1 className="flex items-center justify-center gap-2 text-2xl font-bold tracking-tight text-white">
-            <Icons.logo className="size-6 text-gold-400" />
+            <Link href="/" aria-label="EARTH SP NDA home" className="rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400">
+              <Icons.logo className="size-6 text-gold-400" />
+            </Link>
             EARTH SP Admin Portal
           </h1>
           <p className="mt-1 text-xs text-steel-400">

@@ -59,9 +59,10 @@ export default function RegisterPage() {
       <ThemeToggle className="absolute right-4 top-4" />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-2 flex items-center justify-center">
+          <Link href="/" aria-label="EARTH SP NDA home" className="mx-auto mb-2 flex items-center justify-center gap-2 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400">
             <Icons.logo className="size-10 text-gold-400" />
-          </div>
+            <span className="font-mono text-sm font-bold uppercase tracking-widest text-white">EARTH SP NDA</span>
+          </Link>
           <CardTitle className="text-2xl font-bold">Cadet Registration</CardTitle>
           <CardDescription>Create your account to unlock interactive mock series</CardDescription>
         </CardHeader>

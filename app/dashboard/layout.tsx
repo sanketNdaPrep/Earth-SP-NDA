@@ -63,11 +63,11 @@ export default function DashboardLayout({
     <div className="flex min-h-screen bg-navy-950 text-steel-100">
       {/* Sidebar Navigation */}
       <aside className="hidden w-64 flex-col border-r border-steel-700/60 bg-navy-900 md:flex">
-        <div className="flex h-16 items-center gap-2 border-b border-steel-700/60 px-6">
-          <Icons.logo className="size-6 text-gold-400" />
-          <span className="font-mono text-sm font-bold tracking-wider text-white">
-            EARTH SP NDA
-          </span>
+        <div className="flex h-16 items-center border-b border-steel-700/60 px-6">
+          <Link href="/" aria-label="EARTH SP NDA home" className="flex items-center gap-2 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400">
+            <Icons.logo className="size-6 text-gold-400" />
+            <span className="font-mono text-sm font-bold tracking-wider text-white">EARTH SP NDA</span>
+          </Link>
         </div>
 
         <nav className="flex-1 space-y-1 p-4">
@@ -140,8 +140,10 @@ export default function DashboardLayout({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Icons.logo className="size-6 shrink-0 text-gold-400" />
-            <span className="truncate font-mono text-sm font-bold text-white">EARTH SP NDA</span>
+            <Link href="/" aria-label="EARTH SP NDA home" className="flex min-w-0 items-center gap-2 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400">
+              <Icons.logo className="size-6 shrink-0 text-gold-400" />
+              <span className="truncate font-mono text-sm font-bold text-white">EARTH SP NDA</span>
+            </Link>
           </div>
 
           <div className="hidden font-mono text-xs uppercase tracking-wider text-steel-300 md:block">

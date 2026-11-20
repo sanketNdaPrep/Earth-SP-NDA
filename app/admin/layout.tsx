@@ -50,11 +50,11 @@ export default function AdminLayout({
     <div className="flex min-h-screen bg-navy-950 text-steel-100">
       {/* Admin Sidebar */}
       <aside className="hidden w-64 flex-col border-r border-steel-700/60 bg-navy-900 md:flex">
-        <div className="flex h-16 items-center gap-2 border-b border-steel-700/60 px-6">
-          <Icons.logo className="size-6 text-gold-400" />
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-white">
-            EARTH SP Admin
-          </span>
+        <div className="flex h-16 items-center border-b border-steel-700/60 px-6">
+          <Link href="/" aria-label="EARTH SP NDA home" className="flex items-center gap-2 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400">
+            <Icons.logo className="size-6 text-gold-400" />
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-white">EARTH SP Admin</span>
+          </Link>
         </div>
 
         <nav className="flex-1 space-y-1 p-4">
@@ -138,6 +138,10 @@ export default function AdminLayout({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Link href="/" aria-label="EARTH SP NDA home" className="flex shrink-0 items-center gap-2 rounded-control md:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400">
+              <Icons.logo className="size-6 text-gold-400" />
+              <span className="sr-only">EARTH SP NDA home</span>
+            </Link>
             <div className="truncate font-mono text-xs uppercase tracking-wider text-gold-300">
               <span className="md:hidden">Admin Suite</span>
               <span className="hidden md:inline">System Control // Command Center</span>
