@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import "@/app/globals.css";
 import { ThemeSync } from "@/components/theme/theme-sync";
+import { BackBar } from "@/components/ui/back-bar";
 import { Toaster } from "@/components/ui/toast";
 import { SITE_URL } from "@/lib/site";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -39,6 +41,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-screen bg-navy-950 text-steel-100 antialiased selection:bg-gold-400 selection:text-navy-950">
+        <Suspense fallback={null}>
+          <BackBar />
+        </Suspense>
         {children}
         <ThemeSync />
         <Toaster />
