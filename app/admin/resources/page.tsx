@@ -62,6 +62,11 @@ export default function AdminResourcesPage() {
   const [fileKey, setFileKey] = React.useState(0); // changing this clears the file picker
   const [uploading, setUploading] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [movingId, setMovingId] = React.useState<string | null>(null);
+  const [mVault, setMVault] = React.useState<VaultId>(VAULTS[0].id);
+  const [mSubject, setMSubject] = React.useState("");
+  const [mChapter, setMChapter] = React.useState("");
+  const [mExams, setMExams] = React.useState<ExamId[]>([]);
   const [msg, setMsg] = React.useState<Message>(null);
 
   React.useEffect(() => {
@@ -191,6 +196,39 @@ export default function AdminResourcesPage() {
     setFile(null);
     setFileKey((k) => k + 1);
     setMsg({ type: "success", text: `"${cleanTitle}" is uploaded. Students can download it from the Study Material page now.` });
+    refresh();
+  };
+
+  const startMove = (row: StoredResource) => {
+    setMovingId(row.id);
+    setMVault((VAULTS.find((v) => v.id === row.vault)?.id ?? VAULTS[0].id) as VaultId);
+    setMSubject(row.subject_id ?? "");
+    setMChapter(row.chapter_id ?? "");
+    setMExams(cleanExams(row.exams));
+    setMsg(null);
+  };
+
+  /** Refiles a study file under another vault, subject, chapter and exams. The stored file itself is untouched. */
+  const saveMove = async (row: StoredResource) => {
+    if (!mSubject) return setMsg({ type: "error", text: "Pick a subject for the file." });
+    const chapter = taxonomy.chapters.find((c) => c.id === mChapter && c.subject_id === mSubject);
+    setBusyId(row.id);
+    setMsg(null);
+    const { data, error } = await supabase
+      .from("resources")
+      .update({ vault: mVault, subject_id: mSubject, chapter_id: chapter?.id ?? null, exams: mExams, category: vaultLabel(mVault), recommended_for: examsLabel(mExams) })
+      .eq("id", row.id)
+      .select("id");
+    setBusyId(null);
+    if (error || !data?.length) return setMsg({ type: "error", text: error?.message ?? "The file was not moved. You may not have permission." });
+    await logAdminAction({
+      action: "edited",
+      entityType: "resource",
+      label: row.title,
+      details: { resource_id: row.id, vault: mVault, subject_id: mSubject, chapter_id: chapter?.id ?? null, exams: mExams },
+    });
+    setMovingId(null);
+    setMsg({ type: "success", text: `"${row.title}" moved.` });
     refresh();
   };
 
@@ -375,7 +413,7 @@ export default function AdminResourcesPage() {
                 const kind = resourceKind(row);
                 const hasLink = row.download_url && row.download_url !== "#";
                 return (
-                  <li key={row.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <li key={row.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <div className="min-w-0 space-y-2">
                       <p className="truncate text-sm font-semibold text-white">{row.title}</p>
                       {row.description ? <p className="line-clamp-2 text-xs text-steel-300">{row.description}</p> : null}
@@ -398,6 +436,9 @@ export default function AdminResourcesPage() {
                           </a>
                         </Button>
                       ) : null}
+                      <Button variant="outline" size="sm" disabled={busyId === row.id} aria-expanded={movingId === row.id} aria-label={`Move ${row.title}`} onClick={() => (movingId === row.id ? setMovingId(null) : startMove(row))}>
+                        Move
+                      </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="outline" size="sm" disabled={busyId === row.id} aria-label={`Delete ${row.title}`}>
@@ -419,6 +460,52 @@ export default function AdminResourcesPage() {
                         </AlertDialogContent>
                       </AlertDialog>
                     </div>
+
+                    {movingId === row.id ? (
+                      <div className="w-full space-y-4 rounded-control border border-steel-700/60 bg-navy-950 p-4 sm:basis-full">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`mv-vault-${row.id}`}>Vault</Label>
+                            <Select id={`mv-vault-${row.id}`} value={mVault} onChange={(e) => setMVault(e.target.value as VaultId)}>
+                              {VAULTS.map((v) => (
+                                <option key={v.id} value={v.id}>{v.label}</option>
+                              ))}
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`mv-subject-${row.id}`}>Subject</Label>
+                            <Select
+                              id={`mv-subject-${row.id}`}
+                              value={mSubject}
+                              onChange={(e) => {
+                                setMSubject(e.target.value);
+                                setMChapter("");
+                                setMExams(cleanExams(taxonomy.subjects.find((x) => x.id === e.target.value)?.exams));
+                              }}
+                            >
+                              <option value="">Pick a subject</option>
+                              {taxonomy.subjects.map((x) => (
+                                <option key={x.id} value={x.id}>{x.name}</option>
+                              ))}
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`mv-chapter-${row.id}`}>Chapter</Label>
+                            <Select id={`mv-chapter-${row.id}`} value={mChapter} disabled={!mSubject} onChange={(e) => setMChapter(e.target.value)}>
+                              <option value="">{mSubject ? "No chapter" : "Pick a subject first"}</option>
+                              {taxonomy.chapters.filter((c) => c.subject_id === mSubject).map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </Select>
+                          </div>
+                        </div>
+                        <ExamPicker value={mExams} onChange={setMExams} />
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setMovingId(null)}>Cancel</Button>
+                          <Button variant="gold" size="sm" disabled={busyId === row.id} onClick={() => void saveMove(row)}>Save move</Button>
+                        </div>
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}

@@ -127,3 +127,33 @@ export function subjectInExam(subject: Pick<TaxSubject, "id" | "exams">, items: 
   if (subject.exams.length === 0 || subject.exams.includes(exam)) return true;
   return items.some((i) => i.subject_id === subject.id && (i.exams ?? []).includes(exam));
 }
+
+export interface ChapterListResult {
+  /** Names ready to add, in the order pasted. */
+  names: string[];
+  /** Lines left out, with the reason. */
+  skipped: { line: string; reason: string }[];
+}
+
+/**
+ * Turns a pasted list (one chapter per line, bullets and "1." numbering allowed) into chapter names.
+ * Leaves out blank lines, names that are too short or long, repeats within the list and chapters that already exist.
+ */
+export function parseChapterList(text: string, existing: readonly Pick<Chapter, "name">[]): ChapterListResult {
+  const seen = new Set(existing.map((c) => c.name.trim().toLowerCase()));
+  const names: string[] = [];
+  const skipped: { line: string; reason: string }[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const name = raw.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").replace(/\s+/g, " ").trim();
+    if (!name) continue;
+    if (name.length < CHAPTER_NAME.min || name.length > CHAPTER_NAME.max) {
+      skipped.push({ line: name, reason: `needs ${CHAPTER_NAME.min} to ${CHAPTER_NAME.max} characters` });
+    } else if (seen.has(name.toLowerCase())) {
+      skipped.push({ line: name, reason: "already in the list" });
+    } else {
+      seen.add(name.toLowerCase());
+      names.push(name);
+    }
+  }
+  return { names, skipped };
+}

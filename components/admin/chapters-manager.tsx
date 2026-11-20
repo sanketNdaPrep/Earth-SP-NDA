@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { logAdminAction } from "@/lib/adminLog";
-import { CHAPTER_NAME, chapterNameProblem, sortChapters, type Chapter } from "@/lib/taxonomy";
+import { CHAPTER_NAME, chapterNameProblem, parseChapterList, sortChapters, type Chapter } from "@/lib/taxonomy";
 import { supabase } from "@/lib/supabaseClient";
 
 const inputClass =
@@ -19,6 +19,9 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
   const [editName, setEditName] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [problem, setProblem] = React.useState<string | null>(null);
+  const [many, setMany] = React.useState(false);
+  const [pasted, setPasted] = React.useState("");
+  const [note, setNote] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -56,6 +59,23 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
     if (error) return setProblem(error.code === "23505" ? "This subject already has a chapter with that name." : error.message);
     await record("added", name.trim());
     setName("");
+    refresh();
+  };
+
+  const addMany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { names, skipped } = parseChapterList(pasted, list);
+    setNote(null);
+    if (names.length === 0) return setProblem(skipped.length > 0 ? "Nothing new to add. Every line was already there or the wrong length." : "Paste at least one chapter name, one per line.");
+    setBusy(true);
+    setProblem(null);
+    const start = list.length ? Math.max(...list.map((c) => c.sort_order)) : 0;
+    const { error } = await supabase.from("chapters").insert(names.map((n, i) => ({ subject_id: subjectId, name: n, sort_order: start + i + 1 })));
+    setBusy(false);
+    if (error) return setProblem(error.code === "23505" ? "One of those chapters already exists in this subject." : error.message);
+    await logAdminAction({ action: "added", entityType: "subject", label: `${subjectName}: ${names.length} chapters`, details: { subject_id: subjectId, chapters: names } });
+    setPasted("");
+    setNote(`Added ${names.length} ${names.length === 1 ? "chapter" : "chapters"}.${skipped.length > 0 ? ` Left out ${skipped.length}: ${skipped.map((x) => `${x.line} (${x.reason})`).join("; ")}.` : ""}`);
     refresh();
   };
 
@@ -156,6 +176,30 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
         <input id={`new-chapter-${subjectId}`} className={inputClass} value={name} maxLength={CHAPTER_NAME.max} onChange={(e) => setName(e.target.value)} placeholder="New chapter, for example Trigonometry" />
         <Button type="submit" variant="gold" size="sm" disabled={busy || Boolean(loadError)}>Add chapter</Button>
       </form>
+      <div className="border-t border-steel-700/40 pt-3">
+        <Button type="button" size="sm" variant="outline" aria-expanded={many} onClick={() => setMany((v) => !v)}>
+          {many ? "Hide the list box" : "Add many at once"}
+        </Button>
+        {many ? (
+          <form onSubmit={addMany} className="mt-3 space-y-2">
+            <label htmlFor={`many-chapters-${subjectId}`} className="block text-xs text-steel-300">
+              Paste the chapter names, one on each line. Numbers and bullets are fine.
+            </label>
+            <textarea
+              id={`many-chapters-${subjectId}`}
+              rows={6}
+              className={inputClass}
+              value={pasted}
+              onChange={(e) => setPasted(e.target.value)}
+              placeholder={"Algebra\nCalculus\nTrigonometry"}
+            />
+            <Button type="submit" variant="gold" size="sm" disabled={busy || Boolean(loadError)}>
+              Add all chapters
+            </Button>
+          </form>
+        ) : null}
+      </div>
+      {note ? <p role="status" className="text-xs text-emerald-300">{note}</p> : null}
       {problem ? <p role="alert" className="text-xs text-danger-300">{problem}</p> : null}
     </div>
   );

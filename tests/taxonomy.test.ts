@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFolders, chapterNameProblem, groupBySubject, itemInExam, subjectInExam } from "../lib/taxonomy";
+import { buildFolders, chapterNameProblem, groupBySubject, itemInExam, parseChapterList, subjectInExam } from "../lib/taxonomy";
 
 const subjects = [
   { id: "s2", name: "CDS", sort_order: 2, cover_path: null, exams: [] },
@@ -102,5 +102,18 @@ describe("exam filtering", () => {
     expect(subjectInExam(physics, [], "cds")).toBe(false);
     expect(subjectInExam(physics, [{ subject_id: "p", exams: ["cds"] }], "cds")).toBe(true);
     expect(subjectInExam({ id: "x", exams: [] }, [], "afcat")).toBe(true);
+  });
+});
+
+describe("parseChapterList", () => {
+  it("reads one chapter per line and strips bullets and numbering", () => {
+    const out = parseChapterList("1. Algebra\n- Calculus\n* Trigonometry\n\n  Vectors  ", []);
+    expect(out.names).toEqual(["Algebra", "Calculus", "Trigonometry", "Vectors"]);
+    expect(out.skipped).toEqual([]);
+  });
+  it("skips repeats, existing chapters and bad lengths", () => {
+    const out = parseChapterList("Algebra\nalgebra\nCalculus\nX\n" + "a".repeat(61), [{ name: "calculus" }]);
+    expect(out.names).toEqual(["Algebra"]);
+    expect(out.skipped.map((s) => s.reason)).toEqual(["already in the list", "already in the list", "needs 2 to 60 characters", "needs 2 to 60 characters"]);
   });
 });
