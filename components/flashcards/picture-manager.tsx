@@ -5,15 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExamPicker } from "@/components/admin/exam-picker";
+import { emptyFiling, FilingFields } from "@/components/admin/filing-fields";
+import { checkFiling, NEW_SUBJECT, type FilingInput } from "@/lib/filing";
+import { saveFiling } from "@/lib/filing-save";
 import { Icons } from "@/components/ui/icons";
-import { Select } from "@/components/ui/select";
 import { pictureUrl } from "@/components/flashcards/picture-url";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { logAdminAction } from "@/lib/adminLog";
 import { FLASHCARD_BUCKET, IMAGE_ACCEPT, IMAGE_COLUMNS, imagePath, imageProblem, type FlashcardImage } from "@/lib/flashcard-images";
 import { supabase } from "@/lib/supabaseClient";
 import { cleanExams, type ExamId } from "@/lib/subjects";
-import { groupBySubject, sortChapters } from "@/lib/taxonomy";
+import { groupBySubject } from "@/lib/taxonomy";
 
 type Message = { type: "success" | "error"; text: string } | null;
 const labelClass = "block text-xs font-semibold uppercase tracking-wider text-steel-300";
@@ -23,12 +25,10 @@ export function PictureManager() {
   const [pictures, setPictures] = React.useState<FlashcardImage[] | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [version, setVersion] = React.useState(0);
-  const [subjectId, setSubjectId] = React.useState("");
-  const [chapterId, setChapterId] = React.useState("");
+  const [filing, setFiling] = React.useState<FilingInput>(emptyFiling());
   const [exams, setExams] = React.useState<ExamId[]>([]);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
-  const [moveSubject, setMoveSubject] = React.useState("");
-  const [moveChapter, setMoveChapter] = React.useState("");
+  const [moveFiling, setMoveFiling] = React.useState<FilingInput>(emptyFiling());
   const [moveExams, setMoveExams] = React.useState<ExamId[]>([]);
   const [moving, setMoving] = React.useState(false);
   const [files, setFiles] = React.useState<File[]>([]);
@@ -36,7 +36,8 @@ export function PictureManager() {
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [msg, setMsg] = React.useState<Message>(null);
   const fileInput = React.useRef<HTMLInputElement>(null);
-  const taxonomy = useTaxonomy();
+  const [version2, setVersion2] = React.useState(0);
+  const taxonomy = useTaxonomy(version2);
 
   React.useEffect(() => {
     let active = true;
@@ -55,10 +56,11 @@ export function PictureManager() {
     };
   }, [version]);
 
-  const refresh = () => setVersion((v) => v + 1);
+  const refresh = () => {
+    setVersion((v) => v + 1);
+    setVersion2((v) => v + 1);
+  };
   const uploading = progress !== null;
-  const subject = taxonomy.subjects.find((x) => x.id === subjectId);
-  const chapter = taxonomy.chapters.find((x) => x.id === chapterId && x.subject_id === subjectId);
 
   const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? []);
@@ -75,8 +77,17 @@ export function PictureManager() {
   const upload = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
-    if (!subject) return setMsg({ type: "error", text: "Pick a subject first." });
     if (files.length === 0) return setMsg({ type: "error", text: "Choose at least one picture." });
+    const check = checkFiling(filing, taxonomy.subjects, taxonomy.chapters);
+    if (!check.ok) return setMsg({ type: "error", text: check.error });
+    setProgress("Preparing the subject and chapter...");
+    const saved = await saveFiling(check, exams);
+    if (!saved.ok) {
+      setProgress(null);
+      return setMsg({ type: "error", text: saved.error });
+    }
+    const { subject, chapter } = saved;
+    if (saved.created.length > 0) refresh();
 
     let added = 0;
     const failed: string[] = [];
@@ -108,6 +119,7 @@ export function PictureManager() {
         details: { subject_id: subject.id, chapter_id: chapter?.id ?? null, count: added, exams },
       });
       setFiles([]);
+      setFiling((f) => (f.subjectChoice === NEW_SUBJECT ? emptyFiling() : f));
       if (fileInput.current) fileInput.current.value = "";
       refresh();
     }
@@ -150,12 +162,18 @@ export function PictureManager() {
 
   /** Moves the ticked pictures to another subject and chapter. Their file and exam tags stay as they are. */
   const move = async () => {
-    const target = taxonomy.subjects.find((x) => x.id === moveSubject);
-    if (!target) return setMsg({ type: "error", text: "Pick the subject to move the pictures to." });
-    const targetChapter = taxonomy.chapters.find((c) => c.id === moveChapter && c.subject_id === target.id);
+    const check = checkFiling(moveFiling, taxonomy.subjects, taxonomy.chapters);
+    if (!check.ok) return setMsg({ type: "error", text: check.error });
     const ids = [...selected];
     setMoving(true);
     setMsg(null);
+    const saved = await saveFiling(check, moveExams);
+    if (!saved.ok) {
+      setMoving(false);
+      return setMsg({ type: "error", text: saved.error });
+    }
+    const target = saved.subject;
+    const targetChapter = saved.chapter;
     const { data, error } = await supabase
       .from("flashcard_images")
       .update({ subject_id: target.id, chapter_id: targetChapter?.id ?? null })
@@ -170,6 +188,7 @@ export function PictureManager() {
       details: { subject_id: target.id, chapter_id: targetChapter?.id ?? null, count: data.length },
     });
     setSelected(new Set());
+    setMoveFiling(emptyFiling());
     setMsg({ type: "success", text: `Moved ${data.length} ${data.length === 1 ? "picture" : "pictures"} to ${[target.name, targetChapter?.name].filter(Boolean).join(" > ")}.` });
     refresh();
   };
@@ -215,32 +234,16 @@ export function PictureManager() {
         </CardHeader>
         <CardContent>
           <form onSubmit={upload} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label htmlFor="pic-subject" className={labelClass}>Subject</label>
-                <Select id="pic-subject" value={subjectId} onChange={(e) => {
-                    setSubjectId(e.target.value);
-                    setChapterId("");
-                    // The subject's own exams are the starting point. Change them freely.
-                    setExams(cleanExams(taxonomy.subjects.find((x) => x.id === e.target.value)?.exams));
-                  }}>
-                  <option value="">Pick a subject</option>
-                  {taxonomy.subjects.map((x) => (
-                    <option key={x.id} value={x.id}>{x.name}</option>
-                  ))}
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="pic-chapter" className={labelClass}>Chapter</label>
-                <Select id="pic-chapter" value={chapterId} disabled={!subjectId} onChange={(e) => setChapterId(e.target.value)}>
-                  <option value="">{subjectId ? "No chapter" : "Pick a subject first"}</option>
-                  {sortChapters(taxonomy.chapters.filter((c) => c.subject_id === subjectId)).map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-            <p className="text-xs text-steel-500">Add subjects and chapters under Admin Suite, Subjects, Study Subjects.</p>
+            <FilingFields
+              idPrefix="pic"
+              subjects={taxonomy.subjects}
+              chapters={taxonomy.chapters}
+              value={filing}
+              onChange={setFiling}
+              // The subject's own exams are the starting point. Change them freely.
+              onSubjectPicked={(subject) => setExams(cleanExams(subject?.exams))}
+              disabled={uploading}
+            />
 
             <ExamPicker value={exams} onChange={setExams} hint="Tick the exams these cards are for, and they show in those exam folders too. Leave all unticked if they are for everyone." />
 
@@ -258,7 +261,7 @@ export function PictureManager() {
               <p className="text-xs text-steel-500">PNG, JPG or WebP. Choose as many as you like, each one becomes a flashcard.{files.length > 0 ? ` ${files.length} selected.` : ""}</p>
             </div>
 
-            <Button type="submit" variant="gold" disabled={uploading || !subjectId || files.length === 0}>
+            <Button type="submit" variant="gold" disabled={uploading || !filing.subjectChoice || files.length === 0}>
               {uploading ? progress : files.length > 1 ? `Add ${files.length} pictures` : "Add picture"}
             </Button>
           </form>
@@ -277,31 +280,10 @@ export function PictureManager() {
                 <p className="text-sm font-bold text-white">{selected.size} selected</p>
                 <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>Clear selection</Button>
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="space-y-1">
-                  <label htmlFor="move-subject" className={labelClass}>Move to subject</label>
-                  <Select id="move-subject" value={moveSubject} onChange={(e) => { setMoveSubject(e.target.value); setMoveChapter(""); }}>
-                    <option value="">Pick a subject</option>
-                    {taxonomy.subjects.filter((x) => x.name !== "Unsorted").map((x) => (
-                      <option key={x.id} value={x.id}>{x.name}</option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="move-chapter" className={labelClass}>Chapter</label>
-                  <Select id="move-chapter" value={moveChapter} disabled={!moveSubject} onChange={(e) => setMoveChapter(e.target.value)}>
-                    <option value="">{moveSubject ? "No chapter" : "Pick a subject first"}</option>
-                    {sortChapters(taxonomy.chapters.filter((c) => c.subject_id === moveSubject)).map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="flex items-end">
-                  <Button variant="gold" className="w-full" disabled={moving || !moveSubject} onClick={() => void move()}>
-                    {moving ? "Working..." : "Move selected"}
-                  </Button>
-                </div>
-              </div>
+              <FilingFields idPrefix="move" subjects={taxonomy.subjects.filter((x) => x.name !== "Unsorted")} chapters={taxonomy.chapters} value={moveFiling} onChange={setMoveFiling} disabled={moving} />
+              <Button variant="gold" className="w-full sm:w-auto" disabled={moving || !moveFiling.subjectChoice} onClick={() => void move()}>
+                {moving ? "Working..." : "Move selected"}
+              </Button>
               <div className="flex flex-wrap items-end justify-between gap-3 border-t border-steel-700/60 pt-3">
                 <ExamPicker legend="Set exams on the selected pictures" value={moveExams} onChange={setMoveExams} />
                 <Button variant="outline" size="sm" disabled={moving} onClick={() => void applyExams()}>Apply exams</Button>

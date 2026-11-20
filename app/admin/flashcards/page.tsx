@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PictureManager } from "@/components/flashcards/picture-manager";
 import { Icons } from "@/components/ui/icons";
-import { Select } from "@/components/ui/select";
+import { FilingFields, emptyFiling } from "@/components/admin/filing-fields";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
-import { sortChapters } from "@/lib/taxonomy";
+import { checkFiling, type FilingInput } from "@/lib/filing";
+import { saveFiling } from "@/lib/filing-save";
 import { logAdminAction } from "@/lib/adminLog";
 import { cardCount, DECK_LIMITS, formatCards, parseCards, type Card as FlashCard, type Deck } from "@/lib/flashcards";
 import { supabase } from "@/lib/supabaseClient";
@@ -16,8 +17,7 @@ import { supabase } from "@/lib/supabaseClient";
 type Message = { type: "success" | "error"; text: string } | null;
 interface FormState {
   title: string;
-  subjectId: string;
-  chapterId: string;
+  filing: FilingInput;
   description: string;
   cards: string;
 }
@@ -28,7 +28,7 @@ function filedLabel(deck: Deck, tax: { subjects: { id: string; name: string }[];
   return [subject, chapter].filter(Boolean).join(" > ") || "Not filed";
 }
 
-const EMPTY_FORM: FormState = { title: "", subjectId: "", chapterId: "", description: "", cards: "" };
+const EMPTY_FORM: FormState = { title: "", filing: emptyFiling(), description: "", cards: "" };
 const inputClass =
   "w-full rounded-control border border-steel-700 bg-navy-950 px-3 py-2 text-sm text-steel-100 placeholder:text-steel-500 focus:border-gold-400 focus:outline-none";
 const labelClass = "block text-xs font-semibold uppercase tracking-wider text-steel-300";
@@ -42,7 +42,8 @@ export default function AdminFlashcardsPage() {
   const [saving, setSaving] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [msg, setMsg] = React.useState<Message>(null);
-  const taxonomy = useTaxonomy();
+  const [taxVersion, setTaxVersion] = React.useState(0);
+  const taxonomy = useTaxonomy(taxVersion);
 
   React.useEffect(() => {
     let active = true;
@@ -75,7 +76,7 @@ export default function AdminFlashcardsPage() {
     setBusyId(null);
     if (error) return setMsg({ type: "error", text: error.message });
     setEditing(deck);
-    setForm({ title: deck.title, subjectId: deck.subject_id ?? "", chapterId: deck.chapter_id ?? "", description: deck.description, cards: formatCards((data ?? []) as FlashCard[]) });
+    setForm({ title: deck.title, filing: { subjectChoice: deck.subject_id ?? "", newSubjectName: "", chapterName: taxonomy.chapters.find((c) => c.id === deck.chapter_id)?.name ?? "" }, description: deck.description, cards: formatCards((data ?? []) as FlashCard[]) });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -90,18 +91,26 @@ export default function AdminFlashcardsPage() {
     if (description.length > DECK_LIMITS.descriptionMax) {
       return setMsg({ type: "error", text: `Description can be at most ${DECK_LIMITS.descriptionMax} characters.` });
     }
-    const subject = taxonomy.subjects.find((x) => x.id === form.subjectId);
-    const chapter = taxonomy.chapters.find((x) => x.id === form.chapterId && x.subject_id === form.subjectId);
-    // "category" stays filled (chapter, else subject) so older readers of the table keep working.
-    const filing = {
-      subject_id: subject?.id ?? null,
-      chapter_id: subject && chapter ? chapter.id : null,
-      category: chapter?.name ?? subject?.name ?? "General",
-    };
+    let filing = { subject_id: null as string | null, chapter_id: null as string | null, category: "General" };
+    let filedNew = false;
+    if (form.filing.subjectChoice) {
+      const check = checkFiling(form.filing, taxonomy.subjects, taxonomy.chapters);
+      if (!check.ok) return setMsg({ type: "error", text: check.error });
+      setSaving(true);
+      const saved = await saveFiling(check, []);
+      if (!saved.ok) {
+        setSaving(false);
+        return setMsg({ type: "error", text: saved.error });
+      }
+      filedNew = saved.created.length > 0;
+      // "category" stays filled (chapter, else subject) so older readers of the table keep working.
+      filing = { subject_id: saved.subject.id, chapter_id: saved.chapter?.id ?? null, category: saved.chapter?.name ?? saved.subject.name };
+    }
     const parsed = parseCards(form.cards);
     if (!parsed.ok) return setMsg({ type: "error", text: parsed.error });
 
     setSaving(true);
+    if (filedNew) setTaxVersion((v) => v + 1);
     let deckId = editing?.id ?? "";
 
     if (editing) {
@@ -205,26 +214,9 @@ export default function AdminFlashcardsPage() {
                 <label htmlFor="deck-title" className={labelClass}>Title</label>
                 <input id="deck-title" required maxLength={DECK_LIMITS.titleMax} value={form.title} onChange={(e) => setField("title", e.target.value)} placeholder="Maths formulas" className={inputClass} />
               </div>
-              <div className="space-y-1">
-                <label htmlFor="deck-subject" className={labelClass}>Subject</label>
-                <Select id="deck-subject" value={form.subjectId} onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value, chapterId: "" }))}>
-                  <option value="">No subject (shown under Other)</option>
-                  {taxonomy.subjects.map((x) => (
-                    <option key={x.id} value={x.id}>{x.name}</option>
-                  ))}
-                </Select>
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <label htmlFor="deck-chapter" className={labelClass}>Chapter</label>
-                <Select id="deck-chapter" value={form.chapterId} disabled={!form.subjectId} onChange={(e) => setField("chapterId", e.target.value)}>
-                  <option value="">{form.subjectId ? "No chapter" : "Pick a subject first"}</option>
-                  {sortChapters(taxonomy.chapters.filter((c) => c.subject_id === form.subjectId)).map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </Select>
-                <p className="text-xs text-steel-500">Add subjects and chapters under Admin Suite, Subjects, Chapters.</p>
-              </div>
             </div>
+            <FilingFields idPrefix="deck" subjects={taxonomy.subjects} chapters={taxonomy.chapters} value={form.filing} onChange={(filing) => setForm((f) => ({ ...f, filing }))} disabled={saving} />
+            <p className="text-xs text-steel-500">Leave the subject empty to show the deck under Other.</p>
 
             <div className="space-y-1">
               <label htmlFor="deck-description" className={labelClass}>Description (optional)</label>

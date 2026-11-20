@@ -35,9 +35,11 @@ import {
   type VaultId,
 } from "@/lib/resources";
 import { ExamPicker } from "@/components/admin/exam-picker";
+import { emptyFiling, FilingFields } from "@/components/admin/filing-fields";
+import { checkFiling, NEW_SUBJECT, type FilingInput } from "@/lib/filing";
+import { saveFiling } from "@/lib/filing-save";
 import { cleanExams, type ExamId } from "@/lib/subjects";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
-import { sortChapters } from "@/lib/taxonomy";
 import { supabase } from "@/lib/supabaseClient";
 
 type Message = { type: "success" | "error"; text: string } | null;
@@ -55,17 +57,16 @@ export default function AdminResourcesPage() {
   const [description, setDescription] = React.useState("");
   const [vault, setVault] = React.useState<VaultId>(VAULTS[0].id);
   const [exams, setExams] = React.useState<ExamId[]>([]);
-  const [subjectId, setSubjectId] = React.useState("");
-  const [chapterId, setChapterId] = React.useState("");
-  const taxonomy = useTaxonomy();
+  const [filing, setFiling] = React.useState<FilingInput>(emptyFiling());
+  const [taxVersion, setTaxVersion] = React.useState(0);
+  const taxonomy = useTaxonomy(taxVersion);
   const [file, setFile] = React.useState<File | null>(null);
   const [fileKey, setFileKey] = React.useState(0); // changing this clears the file picker
   const [uploading, setUploading] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [movingId, setMovingId] = React.useState<string | null>(null);
   const [mVault, setMVault] = React.useState<VaultId>(VAULTS[0].id);
-  const [mSubject, setMSubject] = React.useState("");
-  const [mChapter, setMChapter] = React.useState("");
+  const [mFiling, setMFiling] = React.useState<FilingInput>(emptyFiling());
   const [mExams, setMExams] = React.useState<ExamId[]>([]);
   const [msg, setMsg] = React.useState<Message>(null);
 
@@ -116,8 +117,9 @@ export default function AdminResourcesPage() {
       setMsg({ type: "error", text: "Give the file a title of at least 3 characters." });
       return;
     }
-    if (!subjectId) {
-      setMsg({ type: "error", text: "Pick a subject so students can find the file in its folder." });
+    const check = checkFiling(filing, taxonomy.subjects, taxonomy.chapters);
+    if (!check.ok) {
+      setMsg({ type: "error", text: check.error });
       return;
     }
     const cleanDescription = description.trim();
@@ -142,8 +144,16 @@ export default function AdminResourcesPage() {
       return;
     }
 
-    const chosenChapter = taxonomy.chapters.find((c) => c.id === chapterId && c.subject_id === subjectId);
-    const filing = { subject_id: subjectId, chapter_id: chosenChapter?.id ?? null, vault, exams };
+    const saved = await saveFiling(check, exams);
+    if (!saved.ok) {
+      // Do not leave a file in storage that no student can see.
+      await bucket.remove([path]);
+      setUploading(false);
+      setMsg({ type: "error", text: saved.error });
+      return;
+    }
+    if (saved.created.length > 0) setTaxVersion((v) => v + 1);
+    const filed = { subject_id: saved.subject.id, chapter_id: saved.chapter?.id ?? null, vault, exams };
     const cleanCategory = vaultLabel(vault);
     const exam = examsLabel(exams);
 
@@ -158,7 +168,7 @@ export default function AdminResourcesPage() {
         category: cleanCategory,
         size: formatSize(file.size),
         recommended_for: exam,
-        ...filing,
+        ...filed,
         download_url: url,
         file_path: path,
         file_type: kind,
@@ -185,14 +195,14 @@ export default function AdminResourcesPage() {
         file_type: kind,
         size: formatSize(file.size),
         file_path: path,
-        ...filing,
+        ...filed,
       },
     });
 
     setUploading(false);
     setTitle("");
     setDescription("");
-    setChapterId("");
+    setFiling((f) => (f.subjectChoice === NEW_SUBJECT ? emptyFiling() : { ...f, chapterName: "" }));
     setFile(null);
     setFileKey((k) => k + 1);
     setMsg({ type: "success", text: `"${cleanTitle}" is uploaded. Students can download it from the Study Material page now.` });
@@ -202,18 +212,25 @@ export default function AdminResourcesPage() {
   const startMove = (row: StoredResource) => {
     setMovingId(row.id);
     setMVault((VAULTS.find((v) => v.id === row.vault)?.id ?? VAULTS[0].id) as VaultId);
-    setMSubject(row.subject_id ?? "");
-    setMChapter(row.chapter_id ?? "");
+    setMFiling({ subjectChoice: row.subject_id ?? "", newSubjectName: "", chapterName: taxonomy.chapters.find((c) => c.id === row.chapter_id)?.name ?? "" });
     setMExams(cleanExams(row.exams));
     setMsg(null);
   };
 
   /** Refiles a study file under another vault, subject, chapter and exams. The stored file itself is untouched. */
   const saveMove = async (row: StoredResource) => {
-    if (!mSubject) return setMsg({ type: "error", text: "Pick a subject for the file." });
-    const chapter = taxonomy.chapters.find((c) => c.id === mChapter && c.subject_id === mSubject);
+    const check = checkFiling(mFiling, taxonomy.subjects, taxonomy.chapters);
+    if (!check.ok) return setMsg({ type: "error", text: check.error });
     setBusyId(row.id);
     setMsg(null);
+    const saved = await saveFiling(check, mExams);
+    if (!saved.ok) {
+      setBusyId(null);
+      return setMsg({ type: "error", text: saved.error });
+    }
+    if (saved.created.length > 0) setTaxVersion((v) => v + 1);
+    const chapter = saved.chapter;
+    const mSubject = saved.subject.id;
     const { data, error } = await supabase
       .from("resources")
       .update({ vault: mVault, subject_id: mSubject, chapter_id: chapter?.id ?? null, exams: mExams, category: vaultLabel(mVault), recommended_for: examsLabel(mExams) })
@@ -349,39 +366,16 @@ export default function AdminResourcesPage() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="res-subject">Subject</Label>
-                <Select
-                  id="res-subject"
-                  value={subjectId}
-                  onChange={(e) => {
-                    setSubjectId(e.target.value);
-                    setChapterId("");
-                    // The subject's own exams are the starting point. Change them freely.
-                    setExams(cleanExams(taxonomy.subjects.find((x) => x.id === e.target.value)?.exams));
-                  }}
-                >
-                  <option value="">Pick a subject</option>
-                  {taxonomy.subjects.map((x) => (
-                    <option key={x.id} value={x.id}>
-                      {x.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="res-chapter">Chapter (optional)</Label>
-                <Select id="res-chapter" value={chapterId} disabled={!subjectId} onChange={(e) => setChapterId(e.target.value)}>
-                  <option value="">{subjectId ? "No chapter" : "Pick a subject first"}</option>
-                  {sortChapters(taxonomy.chapters.filter((c) => c.subject_id === subjectId)).map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </div>
+            <FilingFields
+              idPrefix="res"
+              subjects={taxonomy.subjects}
+              chapters={taxonomy.chapters}
+              value={filing}
+              onChange={setFiling}
+              // The subject's own exams are the starting point. Change them freely.
+              onSubjectPicked={(subject) => setExams(cleanExams(subject?.exams))}
+              disabled={uploading}
+            />
 
             <ExamPicker
               value={exams}
@@ -472,33 +466,16 @@ export default function AdminResourcesPage() {
                               ))}
                             </Select>
                           </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`mv-subject-${row.id}`}>Subject</Label>
-                            <Select
-                              id={`mv-subject-${row.id}`}
-                              value={mSubject}
-                              onChange={(e) => {
-                                setMSubject(e.target.value);
-                                setMChapter("");
-                                setMExams(cleanExams(taxonomy.subjects.find((x) => x.id === e.target.value)?.exams));
-                              }}
-                            >
-                              <option value="">Pick a subject</option>
-                              {taxonomy.subjects.map((x) => (
-                                <option key={x.id} value={x.id}>{x.name}</option>
-                              ))}
-                            </Select>
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`mv-chapter-${row.id}`}>Chapter</Label>
-                            <Select id={`mv-chapter-${row.id}`} value={mChapter} disabled={!mSubject} onChange={(e) => setMChapter(e.target.value)}>
-                              <option value="">{mSubject ? "No chapter" : "Pick a subject first"}</option>
-                              {taxonomy.chapters.filter((c) => c.subject_id === mSubject).map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                            </Select>
-                          </div>
                         </div>
+                        <FilingFields
+                          idPrefix={`mv-${row.id}`}
+                          subjects={taxonomy.subjects}
+                          chapters={taxonomy.chapters}
+                          value={mFiling}
+                          onChange={setMFiling}
+                          onSubjectPicked={(subject) => setMExams(cleanExams(subject?.exams))}
+                          disabled={busyId === row.id}
+                        />
                         <ExamPicker value={mExams} onChange={setMExams} />
                         <div className="flex justify-end gap-2">
                           <Button variant="outline" size="sm" onClick={() => setMovingId(null)}>Cancel</Button>
