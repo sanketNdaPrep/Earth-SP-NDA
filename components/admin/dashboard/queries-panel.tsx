@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { formatStamp } from './format';
 import { Panel } from './panel';
@@ -14,26 +15,16 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'resolved', label: 'Resolved' },
 ];
 
-const replyButton =
-  'inline-flex min-h-10 touch-manipulation items-center justify-center rounded-md border px-4 text-sm font-semibold transition-colors';
 
 function ActionButton({ query, onOpen }: { query: QueryItem; onOpen: (query: QueryItem) => void }) {
   const done = isDone(query.status);
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(query)}
-      className={`${replyButton} ${
-        done
-          ? 'border-steel-700 text-steel-100 hover:border-steel-500 hover:bg-white/5'
-          : 'border-emerald-400/60 text-emerald-300 hover:bg-emerald-400/10'
-      }`}
-    >
+    <Button type="button" variant={done ? 'secondary' : 'primary'} onClick={() => onOpen(query)} className="min-h-10 px-4">
       {done ? 'View' : 'Reply'}
       <span className="sr-only">
         {done ? ` query from ${query.student_name}` : ` to ${query.student_name}`}
       </span>
-    </button>
+    </Button>
   );
 }
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useId, useState, type FormEvent } from 'react';
 import { Panel } from './panel';
 import { StatusBadge } from './status-badge';
@@ -141,13 +142,9 @@ export function AssignWorkForm({
           </p>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={sending || !targetId}
-          className="inline-flex min-h-11 touch-manipulation items-center justify-center rounded-md bg-emerald-400 px-6 text-sm font-semibold text-navy-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="submit" disabled={!targetId} loading={sending} className="min-h-11 px-6">
           {sending ? 'Assigning…' : 'Assign task'}
-        </button>
+        </Button>
       </form>
     </Panel>
   );

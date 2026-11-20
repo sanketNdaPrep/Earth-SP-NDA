@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import { CloseIcon } from './icons';
@@ -147,20 +148,12 @@ export function ReplyDialog({ query, onClose, onSend }: ReplyDialogProps) {
               ) : null}
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={close}
-                  className="inline-flex min-h-11 touch-manipulation items-center justify-center rounded-md border border-steel-700 px-5 text-sm font-medium text-steel-100 transition-colors hover:border-steel-500 hover:bg-white/5"
-                >
+                <Button type="button" variant="secondary" onClick={close} className="min-h-11 px-5">
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={sending || text.trim() === ''}
-                  className="inline-flex min-h-11 touch-manipulation items-center justify-center rounded-md bg-emerald-400 px-5 text-sm font-semibold text-navy-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
-                >
+                </Button>
+                <Button type="submit" disabled={text.trim() === ''} loading={sending} className="min-h-11 px-5">
                   {sending ? 'Sending…' : 'Send reply'}
-                </button>
+                </Button>
               </div>
             </form>
           )}

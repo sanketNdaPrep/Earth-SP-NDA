@@ -3,6 +3,7 @@
 import React, { useRef } from 'react';
 import { BULK_SAMPLE } from './data';
 import type { BulkImport } from './use-bulk-import';
+import { Button } from '@/components/ui/button';
 
 interface BulkImportPanelProps {
   bulk: BulkImport;
@@ -38,20 +39,12 @@ export function BulkImportPanel({ bulk }: BulkImportPanelProps) {
               onChange={handleFileChange}
               className="hidden"
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-1.5 text-xs font-semibold rounded bg-navy-950 border border-steel-700 text-slate-300 hover:text-white transition-colors"
-            >
+            <Button type="button" size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()}>
               📁 Load File
-            </button>
-            <button
-              type="button"
-              onClick={() => bulk.setText(BULK_SAMPLE)}
-              className="px-3 py-1.5 text-xs font-semibold rounded bg-navy-950 border border-steel-700 text-gold-400 hover:border-gold-400/50 transition-colors"
-            >
+            </Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => bulk.setText(BULK_SAMPLE)}>
               ⚡ Insert Sample
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -87,20 +80,11 @@ export function BulkImportPanel({ bulk }: BulkImportPanelProps) {
             <span>Skip duplicate questions already in this module ({bulk.duplicates.length})</span>
           </label>
 
-          <button
-            type="button"
-            onClick={bulk.runImport}
-            disabled={bulk.importing || bulk.toImport.length === 0}
-            className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider rounded transition-all ${
-              bulk.toImport.length > 0 && !bulk.importing
-                ? 'bg-emerald-500 text-navy-950 hover:bg-emerald-400 shadow-lg cursor-pointer'
-                : 'bg-steel-800 text-slate-500 border border-steel-700 cursor-not-allowed opacity-60'
-            }`}
-          >
+          <Button type="button" onClick={bulk.runImport} disabled={bulk.toImport.length === 0} loading={bulk.importing}>
             {bulk.importing
               ? 'Importing Batch...'
               : `Import ${bulk.toImport.length} Valid Questions`}
-          </button>
+          </Button>
         </div>
       </div>
 

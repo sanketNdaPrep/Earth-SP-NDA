@@ -3,6 +3,7 @@
 import React from 'react';
 import { QUIZ_CATEGORIES } from './data';
 import type { Quiz } from './types';
+import { Button } from '@/components/ui/button';
 
 interface ModuleBarProps {
   quizzes: Quiz[];
@@ -51,13 +52,9 @@ export function ModuleBar({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowNewModule(!showNewModule)}
-          className="px-3 py-1.5 text-xs font-semibold rounded bg-navy-950 border border-steel-700 text-gold-400 hover:border-gold-400/50 transition-colors self-start sm:self-auto"
-        >
+        <Button type="button" variant="secondary" size="sm" onClick={() => setShowNewModule(!showNewModule)} className="self-start sm:self-auto">
           {showNewModule ? '✕ Cancel' : '+ Create New Module'}
-        </button>
+        </Button>
       </div>
 
       {/* Module Selector */}
@@ -148,14 +145,9 @@ export function ModuleBar({
           </div>
 
           <div className="flex justify-end pt-2">
-            <button
-              type="button"
-              onClick={onCreateModule}
-              disabled={creatingModule || !newTitle.trim()}
-              className="px-4 py-1.5 text-xs font-bold rounded bg-gold-400 text-navy-950 hover:bg-gold-300 disabled:opacity-50 transition-colors"
-            >
+            <Button type="button" size="sm" onClick={onCreateModule} disabled={!newTitle.trim()} loading={creatingModule}>
               {creatingModule ? 'Creating Module...' : 'Save & Select Module'}
-            </button>
+            </Button>
           </div>
         </div>
       )}

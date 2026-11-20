@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { SeedDraft } from './types';
+import { Button } from '@/components/ui/button';
 
 interface DraftBannerProps {
   pendingDraft: SeedDraft | null;
@@ -32,20 +33,8 @@ export function DraftBanner({ pendingDraft, onRestore, onDiscard }: DraftBannerP
       </div>
 
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onRestore}
-          className="px-3 py-1.5 text-xs font-semibold rounded bg-gold-400 text-navy-950 hover:bg-gold-300 transition-colors"
-        >
-          Restore Draft
-        </button>
-        <button
-          type="button"
-          onClick={onDiscard}
-          className="px-3 py-1.5 text-xs font-semibold rounded bg-navy-900 border border-steel-700 text-slate-300 hover:bg-navy-800 transition-colors"
-        >
-          Discard
-        </button>
+        <Button type="button" size="sm" onClick={onRestore}>Restore Draft</Button>
+        <Button type="button" size="sm" variant="secondary" onClick={onDiscard}>Discard</Button>
       </div>
     </div>
   );

@@ -33,6 +33,10 @@
   /* Elevation */
   --shadow-panel: 0 10px 30px -12px rgb(0 0 0 / 0.85);
   --shadow-glow: 0 0 24px -4px rgb(250 204 21 / 0.35);
+  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 14px -6px rgb(250 204 21 / 0.45);
+  --shadow-button-lift: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 2px 4px rgb(0 0 0 / 0.5), 0 12px 22px -8px rgb(250 204 21 / 0.55);
+  --shadow-button-soft: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.45);
+  --shadow-button-soft-lift: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 8px 16px -8px rgb(0 0 0 / 0.7);
 
   /* Motion */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -80,6 +84,10 @@
 
   --shadow-panel: 0 8px 24px -14px rgb(27 54 93 / 0.35);
   --shadow-glow: 0 0 24px -4px rgb(27 54 93 / 0.25);
+  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(27 54 93 / 0.35), 0 6px 14px -6px rgb(27 54 93 / 0.5);
+  --shadow-button-lift: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 2px 4px rgb(27 54 93 / 0.35), 0 12px 22px -8px rgb(27 54 93 / 0.55);
+  --shadow-button-soft: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 1px 2px rgb(27 54 93 / 0.12);
+  --shadow-button-soft-lift: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 8px 16px -8px rgb(27 54 93 / 0.3);
 
   /* Older pages still use the default grey, amber and red palettes: map them onto the light surfaces and navy text. */
   --color-slate-100: #0f1a30;

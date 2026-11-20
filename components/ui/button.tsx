@@ -8,17 +8,24 @@ export type ButtonSize = "sm" | "md" | "lg" | "icon";
 
 const base =
   "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control font-mono font-semibold uppercase tracking-wider " +
-  "transition-colors duration-(--duration-base) ease-(--ease-standard) " +
+  "transition-[translate,scale,box-shadow,background-color,border-color,color,filter] duration-(--duration-base) ease-(--ease-standard) " +
+  "hover:-translate-y-0.5 active:translate-y-0 active:scale-98 active:duration-(--duration-fast) " +
+  "motion-reduce:translate-none motion-reduce:scale-100 motion-reduce:transition-none " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-navy-950 " +
-  "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50";
+  "disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none aria-disabled:pointer-events-none aria-disabled:opacity-50";
+
+const solid = "bg-linear-to-b from-gold-300 to-gold-400 text-navy-950 shadow-button hover:shadow-button-lift hover:brightness-105 active:brightness-95";
+const soft =
+  "border border-steel-700 bg-linear-to-b from-navy-800 to-navy-900 text-steel-100 shadow-button-soft " +
+  "hover:border-steel-500 hover:shadow-button-soft-lift hover:text-white";
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-gold-400 text-navy-950 hover:bg-gold-300",
-  secondary: "border border-steel-700 bg-navy-900 text-steel-100 hover:border-steel-500 hover:bg-navy-800",
-  ghost: "text-steel-300 hover:bg-navy-800 hover:text-steel-100",
-  danger: "bg-danger-500 text-on-danger hover:bg-danger-400",
-  outline: "border border-steel-700 bg-navy-900 text-steel-100 hover:border-steel-500 hover:bg-navy-800",
-  gold: "bg-gold-400 text-navy-950 hover:bg-gold-300",
+  primary: solid,
+  secondary: soft,
+  ghost: "text-steel-300 hover:-translate-y-0 hover:bg-navy-800 hover:text-steel-100 active:bg-navy-900",
+  danger: "bg-danger-500 text-on-danger shadow-button-soft hover:shadow-button-soft-lift hover:brightness-110",
+  outline: soft,
+  gold: solid,
 };
 
 const sizes: Record<ButtonSize, string> = {

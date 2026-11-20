@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -255,21 +256,16 @@ export function AdminDashboard() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href="/admin/seed"
-                className="inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-md bg-emerald-400 px-5 text-sm font-semibold text-navy-950 transition-colors hover:bg-emerald-300"
-              >
-                <PlusIcon className="size-4" />
-                Add content
-              </Link>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-md border border-steel-700 px-5 text-sm font-medium text-steel-100 transition-colors hover:border-steel-500 hover:bg-white/5"
-              >
+              <Button asChild className="min-h-11 px-5">
+                <Link href="/admin/seed">
+                  <PlusIcon className="size-4" />
+                  Add content
+                </Link>
+              </Button>
+              <Button type="button" variant="secondary" onClick={handleSignOut} className="min-h-11 px-5">
                 <LogoutIcon className="size-4" />
                 Log out
-              </button>
+              </Button>
             </div>
           </div>
         </motion.header>
