@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Icons } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordField } from '@/components/ui/password-field';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useSignOut } from '@/hooks/use-sign-out';
@@ -261,27 +262,27 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="profile-new-password">New Password</Label>
-                  <Input
+                  <PasswordField
                     id="profile-new-password"
                     required
-                    type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 6 characters"
                     autoComplete="new-password"
+                    className="h-10 py-0"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="profile-confirm-password">Confirm New Password</Label>
-                  <Input
+                  <PasswordField
                     id="profile-confirm-password"
                     required
-                    type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"
                     autoComplete="new-password"
+                    className="h-10 py-0"
                   />
                 </div>
               </div>

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Icons } from "@/components/ui/icons";
 import { ProfileMenu } from "@/components/profile/profile-menu";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useSignOut } from "@/hooks/use-sign-out";
 
 interface AdminNavItem {
@@ -146,6 +147,7 @@ export default function AdminLayout({
             <span className="hidden rounded-full bg-emerald-400/10 border border-emerald-400/30 px-3 py-1 font-mono text-xs font-bold text-emerald-300 sm:inline-block">
               ● System Active
             </span>
+            <ThemeToggle />
             <ProfileMenu />
           </div>
         </header>

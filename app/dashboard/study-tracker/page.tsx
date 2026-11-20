@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
+import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { supabase } from "@/lib/supabaseClient";
 
 interface StudyLog {
@@ -22,6 +23,7 @@ interface StudyLog {
 
 const LOG_COLUMNS = "id, subject, minutes_studied, questions_solved, notes, logged_at";
 
+/** Used only until the admin's subject list has loaded, or if it cannot be read. */
 const SUBJECTS = [
   "Mathematics",
   "English",
@@ -68,7 +70,14 @@ function Tile({ label, value }: { label: string; value: string }) {
 }
 
 export default function StudyTrackerPage() {
-  const [subject, setSubject] = React.useState(SUBJECTS[0]);
+  const taxonomy = useTaxonomy();
+  // The choices follow the subjects the admin has set up, so a new subject such as Biology shows up here too.
+  const subjectOptions = React.useMemo(() => {
+    const names = taxonomy.subjects.map((s) => s.name).filter((n) => n !== "Unsorted");
+    return names.length > 0 ? names : SUBJECTS;
+  }, [taxonomy.subjects]);
+  const [subjectChoice, setSubject] = React.useState("");
+  const subject = subjectOptions.includes(subjectChoice) ? subjectChoice : subjectOptions[0];
   const [minutes, setMinutes] = React.useState("60");
   const [questions, setQuestions] = React.useState("25");
   const [notes, setNotes] = React.useState("");
@@ -184,7 +193,7 @@ export default function StudyTrackerPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="log-subject">Subject</Label>
                 <Select id="log-subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
-                  {SUBJECTS.map((s) => (
+                  {subjectOptions.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>

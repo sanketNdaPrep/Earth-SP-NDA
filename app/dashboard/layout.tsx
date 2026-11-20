@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Icons } from "@/components/ui/icons";
 import { ProfileMenu } from "@/components/profile/profile-menu";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { getAdminStatus } from "@/lib/adminAuth";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { supabase } from "@/lib/supabaseClient";
@@ -148,6 +149,7 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex shrink-0 items-center gap-4">
+            <ThemeToggle />
             <ProfileMenu />
           </div>
         </header>

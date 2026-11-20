@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { PasswordField } from "@/components/ui/password-field";
 import { Select } from "@/components/ui/select";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -14,14 +16,20 @@ export default function RegisterPage() {
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [confirm, setConfirm] = React.useState("");
   const [targetExam, setTargetExam] = React.useState("NDA");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    // Checked here, before anything is sent, so a typing slip never creates an account with a password nobody knows.
+    if (password !== confirm) {
+      setError("The two passwords do not match. Type the same password in both boxes.");
+      return;
+    }
+    setLoading(true);
 
     const { error: signUpError } = await supabase.auth.signUp({
       email,
@@ -47,7 +55,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-navy-950 px-4 py-12">
+    <div className="relative flex min-h-screen items-center justify-center bg-navy-950 px-4 py-12">
+      <ThemeToggle className="absolute right-4 top-4" />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto mb-2 flex items-center justify-center">
@@ -64,8 +73,10 @@ export default function RegisterPage() {
               </div>
             )}
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-steel-300">Full Name</label>
+              <label htmlFor="reg-name" className="text-xs font-semibold uppercase tracking-wider text-steel-300">Full Name</label>
               <input
+                id="reg-name"
+                autoComplete="name"
                 type="text"
                 required
                 value={fullName}
@@ -75,8 +86,10 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-steel-300">Email Address</label>
+              <label htmlFor="reg-email" className="text-xs font-semibold uppercase tracking-wider text-steel-300">Email Address</label>
               <input
+                id="reg-email"
+                autoComplete="email"
                 type="email"
                 required
                 value={email}
@@ -94,15 +107,12 @@ export default function RegisterPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-steel-300">Password</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-control border border-steel-700 bg-navy-950 px-3 py-2 text-sm text-steel-100 placeholder:text-steel-500 focus:border-gold-400 focus:outline-none"
-              />
+              <label htmlFor="reg-password" className="text-xs font-semibold uppercase tracking-wider text-steel-300">Password</label>
+              <PasswordField id="reg-password" required autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="reg-confirm" className="text-xs font-semibold uppercase tracking-wider text-steel-300">Confirm Password</label>
+              <PasswordField id="reg-confirm" required autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" aria-invalid={confirm.length > 0 && confirm !== password} />
             </div>
             <Button type="submit" variant="primary" className="w-full" disabled={loading}>
               {loading ? "Creating Account..." : "Register Cadet Profile"}

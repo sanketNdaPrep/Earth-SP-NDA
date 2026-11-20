@@ -253,9 +253,13 @@ function ExamDetailContent() {
           {/* Official Syllabus Breakdown */}
           <Card id="syllabus" className="scroll-mt-24">
             <CardHeader>
-              <CardTitle className="text-lg">Official Syllabus & Core Topics</CardTitle>
+              <CardTitle className="text-lg">Syllabus & Core Topics</CardTitle>
             </CardHeader>
             <CardContent>
+              <p className="mb-4 text-xs text-steel-300">
+                A student-friendly summary. Syllabus, pattern and dates can change, so check the latest notice on the official website
+                ({examId === "afcat" ? "afcat.cdac.in" : "upsc.gov.in"}) before you apply.
+              </p>
               <div className="space-y-4">
                 {exam.syllabus.map((item, idx) => (
                   <div key={idx} className="rounded-control border border-steel-700/60 bg-navy-950 p-4 space-y-1">
