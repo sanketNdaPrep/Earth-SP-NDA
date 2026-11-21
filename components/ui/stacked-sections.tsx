@@ -40,9 +40,8 @@ export interface StackedSectionProps extends Omit<React.HTMLAttributes<HTMLEleme
 }
 
 /**
- * One card in the stack. On phones the cards are compact and simply follow each other.
- * From tablet width up they fill the screen and stick, unless the visitor has asked for
- * reduced motion; then they stack down the page in order.
+ * One card in the stack. Each card fills the screen and sticks, on phones too, unless the
+ * visitor has asked for reduced motion; then they stack down the page in order.
  * Keep content short: a section taller than the screen cannot show its bottom
  * edge before the next one covers it.
  */
@@ -59,7 +58,7 @@ export function StackedSection({
   return (
     <section
       className={cn(
-        "relative grid min-h-72 w-full place-content-center overflow-hidden px-8 py-12 text-center md:min-h-dvh md:py-16 md:motion-safe:sticky md:motion-safe:top-0",
+        "relative grid min-h-dvh w-full place-content-center overflow-hidden px-8 py-16 text-center motion-safe:sticky motion-safe:top-0",
         toneClasses[tone],
         roundedTop && "rounded-t-panel border-t border-steel-700",
         className,
