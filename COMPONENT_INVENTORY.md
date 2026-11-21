@@ -60,6 +60,8 @@ This file lists what is built and what is on a live page. See "Final status of t
 
 ## Presentation (styleable)
 Landing: `site-header`, `hero`, `forces-info`, `cadet-snapshot`, `about`, `journey`, `books`, `vault`, `faq`, `site-footer`, `record-board`, `icons`.
+
+> Removed on 2026-11-21 because nothing imported them (checked with an import-graph scan, `tsc`, tests and a production build): the old landing files above except `icons`, the old `components/dashboard/*` views, the three `subject-breakdown` re-exports, and 19 unused `*-demo.tsx` previews. Kept on purpose: `components/landing-data.tsx` and `components/dashboard/use-dashboard-data.ts` (protected), and the unused `components/ui/*` primitives. Older rows below that mention the removed files are history.
 Quiz: `briefing-screen`, `dialog`, `question-card`, `question-palette`, `quiz-timer`, `submit-dialog`, `styles`, `icons`, `math-text`.
 Dashboard: `dashboard-view`, `cadet-profile-card`, `attempt-log`, `quick-launch`, `subject-breakdown`, `section-card`, `top-bar`.
 Results: `results-view`, `scorecard`, `question-list`, `solution-drawer`, `speed-meter`, `filter-tabs`.
