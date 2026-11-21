@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
+import { SyllabusManager } from "@/components/admin/syllabus-manager";
 import { StudySubjectsManager } from "@/components/admin/study-subjects-manager";
 import { logAdminAction } from "@/lib/adminLog";
 import { slugify, SUBJECT_ICONS, type Subject } from "@/lib/subjects";
@@ -298,6 +299,8 @@ export default function AdminSubjectsPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <SyllabusManager />
 
       <StudySubjectsManager />
     </div>

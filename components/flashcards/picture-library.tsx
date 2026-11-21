@@ -184,7 +184,7 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
             items={open.items}
             index={open.index}
             label={nameOf}
-            fileName={(item, i) => pictureFileName(folder.subject.name, isLoose ? null : chapterName, i + 1, item.image_path)}
+            fileName={(item, i) => pictureFileName(folder.subject.name, isLoose ? null : chapterName, item.source_page ?? i + 1, item.image_path)}
             onIndex={(index) => setOpen({ ...open, index })}
             onClose={() => setOpen(null)}
           />
@@ -273,7 +273,7 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
         )}
       </section>
 
-      {open ? <PictureViewer items={open.items} index={open.index} label={nameOf} onIndex={(index) => setOpen({ ...open, index })} onClose={() => setOpen(null)} /> : null}
+      {open ? <PictureViewer items={open.items} index={open.index} label={nameOf} fileName={(item, i) => pictureFileName(nameOf(item), null, item.source_page ?? i + 1, item.image_path)} onIndex={(index) => setOpen({ ...open, index })} onClose={() => setOpen(null)} /> : null}
     </div>
   );
 }

@@ -29,7 +29,7 @@ export default function GlobalError({
       <p className="mt-3 max-w-md text-sm text-steel-300">
         An unhandled exception occurred during application execution.
       </p>
-      <div className="mt-6 flex items-center gap-4">
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <Button variant="primary" onClick={() => reset()}>
           Try Execution Again
         </Button>

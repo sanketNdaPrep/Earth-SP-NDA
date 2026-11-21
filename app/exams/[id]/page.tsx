@@ -1,5 +1,6 @@
 "use client";
 
+import { SyllabusDownload } from "@/components/exams/syllabus-download";
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -163,12 +164,12 @@ function ExamDetailContent() {
     <div className="flex min-h-screen flex-col bg-navy-950 text-steel-100">
       {/* Top Header Navigation */}
       <header className="sticky top-0 z-50 border-b border-steel-700 bg-navy-950/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-8">
           <Link href="/" className="flex items-center gap-2 font-mono text-sm font-bold uppercase tracking-wider text-white">
             <Icons.logo className="size-6 text-gold-400" />
             <span>EARTH SP NDA</span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Link href="/#exams">
               <Button variant="outline" size="sm">
                 <Icons.chevronRight className="size-4 rotate-180" />
@@ -189,6 +190,7 @@ function ExamDetailContent() {
             <Badge variant="gold" className="mb-3">{exam.code} Examination</Badge>
             <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">{exam.name}</h1>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-steel-300 md:text-base">{exam.description}</p>
+            <SyllabusDownload examSlug={examId} examName={examId.toUpperCase()} />
             
             <div className="mt-6 flex flex-wrap gap-4 border-t border-steel-700/60 pt-4 text-xs">
               <div>

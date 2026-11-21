@@ -25,6 +25,12 @@ export async function downloadPicture(item: Pick<FlashcardImage, "image_path">, 
   save(await fetchBlob(item.image_path), filename);
 }
 
+/** Downloads the original PDF a flashcard page came from. */
+export async function downloadSourcePdf(item: Pick<FlashcardImage, "source_pdf">, filename: string): Promise<void> {
+  if (!item.source_pdf) throw new Error("This flashcard has no PDF.");
+  save(await fetchBlob(item.source_pdf), filename);
+}
+
 /** Draws any picture type (PNG, JPG, WebP) onto a canvas and returns it as JPEG bytes. */
 async function toJpeg(blob: Blob): Promise<{ bytes: Uint8Array; width: number; height: number }> {
   const bitmap = await createImageBitmap(blob);

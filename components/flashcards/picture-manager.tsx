@@ -12,8 +12,10 @@ import { Icons } from "@/components/ui/icons";
 import { pictureUrl } from "@/components/flashcards/picture-url";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { logAdminAction } from "@/lib/adminLog";
-import { FLASHCARD_BUCKET, IMAGE_ACCEPT, IMAGE_COLUMNS, imagePath, imageProblem, type FlashcardImage } from "@/lib/flashcard-images";
+import { FLASHCARD_BUCKET, UPLOAD_ACCEPT, IMAGE_COLUMNS, imagePath, imageProblem, type FlashcardImage } from "@/lib/flashcard-images";
 import { supabase } from "@/lib/supabaseClient";
+import { isPdf, pageCountProblem, pageCreatedAt, pagePicturePath, pdfProblem, sourcePdfPath } from "@/lib/pdf-upload";
+import { openPdf } from "@/lib/pdf-render";
 import { cleanExams, type ExamId } from "@/lib/subjects";
 import { groupBySubject } from "@/lib/taxonomy";
 
@@ -64,7 +66,7 @@ export function PictureManager() {
 
   const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? []);
-    const bad = picked.map((f) => imageProblem(f)).find(Boolean);
+    const bad = picked.map((f) => (isPdf(f) ? pdfProblem(f) : imageProblem(f))).find(Boolean);
     if (bad) {
       setFiles([]);
       e.target.value = "";
@@ -91,16 +93,70 @@ export function PictureManager() {
 
     let added = 0;
     const failed: string[] = [];
+    const base = { subject_id: subject.id, chapter_id: chapter?.id ?? null, exams };
+
+    /** One PDF: the original is stored once, then every page becomes a flashcard picture. */
+    const addPdf = async (file: File, label: string) => {
+      setProgress(`${label}Reading ${file.name}...`);
+      let pdf;
+      try {
+        pdf = await openPdf(file);
+      } catch {
+        return failed.push(`${file.name}: this PDF could not be read. It may be damaged or password protected.`);
+      }
+      const tooMany = pageCountProblem(file.name, pdf.numPages);
+      if (tooMany) {
+        await pdf.close();
+        return failed.push(tooMany);
+      }
+      const pdfPath = sourcePdfPath(crypto.randomUUID(), file.name);
+      const storedPdf = await supabase.storage.from(FLASHCARD_BUCKET).upload(pdfPath, file, { contentType: "application/pdf", upsert: false });
+      if (storedPdf.error) {
+        await pdf.close();
+        return failed.push(`${file.name}: ${storedPdf.error.message}`);
+      }
+      const startedAt = Date.now();
+      let pagesAdded = 0;
+      for (let page = 1; page <= pdf.numPages; page += 1) {
+        setProgress(`${label}${file.name}: page ${page} of ${pdf.numPages}...`);
+        const path = pagePicturePath(crypto.randomUUID(), page);
+        try {
+          const blob = await pdf.renderPage(page);
+          const stored = await supabase.storage.from(FLASHCARD_BUCKET).upload(path, blob, { contentType: "image/jpeg", upsert: false });
+          if (stored.error) throw new Error(stored.error.message);
+          const { error } = await supabase
+            .from("flashcard_images")
+            .insert({ ...base, image_path: path, source_pdf: pdfPath, source_page: page, source_name: file.name, created_at: pageCreatedAt(startedAt, page) });
+          if (error) {
+            await supabase.storage.from(FLASHCARD_BUCKET).remove([path]);
+            throw new Error(error.message);
+          }
+          pagesAdded += 1;
+        } catch (err) {
+          failed.push(`${file.name} page ${page}: ${err instanceof Error ? err.message : "failed"}`);
+        }
+      }
+      await pdf.close();
+      // No page made it, so the stored original would be an orphan.
+      if (pagesAdded === 0) await supabase.storage.from(FLASHCARD_BUCKET).remove([pdfPath]);
+      added += pagesAdded;
+    };
+
     for (let i = 0; i < files.length; i += 1) {
       const file = files[i];
-      setProgress(`Uploading ${i + 1} of ${files.length}...`);
+      const label = files.length > 1 ? `File ${i + 1} of ${files.length}: ` : "";
+      if (isPdf(file)) {
+        await addPdf(file, label);
+        continue;
+      }
+      setProgress(`${label}Uploading ${file.name}...`);
       const path = imagePath(file, crypto.randomUUID());
       const stored = await supabase.storage.from(FLASHCARD_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (stored.error) {
         failed.push(`${file.name}: ${stored.error.message}`);
         continue;
       }
-      const { error } = await supabase.from("flashcard_images").insert({ subject_id: subject.id, chapter_id: chapter?.id ?? null, image_path: path, exams });
+      const { error } = await supabase.from("flashcard_images").insert({ ...base, image_path: path });
       if (error) {
         // Do not leave a picture in storage that no student can see.
         await supabase.storage.from(FLASHCARD_BUCKET).remove([path]);
@@ -139,7 +195,9 @@ export function PictureManager() {
       setBusyId(null);
       return setMsg({ type: "error", text: error?.message ?? "Could not delete the picture." });
     }
-    const removed = await supabase.storage.from(FLASHCARD_BUCKET).remove([item.image_path]);
+    // Keep the original PDF while other pages of it are still on show.
+    const stillUsed = item.source_pdf ? (pictures ?? []).some((p) => p.id !== item.id && p.source_pdf === item.source_pdf) : false;
+    const removed = await supabase.storage.from(FLASHCARD_BUCKET).remove(item.source_pdf && !stillUsed ? [item.image_path, item.source_pdf] : [item.image_path]);
     setBusyId(null);
     await logAdminAction({ action: "deleted", entityType: "flashcard_image", label: item.image_path, details: { image_id: item.id, file_left_in_storage: Boolean(removed.error) } });
     setMsg(
@@ -230,7 +288,7 @@ export function PictureManager() {
 
       <Card className="max-w-3xl">
         <CardHeader>
-          <CardTitle className="text-lg">Add Pictures</CardTitle>
+          <CardTitle className="text-lg">Add Pictures or a PDF</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={upload} className="space-y-4">
@@ -248,21 +306,21 @@ export function PictureManager() {
             <ExamPicker value={exams} onChange={setExams} hint="Tick the exams these cards are for, and they show in those exam folders too. Leave all unticked if they are for everyone." />
 
             <div className="space-y-1">
-              <label htmlFor="pic-files" className={labelClass}>Pictures</label>
+              <label htmlFor="pic-files" className={labelClass}>Pictures or PDFs</label>
               <input
                 id="pic-files"
                 ref={fileInput}
                 type="file"
                 multiple
-                accept={IMAGE_ACCEPT}
+                accept={UPLOAD_ACCEPT}
                 onChange={pick}
                 className="block w-full text-sm text-steel-300 file:mr-3 file:rounded-control file:border file:border-steel-700 file:bg-navy-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-steel-100"
               />
-              <p className="text-xs text-steel-500">PNG, JPG or WebP. Choose as many as you like, each one becomes a flashcard.{files.length > 0 ? ` ${files.length} selected.` : ""}</p>
+              <p className="text-xs text-steel-500">PNG, JPG, WebP or PDF. Each picture is a flashcard. A PDF is turned into one flashcard per page (up to 80 pages, 50 MB), and students can also download the whole PDF.{files.length > 0 ? ` ${files.length} selected.` : ""}</p>
             </div>
 
             <Button type="submit" variant="gold" disabled={uploading || !filing.subjectChoice || files.length === 0}>
-              {uploading ? progress : files.length > 1 ? `Add ${files.length} pictures` : "Add picture"}
+              {uploading ? progress : files.length > 1 ? `Add ${files.length} files` : files.length === 1 && isPdf(files[0]) ? "Add PDF as flashcards" : "Add picture"}
             </Button>
           </form>
         </CardContent>

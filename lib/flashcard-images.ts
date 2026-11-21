@@ -14,6 +14,9 @@ export const IMAGE_TYPES: Record<string, string> = {
 /** The value for the file picker's accept attribute. */
 export const IMAGE_ACCEPT = ".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp";
 
+/** Pictures and PDFs, for the admin's file picker. */
+export const UPLOAD_ACCEPT = `${IMAGE_ACCEPT},.pdf,application/pdf`;
+
 export interface FlashcardImage {
   id: string;
   subject_id: string;
@@ -22,9 +25,13 @@ export interface FlashcardImage {
   caption: string | null;
   created_at: string;
   exams: string[];
+  /** Set when the picture is a page of an uploaded PDF. */
+  source_pdf: string | null;
+  source_page: number | null;
+  source_name: string | null;
 }
 
-export const IMAGE_COLUMNS = "id, subject_id, chapter_id, image_path, caption, created_at, exams";
+export const IMAGE_COLUMNS = "id, subject_id, chapter_id, image_path, caption, created_at, exams, source_pdf, source_page, source_name";
 
 /** Returns why a file cannot be uploaded, or null. There is no size limit. */
 export function imageProblem(file: Pick<File, "type" | "size" | "name">): string | null {

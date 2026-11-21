@@ -3,8 +3,9 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
-import { downloadPicture } from "@/components/flashcards/download";
+import { downloadPicture, downloadSourcePdf } from "@/components/flashcards/download";
 import { pictureUrl } from "@/components/flashcards/picture-url";
+import { pdfDownloadName } from "@/lib/pdf-upload";
 import { stepIndex, type FlashcardImage } from "@/lib/flashcard-images";
 
 interface PictureViewerProps {
@@ -24,6 +25,21 @@ export function PictureViewer({ items, index, label, onIndex, onClose, fileName 
   const item = items[index];
   const [saving, setSaving] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
+
+  const [savingPdf, setSavingPdf] = React.useState(false);
+
+  const savePdf = async () => {
+    if (!item?.source_pdf) return;
+    setSavingPdf(true);
+    setFailed(false);
+    try {
+      await downloadSourcePdf(item, pdfDownloadName(item.source_name));
+    } catch {
+      setFailed(true);
+    } finally {
+      setSavingPdf(false);
+    }
+  };
 
   const save = async () => {
     if (!item || !fileName) return;
@@ -64,16 +80,22 @@ export function PictureViewer({ items, index, label, onIndex, onClose, fileName 
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Flashcard picture" className="fixed inset-0 z-50 flex flex-col bg-navy-950/95 backdrop-blur-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-steel-700/60 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-steel-700/60 px-4 py-3">
         <div className="min-w-0">
           <p className="truncate font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{label(item)}</p>
           {many ? <p className="font-mono text-xs text-steel-300">{index + 1} of {items.length}</p> : null}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {fileName ? (
-            <Button variant="primary" size="sm" onClick={save} disabled={saving} aria-label="Download this flashcard">
+            <Button variant="primary" size="sm" onClick={save} disabled={saving} aria-label={item.source_pdf ? "Download this page" : "Download this flashcard"}>
               <Icons.download className="size-4" aria-hidden />
-              {saving ? "Saving" : "Download"}
+              {saving ? "Saving" : item.source_pdf ? "Download this page" : "Download"}
+            </Button>
+          ) : null}
+          {item.source_pdf ? (
+            <Button variant="secondary" size="sm" onClick={savePdf} disabled={savingPdf} aria-label="Download the entire PDF">
+              <Icons.download className="size-4" aria-hidden />
+              {savingPdf ? "Saving" : "Download the entire PDF"}
             </Button>
           ) : null}
           <Button ref={closeRef} variant="outline" size="sm" onClick={onClose} aria-label="Close picture">
