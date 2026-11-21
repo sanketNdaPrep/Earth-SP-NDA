@@ -12,7 +12,7 @@ import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { IMAGE_COLUMNS, recentPictures, type FlashcardImage } from "@/lib/flashcard-images";
 import { supabase } from "@/lib/supabaseClient";
 import { chapterPdfName, pictureFileName } from "@/lib/flashcard-download";
-import { BackButton, plural, SubjectFolderCard } from "@/components/vault/folder-parts";
+import { BackButton, ChapterThumb, plural, SubjectFolderCard } from "@/components/vault/folder-parts";
 import { buildFolders, itemInExam, subjectInExam } from "@/lib/taxonomy";
 import { Icons } from "@/components/ui/icons";
 
@@ -222,7 +222,10 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
                   onClick={() => go({ subjectId: folder.subject.id, chapter: row.id })}
                   className="flex w-full items-center justify-between gap-3 rounded-panel border border-steel-700/60 bg-navy-900 px-4 py-3 text-left transition-colors hover:border-gold-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400"
                 >
-                  <span className="min-w-0 truncate text-sm font-semibold text-white">{row.name}</span>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <ChapterThumb path={"cover_path" in row ? row.cover_path : null} />
+                    <span className="min-w-0 truncate text-sm font-semibold text-white">{row.name}</span>
+                  </span>
                   <span className="flex shrink-0 items-center gap-2 font-mono text-xs text-steel-300">
                     {row.count === 0 ? "Empty" : plural(row.count, "card")}
                     <Icons.chevronRight className="size-4" aria-hidden />

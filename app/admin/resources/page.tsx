@@ -18,6 +18,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { CoverEditor } from "@/components/admin/cover-editor";
+import { coverProblem, removeCovers, uploadCover } from "@/lib/cover-upload";
+import { IMAGE_ACCEPT } from "@/lib/flashcard-images";
 import { logAdminAction } from "@/lib/adminLog";
 import {
   ACCEPT_ATTRIBUTE,
@@ -49,6 +52,10 @@ const textareaClass =
   "focus-visible:border-gold-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/40";
 
 export default function AdminResourcesPage() {
+  const [cover, setCover] = React.useState<File | null>(null);
+  const [coverKey, setCoverKey] = React.useState(0);
+  const [ticked, setTicked] = React.useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = React.useState(false);
   const [rows, setRows] = React.useState<StoredResource[] | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [version, setVersion] = React.useState(0);
@@ -133,6 +140,12 @@ export default function AdminResourcesPage() {
       return;
     }
 
+    const coverIssue = cover ? coverProblem(cover) : null;
+    if (coverIssue) {
+      setMsg({ type: "error", text: coverIssue });
+      return;
+    }
+
     setUploading(true);
     const path = storagePath(file);
     const bucket = supabase.storage.from(RESOURCE_BUCKET);
@@ -144,10 +157,23 @@ export default function AdminResourcesPage() {
       return;
     }
 
+    let coverStored: string | null = null;
+    if (cover) {
+      const up = await uploadCover(cover);
+      if ("error" in up) {
+        await bucket.remove([path]);
+        setUploading(false);
+        setMsg({ type: "error", text: `The cover picture failed: ${up.error}` });
+        return;
+      }
+      coverStored = up.path;
+    }
+
     const saved = await saveFiling(check, exams);
     if (!saved.ok) {
       // Do not leave a file in storage that no student can see.
       await bucket.remove([path]);
+      await removeCovers([coverStored]);
       setUploading(false);
       setMsg({ type: "error", text: saved.error });
       return;
@@ -172,12 +198,14 @@ export default function AdminResourcesPage() {
         download_url: url,
         file_path: path,
         file_type: kind,
+        cover_path: coverStored,
       })
       .select("id");
 
     if (insertError || !data?.length) {
       // Do not leave an orphan file behind.
       await bucket.remove([path]);
+      await removeCovers([coverStored]);
       setUploading(false);
       setMsg({ type: "error", text: `The file uploaded but could not be saved: ${insertError?.message ?? "no permission"}.` });
       return;
@@ -205,6 +233,8 @@ export default function AdminResourcesPage() {
     setFiling((f) => (f.subjectChoice === NEW_SUBJECT ? emptyFiling() : { ...f, chapterName: "" }));
     setFile(null);
     setFileKey((k) => k + 1);
+    setCover(null);
+    setCoverKey((k) => k + 1);
     setMsg({ type: "success", text: `"${cleanTitle}" is uploaded. Students can download it from the Study Material page now.` });
     refresh();
   };
@@ -264,6 +294,7 @@ export default function AdminResourcesPage() {
       const { error: removeError } = await supabase.storage.from(RESOURCE_BUCKET).remove([row.file_path]);
       leftover = Boolean(removeError);
     }
+    await removeCovers([row.cover_path]);
     await logAdminAction({
       action: "deleted",
       entityType: "resource",
@@ -279,6 +310,67 @@ export default function AdminResourcesPage() {
     });
     refresh();
   };
+
+  /** Deletes the ticked files: their rows, stored files and cover pictures. */
+  const removeMany = async (targets: StoredResource[]) => {
+    if (targets.length === 0) return;
+    if (!window.confirm(`Delete ${targets.length} ${targets.length === 1 ? "file" : "files"}? They disappear from the Study Material page and the stored files are removed for good.`)) return;
+    setBulkBusy(true);
+    setMsg(null);
+    const { data, error } = await supabase.from("resources").delete().in("id", targets.map((t) => t.id)).select("id");
+    if (error || !data?.length) {
+      setBulkBusy(false);
+      return setMsg({ type: "error", text: error?.message ?? "The files were not deleted. You may not have permission." });
+    }
+    const gone = new Set(data.map((d) => d.id as string));
+    const deleted = targets.filter((t) => gone.has(t.id));
+    const paths = deleted.map((t) => t.file_path).filter((p): p is string => Boolean(p));
+    let leftover = false;
+    if (paths.length > 0) leftover = Boolean((await supabase.storage.from(RESOURCE_BUCKET).remove(paths)).error);
+    await removeCovers(deleted.map((t) => t.cover_path));
+    await logAdminAction({ action: "deleted", entityType: "resource", label: deleted.length === 1 ? deleted[0].title : `${deleted.length} files`, details: { resource_ids: deleted.map((t) => t.id), titles: deleted.map((t) => t.title), file_left_in_storage: leftover } });
+    setBulkBusy(false);
+    setTicked(new Set());
+    setMsg({
+      type: leftover || deleted.length < targets.length ? "error" : "success",
+      text: `Deleted ${deleted.length} ${deleted.length === 1 ? "file" : "files"}.${deleted.length < targets.length ? ` ${targets.length - deleted.length} could not be deleted.` : ""}${leftover ? " Some stored files could not be removed from storage." : ""}`,
+    });
+    refresh();
+  };
+
+  /** Adds, changes or removes the cover picture of one uploaded file. */
+  const setRowCover = async (row: StoredResource, file: File | null) => {
+    setBusyId(row.id);
+    setMsg(null);
+    let next: string | null = null;
+    if (file) {
+      const up = await uploadCover(file);
+      if ("error" in up) {
+        setBusyId(null);
+        return setMsg({ type: "error", text: up.error });
+      }
+      next = up.path;
+    }
+    const { data, error } = await supabase.from("resources").update({ cover_path: next }).eq("id", row.id).select("id");
+    if (error || !data?.length) {
+      await removeCovers([next]);
+      setBusyId(null);
+      return setMsg({ type: "error", text: error?.message ?? "The cover was not saved. You may not have permission." });
+    }
+    await removeCovers([row.cover_path]);
+    await logAdminAction({ action: "edited", entityType: "resource", label: `${row.title} cover`, details: { resource_id: row.id } });
+    setBusyId(null);
+    setMsg({ type: "success", text: file ? `Cover saved for "${row.title}".` : `Cover removed from "${row.title}".` });
+    refresh();
+  };
+
+  const toggleTick = (id: string, on: boolean) =>
+    setTicked((cur) => {
+      const next = new Set(cur);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
 
   return (
     <div className="space-y-8">
@@ -325,6 +417,19 @@ export default function AdminResourcesPage() {
                   {file.name} ({formatSize(file.size)})
                 </p>
               ) : null}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="res-cover">Cover picture (optional)</Label>
+              <Input
+                key={coverKey}
+                id="res-cover"
+                type="file"
+                accept={IMAGE_ACCEPT}
+                onChange={(e) => setCover(e.target.files?.[0] ?? null)}
+                className="cursor-pointer py-1.5 file:mr-3 file:cursor-pointer file:rounded-control file:border-0 file:bg-navy-800 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-steel-100"
+              />
+              <p className="text-xs text-steel-500">A PNG, JPG or WebP picture students see on this file&apos;s card.</p>
             </div>
 
             <div className="space-y-1.5">
@@ -402,6 +507,20 @@ export default function AdminResourcesPage() {
           {rows && rows.length === 0 ? <p className="text-xs text-steel-300">No files yet. Upload the first one above.</p> : null}
 
           {rows && rows.length > 0 ? (
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <label className="flex items-center gap-2 text-xs text-steel-300">
+                <input type="checkbox" className="size-4 accent-gold-400" checked={rows.every((r) => ticked.has(r.id))} onChange={(e) => setTicked(e.target.checked ? new Set(rows.map((r) => r.id)) : new Set())} />
+                Select all {rows.length} files
+              </label>
+              {ticked.size > 0 ? (
+                <Button variant="danger" size="sm" loading={bulkBusy} onClick={() => void removeMany(rows.filter((r) => ticked.has(r.id)))}>
+                  Delete selected ({ticked.size})
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {rows && rows.length > 0 ? (
             <ul className="divide-y divide-steel-700/40">
               {rows.map((row) => {
                 const kind = resourceKind(row);
@@ -409,7 +528,10 @@ export default function AdminResourcesPage() {
                 return (
                   <li key={row.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <div className="min-w-0 space-y-2">
-                      <p className="truncate text-sm font-semibold text-white">{row.title}</p>
+                      <label className="flex min-w-0 items-center gap-2">
+                        <input type="checkbox" className="size-4 shrink-0 accent-gold-400" checked={ticked.has(row.id)} onChange={(e) => toggleTick(row.id, e.target.checked)} aria-label={`Select ${row.title}`} />
+                        <span className="min-w-0 truncate text-sm font-semibold text-white">{row.title}</span>
+                      </label>
                       {row.description ? <p className="line-clamp-2 text-xs text-steel-300">{row.description}</p> : null}
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{vaultLabel(row.vault)}</Badge>
@@ -420,6 +542,7 @@ export default function AdminResourcesPage() {
                         <span className="text-xs tabular-nums text-steel-500">{row.downloads} downloads</span>
                         {!row.file_path ? <span className="text-xs text-steel-500">External link</span> : null}
                       </div>
+                      <CoverEditor label={row.title} coverPath={row.cover_path} busy={busyId === row.id} onChange={(file) => setRowCover(row, file)} />
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2">

@@ -12,6 +12,8 @@ export interface Chapter {
   subject_id: string;
   name: string;
   sort_order: number;
+  /** Optional cover picture, in the subject-covers bucket. */
+  cover_path?: string | null;
 }
 
 export const CHAPTER_NAME = { min: 2, max: 60 } as const;
@@ -84,6 +86,7 @@ export function groupBySubject<T extends Filed>(items: readonly T[], subjects: r
 export interface ChapterFolder {
   id: string;
   name: string;
+  cover_path?: string | null;
   count: number;
 }
 
@@ -105,7 +108,7 @@ export function buildFolders(items: readonly Filed[], subjects: readonly TaxSubj
     const own = chapters.filter((c) => c.subject_id === subject.id);
     const chapterIds = new Set(own.map((c) => c.id));
     const inSubject = items.filter((i) => i.subject_id === subject.id);
-    const chapterFolders = sortChapters(own).map((c) => ({ id: c.id, name: c.name, count: inSubject.filter((i) => i.chapter_id === c.id).length }));
+    const chapterFolders = sortChapters(own).map((c) => ({ id: c.id, name: c.name, cover_path: c.cover_path ?? null, count: inSubject.filter((i) => i.chapter_id === c.id).length }));
     const looseCount = inSubject.filter((i) => !i.chapter_id || !chapterIds.has(i.chapter_id)).length;
     return { subject, chapters: chapterFolders, looseCount, count: inSubject.length };
   });

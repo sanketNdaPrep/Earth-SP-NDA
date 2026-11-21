@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BackButton, plural, SubjectFolderCard } from "@/components/vault/folder-parts";
+import { BackButton, ChapterThumb, plural, SubjectFolderCard } from "@/components/vault/folder-parts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
@@ -99,6 +99,7 @@ export function StudyFolders() {
         ...sortChapters(taxonomy.chapters.filter((c) => c.subject_id === folder.subject.id)).map((c) => ({
           id: c.id,
           name: c.name,
+          cover_path: c.cover_path ?? null,
           entries: subjectEntries.filter((e) => e.chapter_id === c.id),
         })),
       ];
@@ -121,7 +122,10 @@ export function StudyFolders() {
             <ul className="list-none divide-y divide-steel-700/60 overflow-hidden rounded-panel border border-steel-700/60 bg-navy-900 p-0">
               {rows.map((row) => (
                 <li key={row.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3">
-                  <span className="min-w-0 truncate text-sm font-semibold text-white">{row.name}</span>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <ChapterThumb path={"cover_path" in row ? row.cover_path : null} />
+                    <span className="min-w-0 truncate text-sm font-semibold text-white">{row.name}</span>
+                  </span>
                   <span className="font-mono text-xs text-steel-300">{chapterSummary(row.entries)}</span>
                 </li>
               ))}

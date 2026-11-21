@@ -81,8 +81,8 @@ describe("buildFolders", () => {
   it("counts chapters, keeps empty chapters and counts loose items", () => {
     const [maths] = buildFolders(items, subjects, chapters);
     expect(maths.chapters).toEqual([
-      { id: "c1", name: "Algebra", count: 2 },
-      { id: "c2", name: "Calculus", count: 0 },
+      { id: "c1", name: "Algebra", cover_path: null, count: 2 },
+      { id: "c2", name: "Calculus", cover_path: null, count: 0 },
     ]);
     expect(maths.looseCount).toBe(1);
     expect(maths.count).toBe(3);

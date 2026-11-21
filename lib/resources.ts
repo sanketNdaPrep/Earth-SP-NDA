@@ -68,10 +68,12 @@ export interface StoredResource {
   subject_id: string | null;
   chapter_id: string | null;
   exams: string[];
+  /** Optional cover picture, in the subject-covers bucket. */
+  cover_path?: string | null;
 }
 
 export const RESOURCE_COLUMNS =
-  "id, title, description, category, size, recommended_for, download_url, file_path, file_type, downloads, created_at, vault, subject_id, chapter_id, exams";
+  "id, title, description, category, size, recommended_for, download_url, file_path, file_type, downloads, created_at, vault, subject_id, chapter_id, exams, cover_path";
 
 /** "2.4 MB", "310 KB". */
 export function formatSize(bytes: number): string {

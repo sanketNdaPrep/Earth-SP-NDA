@@ -19,7 +19,7 @@ export function useTaxonomy(version = 0): Taxonomy {
     let active = true;
     Promise.all([
       supabase.from("subjects").select("id, name, sort_order, cover_path, exams").eq("kind", "subject").order("sort_order", { ascending: true }),
-      supabase.from("chapters").select("id, subject_id, name, sort_order").order("sort_order", { ascending: true }),
+      supabase.from("chapters").select("id, subject_id, name, sort_order, cover_path").order("sort_order", { ascending: true }),
     ]).then(([subjects, chapters]) => {
       if (!active) return;
       // Missing chapters table (migration 013 not run yet) is not an error here: nothing is filed yet.

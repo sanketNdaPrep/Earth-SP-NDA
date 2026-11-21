@@ -2,7 +2,11 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { CoverEditor } from "@/components/admin/cover-editor";
 import { logAdminAction } from "@/lib/adminLog";
+import { removeCovers, uploadCover } from "@/lib/cover-upload";
+import { countFiled } from "@/lib/usage-check";
+import { blockedMessage, splitDeletable } from "@/lib/usage";
 import { CHAPTER_NAME, chapterNameProblem, parseChapterList, sortChapters, type Chapter } from "@/lib/taxonomy";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -22,12 +26,13 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
   const [many, setMany] = React.useState(false);
   const [pasted, setPasted] = React.useState("");
   const [note, setNote] = React.useState<string | null>(null);
+  const [ticked, setTicked] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     let active = true;
     supabase
       .from("chapters")
-      .select("id, subject_id, name, sort_order")
+      .select("id, subject_id, name, sort_order, cover_path")
       .eq("subject_id", subjectId)
       .order("sort_order", { ascending: true })
       .then(({ data, error }) => {
@@ -92,16 +97,77 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
     refresh();
   };
 
-  const remove = async (chapter: Chapter) => {
-    if (!window.confirm(`Delete the chapter "${chapter.name}"? Decks and files filed under it stay, but lose their chapter.`)) return;
+  /** Deletes chapters that hold nothing. A chapter that still has cards, files or decks is left alone. */
+  const removeMany = async (targets: Chapter[]) => {
+    if (targets.length === 0) return;
     setBusy(true);
     setProblem(null);
-    const { data, error } = await supabase.from("chapters").delete().eq("id", chapter.id).select("id");
+    setNote(null);
+    let usage: Record<string, number>;
+    try {
+      usage = await countFiled("chapter_id", targets.map((c) => c.id));
+    } catch (err) {
+      setBusy(false);
+      return setProblem(err instanceof Error ? err.message : "Could not check what is inside.");
+    }
+    const { free, busy: blocked } = splitDeletable(targets.map((c) => c.id), usage);
+    const blockedNames = targets.filter((c) => blocked.includes(c.id)).map((c) => c.name);
+    if (free.length === 0) {
+      setBusy(false);
+      return setProblem(blockedMessage("chapter", blockedNames));
+    }
+    const doomed = targets.filter((c) => free.includes(c.id));
+    const sure = window.confirm(
+      doomed.length === 1 ? `Delete the chapter "${doomed[0].name}"?` : `Delete ${doomed.length} chapters (${doomed.slice(0, 3).map((c) => c.name).join(", ")}${doomed.length > 3 ? ", ..." : ""})?`,
+    );
+    if (!sure) {
+      setBusy(false);
+      return;
+    }
+    const { data, error } = await supabase.from("chapters").delete().in("id", free).select("id");
     setBusy(false);
-    if (error || !data?.length) return setProblem(error?.message ?? "Could not delete the chapter.");
-    await record("deleted", chapter.name);
+    if (error || !data?.length) return setProblem(error?.message ?? "Could not delete the chapters.");
+    await removeCovers(doomed.map((c) => c.cover_path));
+    await logAdminAction({ action: "deleted", entityType: "subject", label: `${subjectName}: ${doomed.length === 1 ? doomed[0].name : `${doomed.length} chapters`}`, details: { subject_id: subjectId, chapters: doomed.map((c) => c.name) } });
+    setTicked(new Set());
+    setNote(`Deleted ${data.length} ${data.length === 1 ? "chapter" : "chapters"}.${blockedNames.length > 0 ? ` Kept ${blockedNames.length} that still hold content: ${blockedNames.join(", ")}.` : ""}`);
     refresh();
   };
+
+  const setCover = async (chapter: Chapter, file: File | null) => {
+    setBusy(true);
+    setProblem(null);
+    setNote(null);
+    let next: string | null = null;
+    if (file) {
+      const up = await uploadCover(file);
+      if ("error" in up) {
+        setBusy(false);
+        return setProblem(up.error);
+      }
+      next = up.path;
+    }
+    const { data, error } = await supabase.from("chapters").update({ cover_path: next }).eq("id", chapter.id).select("id");
+    if (error || !data?.length) {
+      await removeCovers([next]);
+      setBusy(false);
+      return setProblem(error?.message ?? "The cover was not saved. You may not have permission.");
+    }
+    await removeCovers([chapter.cover_path]);
+    await record("edited", `${chapter.name} cover`);
+    setBusy(false);
+    setNote(file ? `Cover saved for ${chapter.name}.` : `Cover removed from ${chapter.name}.`);
+    refresh();
+  };
+
+  const toggleTick = (id: string, on: boolean) =>
+    setTicked((cur) => {
+      const next = new Set(cur);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  const allTicked = list.length > 0 && list.every((c) => ticked.has(c.id));
 
   const move = async (index: number, direction: -1 | 1) => {
     const a = list[index];
@@ -127,6 +193,20 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
       {!chapters && !loadError ? <p className="text-xs text-steel-300">Loading chapters...</p> : null}
       {chapters && chapters.length === 0 ? <p className="text-xs text-steel-300">No chapters yet. Add the first one below.</p> : null}
 
+      {list.length > 1 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="flex items-center gap-2 text-xs text-steel-300">
+            <input type="checkbox" className="size-4 accent-gold-400" checked={allTicked} onChange={(e) => setTicked(e.target.checked ? new Set(list.map((c) => c.id)) : new Set())} />
+            Select all {list.length} chapters
+          </label>
+          {ticked.size > 0 ? (
+            <Button type="button" size="sm" variant="danger" disabled={busy} onClick={() => void removeMany(list.filter((c) => ticked.has(c.id)))}>
+              Delete selected ({ticked.size})
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       {list.length > 0 ? (
         <ul className="divide-y divide-steel-700/40">
           {list.map((c, i) => (
@@ -145,7 +225,10 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
                 </form>
               ) : (
                 <>
-                  <span className="min-w-0 truncate text-sm text-white">{c.name}</span>
+                  <label className="flex min-w-0 items-center gap-2">
+                    <input type="checkbox" className="size-4 shrink-0 accent-gold-400" checked={ticked.has(c.id)} onChange={(e) => toggleTick(c.id, e.target.checked)} aria-label={`Select ${c.name}`} />
+                    <span className="min-w-0 truncate text-sm text-white">{c.name}</span>
+                  </label>
                   <div className="flex items-center gap-2">
                     <Button size="sm" variant="outline" disabled={busy || i === 0} onClick={() => void move(i, -1)} aria-label={`Move ${c.name} up`}>Up</Button>
                     <Button size="sm" variant="outline" disabled={busy || i === list.length - 1} onClick={() => void move(i, 1)} aria-label={`Move ${c.name} down`}>Down</Button>
@@ -162,7 +245,10 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
                     >
                       Rename
                     </Button>
-                    <Button size="sm" variant="danger" disabled={busy} onClick={() => void remove(c)} aria-label={`Delete ${c.name}`}>Delete</Button>
+                    <Button size="sm" variant="danger" disabled={busy} onClick={() => void removeMany([c])} aria-label={`Delete ${c.name}`}>Delete</Button>
+                  </div>
+                  <div className="w-full">
+                    <CoverEditor label={c.name} coverPath={c.cover_path} busy={busy} onChange={(file) => setCover(c, file)} />
                   </div>
                 </>
               )}

@@ -251,6 +251,34 @@ export function PictureManager() {
     refresh();
   };
 
+  /** Deletes the ticked pictures and their stored files. A PDF's original goes too once none of its pages is left. */
+  const removeSelected = async () => {
+    const targets = (pictures ?? []).filter((p) => selected.has(p.id));
+    if (targets.length === 0) return;
+    if (!window.confirm(`Delete ${targets.length} ${targets.length === 1 ? "picture" : "pictures"}? Students will no longer see ${targets.length === 1 ? "it" : "them"}.`)) return;
+    setMoving(true);
+    setMsg(null);
+    const { data, error } = await supabase.from("flashcard_images").delete().in("id", targets.map((t) => t.id)).select("id");
+    if (error || !data?.length) {
+      setMoving(false);
+      return setMsg({ type: "error", text: error?.message ?? "The pictures were not deleted. You may not have permission." });
+    }
+    const gone = new Set(data.map((d) => d.id as string));
+    const deleted = targets.filter((t) => gone.has(t.id));
+    const remaining = (pictures ?? []).filter((p) => !gone.has(p.id));
+    const orphanPdfs = [...new Set(deleted.map((d) => d.source_pdf).filter((p): p is string => Boolean(p)))].filter((pdf) => !remaining.some((r) => r.source_pdf === pdf));
+    const removed = await supabase.storage.from(FLASHCARD_BUCKET).remove([...deleted.map((d) => d.image_path), ...orphanPdfs]);
+    await logAdminAction({ action: "deleted", entityType: "flashcard_image", label: `${deleted.length} ${deleted.length === 1 ? "picture" : "pictures"}`, details: { image_ids: deleted.map((d) => d.id), file_left_in_storage: Boolean(removed.error) } });
+    setMoving(false);
+    setSelected(new Set());
+    setMsg(
+      removed.error || deleted.length < targets.length
+        ? { type: "error", text: `Deleted ${deleted.length}.${deleted.length < targets.length ? ` ${targets.length - deleted.length} could not be deleted.` : ""}${removed.error ? " Some stored files could not be removed from storage." : ""}` }
+        : { type: "success", text: `Deleted ${deleted.length} ${deleted.length === 1 ? "picture" : "pictures"}.` },
+    );
+    refresh();
+  };
+
   /** Replaces the exam tags of the ticked pictures. */
   const applyExams = async () => {
     const ids = [...selected];
@@ -339,9 +367,14 @@ export function PictureManager() {
                 <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>Clear selection</Button>
               </div>
               <FilingFields idPrefix="move" subjects={taxonomy.subjects.filter((x) => x.name !== "Unsorted")} chapters={taxonomy.chapters} value={moveFiling} onChange={setMoveFiling} disabled={moving} />
-              <Button variant="gold" className="w-full sm:w-auto" disabled={moving || !moveFiling.subjectChoice} onClick={() => void move()}>
-                {moving ? "Working..." : "Move selected"}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="gold" className="w-full sm:w-auto" disabled={moving || !moveFiling.subjectChoice} onClick={() => void move()}>
+                  {moving ? "Working..." : "Move selected"}
+                </Button>
+                <Button variant="danger" className="w-full sm:w-auto" disabled={moving} onClick={() => void removeSelected()}>
+                  Delete selected ({selected.size})
+                </Button>
+              </div>
               <div className="flex flex-wrap items-end justify-between gap-3 border-t border-steel-700/60 pt-3">
                 <ExamPicker legend="Set exams on the selected pictures" value={moveExams} onChange={setMoveExams} />
                 <Button variant="outline" size="sm" disabled={moving} onClick={() => void applyExams()}>Apply exams</Button>

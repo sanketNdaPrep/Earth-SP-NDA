@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { ChaptersManager } from "@/components/admin/chapters-manager";
 import { logAdminAction } from "@/lib/adminLog";
+import { removeCovers } from "@/lib/cover-upload";
+import { countFiled } from "@/lib/usage-check";
+import { blockedMessage, splitDeletable } from "@/lib/usage";
 import { IMAGE_ACCEPT, imageProblem } from "@/lib/flashcard-images";
 import { cleanExams, coverPath, EXAMS, slugify, SUBJECT_COVER_BUCKET, type ExamId, type Subject } from "@/lib/subjects";
 import { supabase } from "@/lib/supabaseClient";
@@ -37,6 +40,7 @@ export function StudySubjectsManager() {
   const [removeCover, setRemoveCover] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [ticked, setTicked] = React.useState<Set<string>>(new Set());
   const [chaptersOpen, setChaptersOpen] = React.useState<string | null>(null);
   const [msg, setMsg] = React.useState<Message>(null);
   const fileInput = React.useRef<HTMLInputElement>(null);
@@ -169,6 +173,48 @@ export function StudySubjectsManager() {
     refresh();
   };
 
+  /** Deletes subjects that hold nothing. Their empty chapters and cover pictures go with them. */
+  const removeMany = async (targets: Row[]) => {
+    if (targets.length === 0) return;
+    setBusyId("bulk");
+    setMsg(null);
+    let usage: Record<string, number>;
+    try {
+      usage = await countFiled("subject_id", targets.map((t) => t.id));
+    } catch (err) {
+      setBusyId(null);
+      return setMsg({ type: "error", text: err instanceof Error ? err.message : "Could not check what is inside." });
+    }
+    const { free, busy: blocked } = splitDeletable(targets.map((t) => t.id), usage);
+    const blockedNames = targets.filter((t) => blocked.includes(t.id)).map((t) => t.name);
+    if (free.length === 0) {
+      setBusyId(null);
+      return setMsg({ type: "error", text: blockedMessage("subject", blockedNames) });
+    }
+    const doomed = targets.filter((t) => free.includes(t.id));
+    const sure = window.confirm(
+      `Delete ${doomed.length === 1 ? `the subject "${doomed[0].name}"` : `${doomed.length} subjects (${doomed.slice(0, 3).map((d) => d.name).join(", ")}${doomed.length > 3 ? ", ..." : ""})`} and its empty chapters?`,
+    );
+    if (!sure) return setBusyId(null);
+    const chapterCovers = await supabase.from("chapters").select("cover_path").in("subject_id", free);
+    const { data, error } = await supabase.from("subjects").delete().in("id", free).select("id");
+    setBusyId(null);
+    if (error || !data?.length) return setMsg({ type: "error", text: error?.message ?? "Could not delete the subjects." });
+    await removeCovers([...doomed.map((d) => d.cover_path), ...((chapterCovers.data ?? []) as { cover_path: string | null }[]).map((c) => c.cover_path)]);
+    await logAdminAction({ action: "deleted", entityType: "subject", label: doomed.length === 1 ? doomed[0].name : `${doomed.length} subjects`, details: { subjects: doomed.map((d) => d.name) } });
+    setTicked(new Set());
+    setMsg({ type: "success", text: `Deleted ${data.length} ${data.length === 1 ? "subject" : "subjects"}.${blockedNames.length > 0 ? ` Kept ${blockedNames.length} that still hold content: ${blockedNames.join(", ")}.` : ""}` });
+    refresh();
+  };
+
+  const toggleTick = (id: string, on: boolean) =>
+    setTicked((cur) => {
+      const next = new Set(cur);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+
   return (
     <div className="space-y-8 border-t border-steel-700/60 pt-8">
       <div>
@@ -256,10 +302,23 @@ export function StudySubjectsManager() {
           {!rows && !loadError ? <p className="text-xs text-steel-300">Loading subjects...</p> : null}
           {rows && rows.length === 0 ? <p className="text-xs text-steel-300">No study subjects yet. Add the first one above.</p> : null}
           {rows && rows.length > 0 ? (
+            <>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <label className="flex items-center gap-2 text-xs text-steel-300">
+                <input type="checkbox" className="size-4 accent-gold-400" checked={rows.length > 0 && rows.every((x) => ticked.has(x.id))} onChange={(e) => setTicked(e.target.checked ? new Set(rows.map((x) => x.id)) : new Set())} />
+                Select all {rows.length} subjects
+              </label>
+              {ticked.size > 0 ? (
+                <Button type="button" size="sm" variant="danger" disabled={busyId === "bulk"} onClick={() => void removeMany(rows.filter((x) => ticked.has(x.id)))}>
+                  Delete selected ({ticked.size})
+                </Button>
+              ) : null}
+            </div>
             <ul className="divide-y divide-steel-700/50">
               {rows.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                   <div className="flex min-w-0 items-center gap-3">
+                    <input type="checkbox" className="size-4 shrink-0 accent-gold-400" checked={ticked.has(r.id)} onChange={(e) => toggleTick(r.id, e.target.checked)} aria-label={`Select ${r.name}`} />
                     {r.cover_path ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={coverUrl(r.cover_path)} alt="" className="size-12 shrink-0 rounded-control border border-steel-700 object-cover" />
@@ -289,6 +348,7 @@ export function StudySubjectsManager() {
                 </li>
               ))}
             </ul>
+            </>
           ) : null}
         </CardContent>
       </Card>

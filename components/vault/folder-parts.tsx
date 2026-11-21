@@ -36,6 +36,13 @@ export function SubjectFolderCard({ folder, onOpen, unit = "card" }: { folder: S
   );
 }
 
+/** A small cover picture for a chapter row. Shows nothing when the chapter has no cover. */
+export function ChapterThumb({ path }: { path?: string | null }) {
+  if (!path) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={subjectCoverUrl(path)} alt="" loading="lazy" className="size-10 shrink-0 rounded-control border border-steel-700/60 object-cover" />;
+}
+
 export function BackButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <Button variant="outline" size="sm" onClick={onClick}>

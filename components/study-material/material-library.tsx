@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { PictureLibrary } from "@/components/flashcards/picture-library";
-import { BackButton, plural, SubjectFolderCard } from "@/components/vault/folder-parts";
+import { BackButton, ChapterThumb, plural, SubjectFolderCard } from "@/components/vault/folder-parts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { resourceKind, VAULTS } from "@/lib/resources";
 import { EXAMS } from "@/lib/subjects";
+import { subjectCoverUrl } from "@/components/flashcards/picture-url";
 import { supabase } from "@/lib/supabaseClient";
 import { buildFolders, itemInExam, subjectInExam } from "@/lib/taxonomy";
 
@@ -30,9 +31,10 @@ interface Material {
   exams: string[];
   category: string | null;
   recommended_for: string | null;
+  cover_path?: string | null;
 }
 
-const COLUMNS = "id, title, description, category, size, recommended_for, download_url, file_type, downloads, vault, subject_id, chapter_id, exams";
+const COLUMNS = "id, title, description, category, size, recommended_for, download_url, file_type, downloads, vault, subject_id, chapter_id, exams, cover_path";
 const LOOSE = "loose";
 
 type VaultKey = (typeof VAULTS)[number]["id"] | "flashcards";
@@ -53,7 +55,13 @@ function FileCard({ m, shown, onDownload }: { m: Material; shown: number; onDown
   const kind = resourceKind(m);
   const usable = Boolean(m.download_url) && m.download_url !== "#";
   return (
-    <Card className="flex flex-col justify-between">
+    <Card className="flex flex-col justify-between overflow-hidden">
+      {m.cover_path ? (
+        <div className="aspect-video w-full bg-navy-950">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={subjectCoverUrl(m.cover_path)} alt="" loading="lazy" className="size-full object-cover" />
+        </div>
+      ) : null}
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={kind === "pdf" ? "gold" : "emerald"}>{kind === "pdf" ? "PDF" : "Image"}</Badge>
@@ -265,7 +273,10 @@ export function MaterialLibrary() {
                     onClick={() => go(vault, folder.subject.id, row.id)}
                     className="flex w-full items-center justify-between gap-3 rounded-panel border border-steel-700/60 bg-navy-900 px-4 py-3 text-left transition-colors hover:border-gold-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400"
                   >
-                    <span className="min-w-0 truncate text-sm font-semibold text-white">{row.name}</span>
+                    <span className="flex min-w-0 items-center gap-3">
+                      <ChapterThumb path={"cover_path" in row ? row.cover_path : null} />
+                      <span className="min-w-0 truncate text-sm font-semibold text-white">{row.name}</span>
+                    </span>
                     <span className="flex shrink-0 items-center gap-2 font-mono text-xs text-steel-300">
                       {row.count === 0 ? "Empty" : plural(row.count, "file")}
                       <Icons.chevronRight className="size-4" aria-hidden />
