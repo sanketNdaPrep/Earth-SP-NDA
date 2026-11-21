@@ -125,7 +125,7 @@ export default function AdminSignupPage() {
                 className={`flex items-start gap-2 rounded-control border p-3 text-xs ${
                   msg.type === 'success'
                     ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300'
-                    : 'border-danger-500/40 bg-danger-500/10 text-danger-300'
+                    : 'border-danger-500/40 bg-danger-500/10 text-danger-400'
                 }`}
               >
                 {msg.type === 'success' ? (

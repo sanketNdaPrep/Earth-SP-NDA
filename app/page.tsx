@@ -26,12 +26,12 @@ export default function Home() {
       
       {/* Navigation Header */}
       <header className="sticky top-0 z-50 border-b border-steel-700 bg-navy-950/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-8">
           <div className="flex items-center gap-3">
             <SiteMenu />
-            <Link href="/" className="flex items-center gap-2 font-mono text-sm font-bold uppercase tracking-wider text-white">
+            <Link href="/" className="flex items-center gap-2 font-display text-base font-bold uppercase tracking-wider text-white">
               <Icons.logo className="size-6 text-gold-400" />
-              <span>EARTH SP NDA</span>
+              <span className="whitespace-nowrap">EARTH SP NDA</span>
             </Link>
           </div>
 

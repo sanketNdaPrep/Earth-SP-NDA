@@ -106,7 +106,7 @@ function ProfileModalBody({
       </fieldset>
 
       {error ? (
-        <p role="alert" className="text-xs text-danger-300">
+        <p role="alert" className="text-xs text-danger-400">
           {error}
         </p>
       ) : null}

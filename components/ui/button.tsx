@@ -7,31 +7,28 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outl
 export type ButtonSize = "sm" | "md" | "lg" | "icon";
 
 const base =
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control font-mono font-semibold uppercase tracking-wider " +
-  "transition-[translate,scale,box-shadow,background-color,border-color,color,filter] duration-(--duration-base) ease-(--ease-standard) " +
-  "hover:-translate-y-0.5 active:translate-y-0 active:scale-98 active:duration-(--duration-fast) " +
-  "motion-reduce:translate-none motion-reduce:scale-100 motion-reduce:transition-none " +
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-button border border-transparent font-sans font-semibold tracking-normal " +
+  "transition-[translate,box-shadow,background-color,border-color,color] duration-(--duration-base) ease-(--ease-standard) " +
+  "active:translate-y-px active:duration-(--duration-fast) motion-reduce:translate-none motion-reduce:transition-none " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-navy-950 " +
   "disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none aria-disabled:pointer-events-none aria-disabled:opacity-50";
 
-const solid = "bg-linear-to-b from-gold-300 to-gold-400 text-navy-950 shadow-button hover:shadow-button-lift hover:brightness-105 active:brightness-95";
-const soft =
-  "border border-steel-700 bg-linear-to-b from-navy-800 to-navy-900 text-steel-100 shadow-button-soft " +
-  "hover:border-steel-500 hover:shadow-button-soft-lift hover:text-white";
+const solid = "bg-gold-400 text-navy-950 shadow-button hover:bg-gold-300 hover:shadow-button-hover";
+const quiet = "border-steel-700 bg-navy-800 text-steel-100 hover:border-steel-500 hover:bg-steel-700/30";
 
 const variants: Record<ButtonVariant, string> = {
   primary: solid,
-  secondary: soft,
-  ghost: "text-steel-300 hover:-translate-y-0 hover:bg-navy-800 hover:text-steel-100 active:bg-navy-900",
-  danger: "bg-danger-500 text-on-danger shadow-button-soft hover:shadow-button-soft-lift hover:brightness-110",
-  outline: soft,
+  secondary: quiet,
+  ghost: "text-steel-300 hover:bg-navy-800 hover:text-steel-100",
+  danger: "border-danger-500/40 bg-danger-500/10 text-danger-400 hover:border-danger-500 hover:bg-danger-500 hover:text-on-danger",
+  outline: quiet,
   gold: solid,
 };
 
 const sizes: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-xs",
-  md: "h-10 px-4 text-sm",
-  lg: "h-12 px-6 text-sm",
+  sm: "h-8 px-3.5 text-sm",
+  md: "h-10 px-4.5 text-sm",
+  lg: "h-12 px-6 text-base",
   icon: "size-10",
 };
 

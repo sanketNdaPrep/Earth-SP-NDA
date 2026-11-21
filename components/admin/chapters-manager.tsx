@@ -189,7 +189,7 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
     <div className="w-full space-y-3 rounded-control border border-steel-700/60 bg-navy-950 p-4">
       <p className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">Chapters in {subjectName}</p>
 
-      {loadError ? <p role="alert" className="text-xs text-danger-300">{loadError}</p> : null}
+      {loadError ? <p role="alert" className="text-xs text-danger-400">{loadError}</p> : null}
       {!chapters && !loadError ? <p className="text-xs text-steel-300">Loading chapters...</p> : null}
       {chapters && chapters.length === 0 ? <p className="text-xs text-steel-300">No chapters yet. Add the first one below.</p> : null}
 
@@ -286,7 +286,7 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
         ) : null}
       </div>
       {note ? <p role="status" className="text-xs text-emerald-300">{note}</p> : null}
-      {problem ? <p role="alert" className="text-xs text-danger-300">{problem}</p> : null}
+      {problem ? <p role="alert" className="text-xs text-danger-400">{problem}</p> : null}
     </div>
   );
 }

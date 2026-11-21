@@ -74,7 +74,7 @@ export default function AdminLogsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {error ? <p role="alert" className="text-xs text-danger-300">Could not load the logs: {error}</p> : null}
+          {error ? <p role="alert" className="text-xs text-danger-400">Could not load the logs: {error}</p> : null}
           {!rows && !error ? <p className="text-xs text-steel-300">Loading logs...</p> : null}
           {rows && rows.length === 0 ? <p className="text-xs text-steel-300">No actions recorded yet.</p> : null}
           {rows && rows.length > 0 ? (

@@ -66,7 +66,7 @@ export default function DashboardLayout({
         <div className="flex h-16 items-center border-b border-steel-700/60 px-6">
           <Link href="/" aria-label="EARTH SP NDA home" className="flex items-center gap-2 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400">
             <Icons.logo className="size-6 text-gold-400" />
-            <span className="font-mono text-sm font-bold tracking-wider text-white">EARTH SP NDA</span>
+            <span className="font-display whitespace-nowrap text-base font-bold tracking-wider text-white">EARTH SP NDA</span>
           </Link>
         </div>
 
@@ -142,7 +142,7 @@ export default function DashboardLayout({
             </DropdownMenu>
             <Link href="/" aria-label="EARTH SP NDA home" className="flex min-w-0 items-center gap-2 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400">
               <Icons.logo className="size-6 shrink-0 text-gold-400" />
-              <span className="truncate font-mono text-sm font-bold text-white">EARTH SP NDA</span>
+              <span className="truncate font-display whitespace-nowrap text-base font-bold text-white">EARTH SP NDA</span>
             </Link>
           </div>
 

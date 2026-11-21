@@ -98,7 +98,7 @@ export default function MentorPage() {
         <div
           role={msg.type === "error" ? "alert" : "status"}
           className={`flex max-w-3xl items-start gap-2 rounded-control border p-3 text-xs ${
-            msg.type === "success" ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-danger-500/40 bg-danger-500/10 text-danger-300"
+            msg.type === "success" ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-danger-500/40 bg-danger-500/10 text-danger-400"
           }`}
         >
           {msg.type === "success" ? <Icons.checkCircle className="mt-0.5 size-4 shrink-0" aria-hidden /> : <Icons.info className="mt-0.5 size-4 shrink-0" aria-hidden />}
@@ -148,7 +148,7 @@ export default function MentorPage() {
           {questions ? <Badge variant="outline">{waiting} waiting</Badge> : null}
         </CardHeader>
         <CardContent>
-          {loadError ? <p role="alert" className="text-xs text-danger-300">Could not load your questions: {loadError}</p> : null}
+          {loadError ? <p role="alert" className="text-xs text-danger-400">Could not load your questions: {loadError}</p> : null}
           {!questions && !loadError ? <Skeleton aria-hidden="true" className="h-24 w-full rounded-panel" /> : null}
           {questions && questions.length === 0 ? <p className="text-sm text-steel-300">You have not asked anything yet.</p> : null}
           {questions && questions.length > 0 ? (

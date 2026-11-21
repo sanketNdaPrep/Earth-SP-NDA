@@ -14,7 +14,7 @@ export function BrandMark({ className }: { className?: string }) {
       )}
     >
       <Icons.logo className="size-7" />
-      <span className="font-mono text-sm font-bold uppercase tracking-widest text-white">EARTH SP NDA</span>
+      <span className="font-display whitespace-nowrap text-base font-bold uppercase tracking-widest text-white">EARTH SP NDA</span>
     </Link>
   );
 }

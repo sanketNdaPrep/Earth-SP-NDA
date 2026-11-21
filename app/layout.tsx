@@ -1,5 +1,10 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
+import "@fontsource/barlow-semi-condensed/500.css";
+import "@fontsource/barlow-semi-condensed/600.css";
+import "@fontsource/barlow-semi-condensed/700.css";
 import "@/app/globals.css";
 import { ThemeSync } from "@/components/theme/theme-sync";
 import { BackBar } from "@/components/ui/back-bar";

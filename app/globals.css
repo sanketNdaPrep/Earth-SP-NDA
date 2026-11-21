@@ -26,17 +26,21 @@
   --color-chip-text: var(--color-gold-300);
   --color-on-danger: var(--color-steel-100);
 
+  /* Fonts: loaded in app/layout.tsx from @fontsource packages (self-hosted). */
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, Menlo, Consolas, monospace;
+
   /* Shape */
   --radius-control: 0.25rem;
+  --radius-button: 0.5625rem;
   --radius-panel: 0.375rem;
 
   /* Elevation */
   --shadow-panel: 0 10px 30px -12px rgb(0 0 0 / 0.85);
   --shadow-glow: 0 0 24px -4px rgb(250 204 21 / 0.35);
-  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 14px -6px rgb(250 204 21 / 0.45);
-  --shadow-button-lift: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 2px 4px rgb(0 0 0 / 0.5), 0 12px 22px -8px rgb(250 204 21 / 0.55);
-  --shadow-button-soft: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.45);
-  --shadow-button-soft-lift: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 8px 16px -8px rgb(0 0 0 / 0.7);
+  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 2px rgb(0 0 0 / 0.28);
+  --shadow-button-hover: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 12px -4px rgb(0 0 0 / 0.45);
 
   /* Motion */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -84,10 +88,8 @@
 
   --shadow-panel: 0 8px 24px -14px rgb(27 54 93 / 0.35);
   --shadow-glow: 0 0 24px -4px rgb(27 54 93 / 0.25);
-  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(27 54 93 / 0.35), 0 6px 14px -6px rgb(27 54 93 / 0.5);
-  --shadow-button-lift: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 2px 4px rgb(27 54 93 / 0.35), 0 12px 22px -8px rgb(27 54 93 / 0.55);
-  --shadow-button-soft: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 1px 2px rgb(27 54 93 / 0.12);
-  --shadow-button-soft-lift: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 8px 16px -8px rgb(27 54 93 / 0.3);
+  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(27 54 93 / 0.3);
+  --shadow-button-hover: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 12px -4px rgb(27 54 93 / 0.45);
 
   /* Older pages still use the default grey, amber and red palettes: map them onto the light surfaces and navy text. */
   --color-slate-100: #0f1a30;
@@ -113,6 +115,16 @@
   --color-red-400: #b42318;
   --color-red-500: #d92d20;
   --color-red-950: #fdecea;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: 0.005em;
+  }
 }
 
 body {

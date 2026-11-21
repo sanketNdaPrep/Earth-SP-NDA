@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
           <CardContent>
             <form onSubmit={handleAdminLogin} className="space-y-4">
               {error && (
-                <div className="rounded-control border border-danger-500/40 bg-danger-500/10 p-3 text-xs text-danger-300">
+                <div className="rounded-control border border-danger-500/40 bg-danger-500/10 p-3 text-xs text-danger-400">
                   {error}
                 </div>
               )}

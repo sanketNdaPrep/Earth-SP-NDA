@@ -74,7 +74,7 @@ export function ApprovalsPanel() {
       </CardHeader>
       <CardContent>
         {error ? (
-          <p role="alert" className="mb-3 text-xs text-danger-300">
+          <p role="alert" className="mb-3 text-xs text-danger-400">
             {error}
           </p>
         ) : null}
