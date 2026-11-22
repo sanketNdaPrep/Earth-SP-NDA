@@ -1,5 +1,6 @@
 "use client";
 
+import { TestPdfDownload } from "@/components/mock-test/test-pdf-download";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -308,6 +309,9 @@ export function TestRunner({ testId }: { testId: string }) {
             {startError}
           </div>
         ) : null}
+        <div className="flex justify-center bg-navy-950 px-4 pt-4">
+          <TestPdfDownload testId={row.id} title={row.title} />
+        </div>
         <BriefingScreen
           quiz={quiz}
           scheme={scheme}

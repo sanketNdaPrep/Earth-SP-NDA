@@ -6,6 +6,7 @@ import { AdminShortcut } from "@/components/landing/admin-shortcut";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TestPdfDownload } from "@/components/mock-test/test-pdf-download";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { cutoffText, KIND_SHORT, TEST_KINDS, type TestKind } from "@/lib/test-settings";
@@ -27,6 +28,7 @@ interface MockTest {
   negative_marks: number;
   cutoff_min: number | null;
   cutoff_max: number | null;
+  source_pdf: string | null;
 }
 
 interface PracticeModule {
@@ -94,6 +96,7 @@ function TestCard({ test }: { test: MockTest }) {
           ) : null}
         </ul>
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-steel-700/60 pt-4">
+          <TestPdfDownload testId={test.id} title={test.title} path={test.source_pdf} />
           {test.kind === "mock" ? (
             <Button asChild variant="ghost" size="sm">
               <Link href={`/exams/${test.target_exam.toLowerCase()}`}>
@@ -129,7 +132,7 @@ export default function QuizzesPage() {
     Promise.all([
       supabase
         .from("mock_tests")
-        .select("id, title, code, target_exam, total_questions, duration_minutes, total_marks, passing_marks, kind, subject_id, chapter_id, marks_per_correct, negative_marks, cutoff_min, cutoff_max")
+        .select("id, title, code, target_exam, total_questions, duration_minutes, total_marks, passing_marks, kind, subject_id, chapter_id, marks_per_correct, negative_marks, cutoff_min, cutoff_max, source_pdf")
         .eq("is_published", true)
         .order("created_at", { ascending: false }),
       supabase

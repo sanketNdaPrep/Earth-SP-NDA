@@ -1,5 +1,6 @@
 "use client";
 
+import { TestPdfDownload } from "@/components/mock-test/test-pdf-download";
 import * as React from "react";
 import Link from "next/link";
 import { MotionConfig } from "framer-motion";
@@ -236,6 +237,7 @@ export function ResultView({ attemptId }: { attemptId: string }) {
               <Link href="/dashboard" className={primaryButton}>
                 Back to Dashboard
               </Link>
+              {result.mockTestId ? <TestPdfDownload testId={result.mockTestId} title={result.title} variant="ghost" /> : null}
               {result.mockTestId ? (
                 <Link href={`/quizzes/${result.mockTestId}`} className={ghostButton}>
                   Retake test
