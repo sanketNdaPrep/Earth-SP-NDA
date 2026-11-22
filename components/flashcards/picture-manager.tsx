@@ -17,7 +17,18 @@ import { supabase } from "@/lib/supabaseClient";
 import { isPdf, pageCountProblem, pageCreatedAt, pagePicturePath, pdfProblem, sourcePdfPath } from "@/lib/pdf-upload";
 import { openPdf } from "@/lib/pdf-render";
 import { cleanExams, type ExamId } from "@/lib/subjects";
-import { groupBySubject } from "@/lib/taxonomy";
+import { buildFolders } from "@/lib/taxonomy";
+import { BackButton, ChapterThumb, plural, SubjectFolderCard } from "@/components/vault/folder-parts";
+import { useStepState } from "@/hooks/use-step-state";
+
+const LOOSE = "loose";
+
+/** Where the admin is in the folders: nothing open, a subject, or a chapter (LOOSE for cards with no chapter). */
+interface Place {
+  subjectId: string | null;
+  chapter: string | null;
+}
+const TOP: Place = { subjectId: null, chapter: null };
 
 type Message = { type: "success" | "error"; text: string } | null;
 const labelClass = "block text-xs font-semibold uppercase tracking-wider text-steel-300";
@@ -29,6 +40,7 @@ export function PictureManager() {
   const [version, setVersion] = React.useState(0);
   const [filing, setFiling] = React.useState<FilingInput>(emptyFiling());
   const [exams, setExams] = React.useState<ExamId[]>([]);
+  const [place, pushPlace, upPlace] = useStepState<Place>(TOP, "admin-pictures");
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [moveFiling, setMoveFiling] = React.useState<FilingInput>(emptyFiling());
   const [moveExams, setMoveExams] = React.useState<ExamId[]>([]);
@@ -178,6 +190,8 @@ export function PictureManager() {
       setFiling((f) => (f.subjectChoice === NEW_SUBJECT ? emptyFiling() : f));
       if (fileInput.current) fileInput.current.value = "";
       refresh();
+      // Show the folder the pictures went into, so it is clear where they landed.
+      pushPlace({ subjectId: subject.id, chapter: chapter?.id ?? LOOSE });
     }
     if (failed.length > 0) {
       setMsg({ type: "error", text: `${added > 0 ? `Added ${added}, but ` : ""}${failed.length} could not be uploaded. ${failed[0]}` });
@@ -298,7 +312,27 @@ export function PictureManager() {
     refresh();
   };
 
-  const sections = React.useMemo(() => groupBySubject(pictures ?? [], taxonomy.subjects, taxonomy.chapters), [pictures, taxonomy.subjects, taxonomy.chapters]);
+  // Only subjects that hold pictures are shown as folders. Empty ones are managed on the Subjects page.
+  const folders = React.useMemo(() => buildFolders(pictures ?? [], taxonomy.subjects, taxonomy.chapters).filter((f) => f.count > 0), [pictures, taxonomy.subjects, taxonomy.chapters]);
+  const folder = place.subjectId ? folders.find((f) => f.subject.id === place.subjectId) : undefined;
+  const chapterRows = folder ? [...(folder.looseCount > 0 ? [{ id: LOOSE, name: "General", count: folder.looseCount, cover_path: null as string | null }] : []), ...folder.chapters.filter((c) => c.count > 0)] : [];
+  const chapterId = folder && place.chapter ? place.chapter : null;
+  const chapterRow = chapterId ? chapterRows.find((c) => c.id === chapterId) : undefined;
+  // Plain computation (no memo): the list is small and the compiler caches it.
+  const knownChapters = new Set((folder?.chapters ?? []).map((c) => c.id));
+  const chapterItems = !folder || !chapterRow
+    ? []
+    : (pictures ?? [])
+        .filter((p) => p.subject_id === folder.subject.id && (chapterRow.id === LOOSE ? !p.chapter_id || !knownChapters.has(p.chapter_id) : p.chapter_id === chapterRow.id))
+        .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const goTo = (next: Place) => {
+    pushPlace(next);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+  };
+  const goUp = (next: Place) => {
+    upPlace(next);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+  };
 
   return (
     <div className="space-y-8">
@@ -384,46 +418,83 @@ export function PictureManager() {
           {loadError ? <p role="alert" className="text-xs text-danger-400">Could not load pictures: {loadError}. Have you run migration 014?</p> : null}
           {!pictures && !loadError ? <p className="text-xs text-steel-300">Loading pictures...</p> : null}
           {pictures && pictures.length === 0 ? <p className="text-xs text-steel-300">No pictures yet. Add the first ones above.</p> : null}
-          {sections.map((section) => (
-            <section key={section.key} aria-label={section.subjectName} className="space-y-4">
-              <h3 className="border-b border-steel-700/60 pb-2 text-base font-bold text-white">{section.subjectName}</h3>
-              {section.chapters.map((group) => {
-                const groupIds = group.items.map((i) => i.id);
-                const allOn = groupIds.every((id) => selected.has(id));
+          {pictures && pictures.length > 0 && !folder ? (
+            <ul className="grid list-none grid-cols-2 gap-4 p-0 md:grid-cols-4">
+              {folders.map((f) => (
+                <li key={f.subject.id}>
+                  <SubjectFolderCard folder={f} onOpen={() => goTo({ subjectId: f.subject.id, chapter: null })} />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {folder && !chapterRow ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <BackButton label="All folders" onClick={() => goUp(TOP)} />
+                <h3 className="text-lg font-bold text-white">{folder.subject.name}</h3>
+              </div>
+              <ul className="grid list-none gap-3 p-0 md:grid-cols-2">
+                {chapterRows.map((row) => (
+                  <li key={row.id}>
+                    <button
+                      type="button"
+                      onClick={() => goTo({ subjectId: folder.subject.id, chapter: row.id })}
+                      className="flex w-full items-center justify-between gap-3 rounded-panel border border-steel-700/60 bg-navy-900 px-4 py-3 text-left transition-colors hover:border-gold-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400"
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        <ChapterThumb path={row.cover_path} />
+                        <span className="min-w-0 truncate text-sm font-semibold text-white">{row.name}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2 font-mono text-xs text-steel-300">
+                        {plural(row.count, "card")}
+                        <Icons.chevronRight className="size-4" aria-hidden />
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {folder && chapterRow ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <BackButton label={folder.subject.name} onClick={() => goUp({ subjectId: folder.subject.id, chapter: null })} />
+                <h3 className="text-lg font-bold text-white">
+                  {folder.subject.name} <span className="text-steel-500">/</span> {chapterRow.name}
+                </h3>
+              </div>
+              {(() => {
+                const groupIds = chapterItems.map((i) => i.id);
+                const allOn = groupIds.length > 0 && groupIds.every((id) => selected.has(id));
                 return (
-                <div key={group.key} className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    {group.chapterName ? <p className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{group.chapterName}</p> : <span />}
-                    <label className="flex items-center gap-2 text-xs text-steel-300">
-                      <input type="checkbox" checked={allOn} onChange={(e) => toggleSelected(groupIds, e.target.checked)} className="size-4 accent-gold-400" />
-                      Select all {groupIds.length} in {group.chapterName ?? section.subjectName}
-                    </label>
-                  </div>
-                  <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                    {group.items.map((item) => (
-                      <li key={item.id} className="overflow-hidden rounded-control border border-steel-700/60 bg-navy-950">
-                        <div className="aspect-4/3 w-full bg-navy-950">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={pictureUrl(item.image_path)} alt={`Flashcard in ${group.chapterName ?? section.subjectName}`} loading="lazy" className="size-full object-contain" />
-                        </div>
-                        <div className="space-y-2 p-2">
-                          <label className="flex items-center gap-2 text-xs text-steel-300">
-                            <input type="checkbox" checked={selected.has(item.id)} onChange={(e) => toggleSelected([item.id], e.target.checked)} className="size-4 accent-gold-400" />
-                            Select
-                            {item.exams?.length ? <span className="ml-auto font-mono text-xs text-gold-300">{item.exams.join(", ").toUpperCase()}</span> : null}
-                          </label>
-                          <Button variant="danger" size="sm" className="w-full" disabled={busyId === item.id} onClick={() => void remove(item)} aria-label={`Delete picture in ${group.chapterName ?? section.subjectName}`}>
-                            Delete
-                          </Button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                  <label className="flex items-center gap-2 text-xs text-steel-300">
+                    <input type="checkbox" checked={allOn} onChange={(e) => toggleSelected(groupIds, e.target.checked)} className="size-4 accent-gold-400" />
+                    Select all {groupIds.length} in {chapterRow.name}. Then move them, tag exams, or delete them above.
+                  </label>
                 );
-              })}
-            </section>
-          ))}
+              })()}
+              <ul className="grid list-none grid-cols-2 gap-3 p-0 md:grid-cols-4">
+                {chapterItems.map((item) => (
+                  <li key={item.id} className="overflow-hidden rounded-control border border-steel-700/60 bg-navy-950">
+                    <div className="aspect-4/3 w-full bg-navy-950">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={pictureUrl(item.image_path)} alt={`Flashcard in ${chapterRow.name}`} loading="lazy" className="size-full object-contain" />
+                    </div>
+                    <div className="space-y-2 p-2">
+                      <label className="flex items-center gap-2 text-xs text-steel-300">
+                        <input type="checkbox" checked={selected.has(item.id)} onChange={(e) => toggleSelected([item.id], e.target.checked)} className="size-4 accent-gold-400" />
+                        Select
+                        {item.exams?.length ? <span className="ml-auto font-mono text-xs text-gold-300">{item.exams.join(", ").toUpperCase()}</span> : null}
+                      </label>
+                      <Button variant="danger" size="sm" className="w-full" disabled={busyId === item.id} onClick={() => void remove(item)} aria-label={`Delete picture in ${chapterRow.name}`}>
+                        Delete
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>
