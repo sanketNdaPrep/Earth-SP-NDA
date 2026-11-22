@@ -198,7 +198,7 @@ export default function AdminQuestionsPage() {
     if (topicSupported === null) return;
     let active = true;
     const columns = topicSupported ? `${BANK_COLUMNS}, topic` : BANK_COLUMNS;
-    let query = supabase.from("questions").select(columns, { count: "exact" });
+    let query = supabase.from("questions").select(columns, { count: "exact" }).is("mock_test_id", null);
     if (moduleId !== "all") query = query.eq("quiz_id", moduleId);
     if (topicSupported && topicFilter !== "all") query = query.eq("topic", topicFilter);
     if (search) query = query.ilike("question_text", `%${escapeLike(search)}%`);

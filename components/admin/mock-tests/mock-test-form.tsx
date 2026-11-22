@@ -9,6 +9,8 @@ import { Icons } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { PdfImport, type PdfReading } from "@/components/admin/mock-tests/pdf-import";
+import { QuestionEditor } from "@/components/admin/mock-tests/question-editor";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { emptyFiling, FilingFields } from "@/components/admin/filing-fields";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
@@ -33,6 +35,8 @@ import {
 } from "@/lib/mockTests";
 import { clip, type BankModule } from "@/lib/questionBank";
 import { supabase } from "@/lib/supabaseClient";
+import { blankQuestion, insertAfter, moveItem, newKey, questionProblems, signatureOf, summarise, type BuilderQuestion } from "@/lib/test-questions";
+import { removeTestPdf, savedMapOf, saveTestQuestions, uploadTestPdf, type SavedQuestions } from "@/lib/test-save";
 
 type LoadState = "loading" | "ready" | "missing" | "error";
 type Banner = { type: "success" | "error"; text: string };
@@ -50,6 +54,7 @@ interface SavedState {
   cutoffMax: number | null;
   published: boolean;
   questionIds: string[];
+  sourcePdf: string | null;
 }
 
 const SEARCH_LIMIT = 15;
@@ -78,7 +83,13 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
   // When editing, the saved subject and chapter are filled in once the folder list has loaded.
   const pendingFiling = React.useRef<{ subjectId: string; chapterId: string | null } | null>(null);
   const [published, setPublished] = React.useState(false);
-  const [attached, setAttached] = React.useState<AttachedQuestion[]>([]);
+  const [attached, setAttached] = React.useState<BuilderQuestion[]>([]);
+  const [savedQuestions, setSavedQuestions] = React.useState<SavedQuestions>(new Map());
+  const [pdfFile, setPdfFile] = React.useState<File | null>(null);
+  const [pdfWarnings, setPdfWarnings] = React.useState<string[]>([]);
+  const [sourcePdf, setSourcePdf] = React.useState<string | null>(null);
+  const [openKey, setOpenKey] = React.useState<string | null>(null);
+  const [tab, setTab] = React.useState<"pdf" | "type" | "bank">("pdf");
 
   const [searchInput, setSearchInput] = React.useState("");
   const [search, setSearch] = React.useState("");
@@ -125,11 +136,11 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       }
       const test = testResult.data as unknown as MockTestRow;
 
-      let questions: AttachedQuestion[] = [];
+      let questions: BuilderQuestion[] = [];
       if (tableOk) {
         const linkResult = await supabase
           .from("test_questions")
-          .select("question_id, position, questions(id, quiz_id, question_text)")
+          .select("question_id, position, questions(id, quiz_id, mock_test_id, question_text, option_a, option_b, option_c, option_d, topic, question_answers(correct_option, explanation))")
           .eq("mock_test_id", initialId)
           .order("position", { ascending: true });
         if (!active) return;
@@ -138,8 +149,29 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
           setLoadState("error");
           return;
         }
-        const links = (linkResult.data ?? []) as unknown as { questions: AttachedQuestion | null }[];
-        questions = links.map((l) => l.questions).filter((q): q is AttachedQuestion => q !== null);
+        type Embed = { correct_option?: string | null; explanation?: string | null };
+        type Row = { id: string; quiz_id: string | null; mock_test_id: string | null; question_text: string; option_a: string; option_b: string; option_c: string; option_d: string; topic: string | null; question_answers: Embed | Embed[] | null };
+        const links = (linkResult.data ?? []) as unknown as { questions: Row | null }[];
+        questions = links
+          .map((l) => l.questions)
+          .filter((q): q is Row => q !== null)
+          .map((q) => {
+            const owned = q.mock_test_id === initialId;
+            const key = Array.isArray(q.question_answers) ? q.question_answers[0] : q.question_answers;
+            const letter = (key?.correct_option ?? "").trim().toUpperCase();
+            return {
+              key: newKey(),
+              id: q.id,
+              owned,
+              text: q.question_text,
+              options: owned ? { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d } : { A: "", B: "", C: "", D: "" },
+              correct: (["A", "B", "C", "D"].includes(letter) ? letter : "") as BuilderQuestion["correct"],
+              explanation: owned ? (key?.explanation ?? "") : "",
+              tag: owned ? (q.topic ?? "") : "",
+              flags: [],
+              moduleTitle: q.quiz_id ? (((moduleResult.data ?? []) as BankModule[]).find((m) => m.id === q.quiz_id)?.title ?? "Question bank") : undefined,
+            };
+          });
       }
 
       setTitle(test.title);
@@ -153,6 +185,8 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       setCutoffMax(test.cutoff_max === null ? "" : String(Number(test.cutoff_max)));
       setPublished(test.is_published);
       setAttached(questions);
+      setSavedQuestions(savedMapOf(questions));
+      setSourcePdf(test.source_pdf);
       setSaved({
         title: test.title,
         exam: test.target_exam,
@@ -165,7 +199,8 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
         cutoffMin: test.cutoff_min === null ? null : Number(test.cutoff_min),
         cutoffMax: test.cutoff_max === null ? null : Number(test.cutoff_max),
         published: test.is_published,
-        questionIds: questions.map((q) => q.id),
+        questionIds: questions.map((q) => q.id as string),
+        sourcePdf: test.source_pdf,
       });
       setLoadState("ready");
     })();
@@ -191,7 +226,7 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
   React.useEffect(() => {
     if (loadState !== "ready" || !linksReady) return;
     let active = true;
-    let query = supabase.from("questions").select("id, quiz_id, question_text");
+    let query = supabase.from("questions").select("id, quiz_id, question_text").is("mock_test_id", null);
     if (moduleFilter !== "all") query = query.eq("quiz_id", moduleFilter);
     if (search) query = query.ilike("question_text", `%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
     query
@@ -217,23 +252,40 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
     [modules],
   );
 
-  const attachedIds = React.useMemo(() => new Set(attached.map((q) => q.id)), [attached]);
+  const attachedIds = React.useMemo(() => new Set(attached.map((q) => q.id).filter(Boolean)), [attached]);
   const atLimit = attached.length >= MOCK_LIMITS.questionsMax;
 
   const add = (q: AttachedQuestion) => {
     if (attachedIds.has(q.id) || atLimit) return;
     setBanner(null);
-    setAttached((list) => [...list, q]);
+    setAttached((list) => [
+      ...list,
+      { ...blankQuestion(), id: q.id, owned: false, text: q.question_text, moduleTitle: moduleTitle(q.quiz_id) },
+    ]);
+  };
+  const addBlank = (after: number) => {
+    if (atLimit) return;
+    const fresh = blankQuestion();
+    setAttached((list) => insertAfter(list, after, fresh));
+    setOpenKey(fresh.key);
   };
   const removeAt = (index: number) => setAttached((list) => list.filter((_, i) => i !== index));
-  const move = (index: number, by: -1 | 1) =>
-    setAttached((list) => {
-      const target = index + by;
-      if (target < 0 || target >= list.length) return list;
-      const next = [...list];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
+  const move = (index: number, by: -1 | 1) => setAttached((list) => moveItem(list, index, by));
+  const change = (index: number, next: BuilderQuestion) => setAttached((list) => list.map((q, i) => (i === index ? next : q)));
+
+  const onPdfRead = (reading: PdfReading) => {
+    setBanner(null);
+    const room = MOCK_LIMITS.questionsMax - attached.length;
+    setAttached((list) => [...list, ...reading.questions.slice(0, Math.max(0, room))]);
+    setPdfFile(reading.file);
+    setPdfWarnings(reading.warnings);
+    const first = reading.questions.find((q) => q.flags.length > 0) ?? reading.questions[0];
+    setOpenKey(first?.key ?? null);
+    if (!title.trim()) setTitle(reading.file.name.replace(/\.pdf$/i, "").replace(/[_-]+/g, " ").trim().slice(0, MOCK_LIMITS.titleMax));
+  };
+
+  const summary = summarise(attached);
+  const unfinished = attached.map((q, i) => ({ n: i + 1, problems: questionProblems(q) })).filter((x) => x.problems.length > 0);
 
   const problem = checkMockTest({
     title,
@@ -248,14 +300,15 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
     published,
     questionCount: attached.length,
   });
+  const blocked = problem ?? (unfinished.length > 0 ? `Question ${unfinished[0].n}: ${unfinished[0].problems[0]}` : null);
   const totalMarks = totalMarksOf(attached.length, Number(marksPerCorrect) || 0);
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     if (saving) return;
     setBanner(null);
-    if (problem) {
-      setBanner({ type: "error", text: problem });
+    if (blocked) {
+      setBanner({ type: "error", text: blocked });
       return;
     }
     if (!linksReady) {
@@ -283,6 +336,21 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       chapterId = kind === "chapter" ? (made.chapter?.id ?? null) : null;
     }
 
+    setSaving(true);
+
+    // The original PDF is stored first, so students can download exactly this file later.
+    let newPdfPath: string | null = null;
+    if (pdfFile) {
+      const stored = await uploadTestPdf(pdfFile);
+      if ("error" in stored) {
+        setSaving(false);
+        setBanner({ type: "error", text: `The PDF was not stored: ${stored.error}` });
+        return;
+      }
+      newPdfPath = stored.path;
+    }
+    const pdfPath = newPdfPath ?? sourcePdf;
+
     const fields = {
       title: title.trim(),
       target_exam: exam,
@@ -298,29 +366,58 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       passing_marks: 0,
       is_published: published,
       total_questions: attached.length,
+      source_pdf: pdfPath,
     };
-    const ids = attached.map((q) => q.id);
-    const linkRows = (id: string) => attached.map((q, i) => ({ mock_test_id: id, question_id: q.id, position: i + 1 }));
 
-    setSaving(true);
+    const finishQuestions = async (id: string) => {
+      const result = await saveTestQuestions(id, attached, savedQuestions);
+      setAttached(result.list);
+      if (result.ok) {
+        setSavedQuestions(savedMapOf(result.list));
+        setPdfFile(null);
+        setPdfWarnings([]);
+        if (newPdfPath) {
+          if (sourcePdf && sourcePdf !== newPdfPath) await removeTestPdf(sourcePdf);
+          setSourcePdf(newPdfPath);
+        }
+      }
+      return result;
+    };
+    const savedSnapshot = (ids: string[]): SavedState => ({
+      title: fields.title,
+      exam,
+      duration: fields.duration_minutes,
+      kind,
+      subjectId,
+      chapterId,
+      marksPerCorrect: fields.marks_per_correct,
+      negativeMarks: fields.negative_marks,
+      cutoffMin: fields.cutoff_min,
+      cutoffMax: fields.cutoff_max,
+      published,
+      questionIds: ids,
+      sourcePdf: pdfPath,
+    });
 
     // ---- Create ---------------------------------------------------------
     if (!testId) {
       const code = await nextMockCode(exam, kind);
-      const created = await supabase.from("mock_tests").insert({ ...fields, code }).select("id");
+      // A new test is saved as a draft first, and published only once every question is in.
+      const created = await supabase.from("mock_tests").insert({ ...fields, is_published: false, code }).select("id");
       if (created.error || !created.data?.length) {
         setSaving(false);
-        setBanner({ type: "error", text: `The mock test was not saved: ${created.error?.message ?? "you may not have permission"}.` });
+        if (newPdfPath) await removeTestPdf(newPdfPath);
+        setBanner({ type: "error", text: `The test was not saved: ${created.error?.message ?? "you may not have permission"}.` });
         return;
       }
       const newId = (created.data[0] as { id: string }).id;
       setTestId(newId);
       window.history.replaceState(null, "", `/admin/mock-tests/${newId}/edit`);
 
-      let linkFailure: string | null = null;
-      if (ids.length > 0) {
-        const linked = await supabase.from("test_questions").upsert(linkRows(newId), { onConflict: "mock_test_id,question_id" });
-        if (linked.error) linkFailure = linked.error.message;
+      const result = await finishQuestions(newId);
+      if (result.ok && published) {
+        const live = await supabase.from("mock_tests").update({ is_published: true }).eq("id", newId).select("id");
+        if (live.error || !live.data?.length) result.error = `The test could not be published: ${live.error?.message ?? "you may not have permission"}`;
       }
       setSaving(false);
 
@@ -328,27 +425,15 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
         action: "added",
         entityType: "mock_test",
         label: fields.title,
-        details: { mock_test_id: newId, code, exam, kind, duration_minutes: fields.duration_minutes, total_marks: fields.total_marks, questions: ids.length, published },
+        details: { mock_test_id: newId, code, exam, kind, duration_minutes: fields.duration_minutes, total_marks: fields.total_marks, questions: attached.length, published },
       });
 
-      setSaved({
-        title: fields.title,
-        exam,
-        duration: fields.duration_minutes,
-        kind,
-        subjectId,
-        chapterId,
-        marksPerCorrect: fields.marks_per_correct,
-        negativeMarks: fields.negative_marks,
-        cutoffMin: fields.cutoff_min,
-        cutoffMax: fields.cutoff_max,
-        published,
-        questionIds: linkFailure ? [] : ids,
-      });
+      const ids = result.list.map((q) => q.id).filter((id): id is string => Boolean(id));
+      setSaved(savedSnapshot(result.ok ? ids : []));
       setBanner(
-        linkFailure
-          ? { type: "error", text: `"${fields.title}" was created, but its questions were not attached: ${linkFailure}. Press Save Changes to try again.` }
-          : { type: "success", text: `"${fields.title}" was created as ${code} with ${ids.length} question${ids.length === 1 ? "" : "s"}${published ? " and is live for cadets" : " as a draft"}.` },
+        result.ok && !result.error
+          ? { type: "success", text: `"${fields.title}" was created as ${code} with ${attached.length} question${attached.length === 1 ? "" : "s"}${published ? " and is live for cadets" : " as a draft"}.` }
+          : { type: "error", text: `"${fields.title}" was created, but not everything was saved: ${result.error}. Press Save Changes to try again.` },
       );
       return;
     }
@@ -365,13 +450,17 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       if (before.marksPerCorrect !== fields.marks_per_correct || before.negativeMarks !== fields.negative_marks) changed.push("marking");
       if (before.cutoffMin !== fields.cutoff_min || before.cutoffMax !== fields.cutoff_max) changed.push("cutoff");
       if (before.published !== fields.is_published) changed.push(fields.is_published ? "published" : "unpublished");
+      if (newPdfPath) changed.push("question PDF");
     }
+    const ids = attached.map((q) => q.id);
     const previousIds = before?.questionIds ?? [];
-    const addedIds = ids.filter((id) => !previousIds.includes(id));
-    const removedIds = previousIds.filter((id) => !ids.includes(id));
-    const orderChanged = addedIds.length === 0 && removedIds.length === 0 && previousIds.join() !== ids.join();
-    if (addedIds.length) changed.push(`${addedIds.length} question${addedIds.length === 1 ? "" : "s"} added`);
-    if (removedIds.length) changed.push(`${removedIds.length} question${removedIds.length === 1 ? "" : "s"} removed`);
+    const addedCount = attached.filter((q) => !q.id || !savedQuestions.has(q.id)).length;
+    const removedCount = previousIds.filter((id) => !ids.includes(id)).length;
+    const editedCount = attached.filter((q) => q.id && q.owned && savedQuestions.get(q.id) && savedQuestions.get(q.id)?.signature !== signatureOf(q)).length;
+    const orderChanged = addedCount === 0 && removedCount === 0 && previousIds.join() !== ids.join();
+    if (addedCount) changed.push(`${addedCount} question${addedCount === 1 ? "" : "s"} added`);
+    if (removedCount) changed.push(`${removedCount} question${removedCount === 1 ? "" : "s"} removed`);
+    if (editedCount) changed.push(`${editedCount} question${editedCount === 1 ? "" : "s"} edited`);
     if (orderChanged) changed.push("question order");
 
     if (changed.length === 0) {
@@ -383,46 +472,26 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
     const updated = await supabase.from("mock_tests").update(fields).eq("id", testId).select("id");
     if (updated.error || !updated.data?.length) {
       setSaving(false);
+      if (newPdfPath) await removeTestPdf(newPdfPath);
       setBanner({ type: "error", text: `The changes were not saved: ${updated.error?.message ?? "you may not have permission"}.` });
       return;
     }
 
-    let linkFailure: string | null = null;
-    if (removedIds.length > 0) {
-      const removed = await supabase.from("test_questions").delete().eq("mock_test_id", testId).in("question_id", removedIds);
-      if (removed.error) linkFailure = removed.error.message;
-    }
-    if (!linkFailure && ids.length > 0) {
-      const linked = await supabase.from("test_questions").upsert(linkRows(testId), { onConflict: "mock_test_id,question_id" });
-      if (linked.error) linkFailure = linked.error.message;
-    }
+    const result = await finishQuestions(testId);
     setSaving(false);
 
     await logAdminAction({
       action: "edited",
       entityType: "mock_test",
       label: fields.title,
-      details: { mock_test_id: testId, changed, questions: ids.length, ...(linkFailure ? { question_error: linkFailure } : {}) },
+      details: { mock_test_id: testId, changed, questions: attached.length, ...(result.error ? { question_error: result.error } : {}) },
     });
 
-    if (linkFailure) {
-      setBanner({ type: "error", text: `The test details were saved, but the questions were not updated: ${linkFailure}. Press Save Changes to try again.` });
+    if (!result.ok) {
+      setBanner({ type: "error", text: `The test details were saved, but the questions were not updated: ${result.error}. Press Save Changes to try again.` });
       return;
     }
-    setSaved({
-      title: fields.title,
-      exam,
-      duration: fields.duration_minutes,
-      kind,
-      subjectId,
-      chapterId,
-      marksPerCorrect: fields.marks_per_correct,
-      negativeMarks: fields.negative_marks,
-      cutoffMin: fields.cutoff_min,
-      cutoffMax: fields.cutoff_max,
-      published,
-      questionIds: ids,
-    });
+    setSaved(savedSnapshot(result.list.map((q) => q.id as string)));
     setBanner({ type: "success", text: `"${fields.title}" was updated (${changed.join(", ")}).` });
   };
 
@@ -462,7 +531,7 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
           <h1 className="text-balance text-3xl font-bold tracking-tight text-white">
             {editing ? "Edit Test" : "Create Test"}
           </h1>
-          <p className="mt-1 text-sm text-steel-300">Choose the type, set the marking, attach questions from the bank, then save.</p>
+          <p className="mt-1 text-sm text-steel-300">Choose the type, set the marking, add questions by PDF, typing or the bank, check them, then save.</p>
         </div>
         <Button asChild variant="outline" size="sm">
           <Link href="/admin/mock-tests">Back to Mock Tests</Link>
@@ -585,122 +654,133 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">2. Find Questions</CardTitle>
-            <CardDescription>Search the question bank and add what belongs in this test.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <label htmlFor="mt-search" className="sr-only">Search question text</label>
-              <Input
-                id="mt-search"
-                type="search"
-                placeholder="Search question text..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                autoComplete="off"
-                disabled={!linksReady}
-              />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">2. Add Questions</CardTitle>
+          <CardDescription>Upload a PDF, type questions yourself, or pick from the question bank. You can mix all three.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="How to add questions">
+            {([["pdf", "Upload a PDF"], ["type", "Type a question"], ["bank", "From the question bank"]] as const).map(([id, label]) => (
+              <Button key={id} type="button" role="tab" aria-selected={tab === id} size="sm" variant={tab === id ? "primary" : "outline"} onClick={() => setTab(id)}>
+                {label}
+              </Button>
+            ))}
+          </div>
+
+          {tab === "pdf" ? <PdfImport disabled={atLimit} onRead={onPdfRead} /> : null}
+
+          {tab === "type" ? (
+            <div className="space-y-2">
+              <p className="text-xs text-steel-300">Adds an empty question at the end of the list. Fill in the question, four options, the correct one and, if you like, an explanation.</p>
+              <Button type="button" variant="outline" disabled={atLimit} onClick={() => addBlank(-1)}>
+                <Icons.plus className="size-4" />
+                Add a question
+              </Button>
             </div>
-            <div>
-              <label htmlFor="mt-module" className="sr-only">Filter by module</label>
-              <Select id="mt-module" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} disabled={!linksReady}>
-                <option value="all">All modules</option>
-                {modules.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    [{m.category}] {m.title}
-                  </option>
-                ))}
-              </Select>
+          ) : null}
+
+          {tab === "bank" ? (
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="mt-search" className="sr-only">Search question text</label>
+                <Input id="mt-search" type="search" placeholder="Search question text..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} autoComplete="off" disabled={!linksReady} />
+              </div>
+              <div>
+                <label htmlFor="mt-module" className="sr-only">Filter by module</label>
+                <Select id="mt-module" value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} disabled={!linksReady}>
+                  <option value="all">All modules</option>
+                  {modules.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      [{m.category}] {m.title}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              {searchError ? <p role="alert" className="text-xs text-danger-400">Could not search: {searchError}</p> : null}
+              {linksReady && results === null ? <p className="text-xs text-steel-300">Loading questions...</p> : null}
+              {results && results.length === 0 && !searchError ? (
+                <p className="text-xs text-steel-300">{search || moduleFilter !== "all" ? "No questions match." : "The question bank is empty."}</p>
+              ) : null}
+              {results && results.length > 0 ? (
+                <>
+                  <ul className="divide-y divide-steel-700/40 rounded-control border border-steel-700/60 bg-navy-950">
+                    {results.map((q) => {
+                      const isAdded = attachedIds.has(q.id);
+                      return (
+                        <li key={q.id} className="flex items-start justify-between gap-3 p-3">
+                          <div className="min-w-0 space-y-1">
+                            <Badge variant="outline">{moduleTitle(q.quiz_id)}</Badge>
+                            <p className="line-clamp-2 text-sm text-steel-100">{q.question_text}</p>
+                          </div>
+                          <Button type="button" variant={isAdded ? "ghost" : "outline"} size="sm" className="shrink-0" disabled={isAdded || atLimit} onClick={() => add(q)} aria-label={`${isAdded ? "Already added" : "Add"}: ${clip(q.question_text, 60)}`}>
+                            {isAdded ? "Added" : "Add"}
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="text-xs text-steel-500">Showing the {SEARCH_LIMIT} newest matches. Search to narrow it down.</p>
+                </>
+              ) : null}
             </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
-            {searchError ? <p role="alert" className="text-xs text-danger-400">Could not search: {searchError}</p> : null}
-            {linksReady && results === null ? <p className="text-xs text-steel-300">Loading questions...</p> : null}
-            {results && results.length === 0 && !searchError ? (
-              <p className="text-xs text-steel-300">{search || moduleFilter !== "all" ? "No questions match." : "The question bank is empty."}</p>
-            ) : null}
-
-            {results && results.length > 0 ? (
-              <>
-                <ul className="divide-y divide-steel-700/40 rounded-control border border-steel-700/60 bg-navy-950">
-                  {results.map((q) => {
-                    const isAdded = attachedIds.has(q.id);
-                    return (
-                      <li key={q.id} className="flex items-start justify-between gap-3 p-3">
-                        <div className="min-w-0 space-y-1">
-                          <Badge variant="outline">{moduleTitle(q.quiz_id)}</Badge>
-                          <p className="line-clamp-2 text-sm text-steel-100">{q.question_text}</p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant={isAdded ? "ghost" : "outline"}
-                          size="sm"
-                          className="shrink-0"
-                          disabled={isAdded || atLimit}
-                          onClick={() => add(q)}
-                          aria-label={`${isAdded ? "Already added" : "Add"}: ${clip(q.question_text, 60)}`}
-                        >
-                          {isAdded ? "Added" : "Add"}
-                        </Button>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="text-xs text-steel-500">Showing the {SEARCH_LIMIT} newest matches. Search to narrow it down.</p>
-              </>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">3. Questions in this Test</CardTitle>
-            <CardDescription>
-              <span role="status">
-                {attached.length} of {MOCK_LIMITS.questionsMax} added. Cadets see them in this order.
-              </span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {attached.length === 0 ? (
-              <p className="rounded-control border border-dashed border-steel-700 p-6 text-center text-sm text-steel-300">
-                No questions yet. Use Add on the left.
-              </p>
-            ) : (
-              <ol className="space-y-2">
-                {attached.map((q, i) => (
-                  <li key={q.id} className="flex items-start gap-3 rounded-control border border-steel-700/60 bg-navy-950 p-3">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-navy-800 font-mono text-xs font-bold text-gold-300">
-                      {i + 1}
-                    </span>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <Badge variant="outline">{moduleTitle(q.quiz_id)}</Badge>
-                      <p className="line-clamp-2 text-sm text-steel-100">{q.question_text}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button type="button" variant="ghost" size="icon" className="size-8" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move question ${i + 1} up`}>
-                        <Icons.chevronRight className="size-4 -rotate-90" />
-                      </Button>
-                      <Button type="button" variant="ghost" size="icon" className="size-8" disabled={i === attached.length - 1} onClick={() => move(i, 1)} aria-label={`Move question ${i + 1} down`}>
-                        <Icons.chevronRight className="size-4 rotate-90" />
-                      </Button>
-                      <Button type="button" variant="outline" size="sm" onClick={() => removeAt(i)} aria-label={`Remove question ${i + 1}`}>
-                        Remove
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">3. Questions in this Test</CardTitle>
+          <CardDescription>
+            <span role="status">
+              {attached.length} of {MOCK_LIMITS.questionsMax} added
+              {summary.needWork > 0 ? `, ${summary.needWork} unfinished` : ""}
+              {summary.flagged > 0 ? `, ${summary.flagged} to check` : ""}. Open a question to edit it or preview it as a student sees it.
+            </span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {pdfFile ? (
+            <p className="rounded-control border border-steel-700/60 bg-navy-950 p-3 text-xs text-steel-300">
+              From <span className="font-semibold text-white">{pdfFile.name}</span>. This PDF is saved with the test and students can download it as it is.
+            </p>
+          ) : sourcePdf ? (
+            <p className="rounded-control border border-steel-700/60 bg-navy-950 p-3 text-xs text-steel-300">This test has its original PDF saved. Uploading another PDF replaces it.</p>
+          ) : null}
+          {pdfWarnings.length > 0 ? (
+            <ul className="space-y-1 rounded-control border border-gold-400/30 bg-gold-400/5 p-3 text-xs text-gold-300">
+              {pdfWarnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ul>
+          ) : null}
+          {attached.length === 0 ? (
+            <p className="rounded-control border border-dashed border-steel-700 p-6 text-center text-sm text-steel-300">No questions yet. Upload a PDF, type one, or pick from the bank above.</p>
+          ) : (
+            <ol className="space-y-2">
+              {attached.map((q, i) => (
+                <QuestionEditor
+                  key={q.key}
+                  index={i}
+                  total={attached.length}
+                  question={q}
+                  open={openKey === q.key}
+                  onToggle={() => setOpenKey((k) => (k === q.key ? null : q.key))}
+                  onChange={(next) => change(i, next)}
+                  onMove={(by) => move(i, by)}
+                  onRemove={() => removeAt(i)}
+                  onAddBelow={() => addBlank(i)}
+                  moduleName={q.moduleTitle}
+                />
+              ))}
+            </ol>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="flex flex-col gap-3 border-t border-steel-700/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-steel-300" aria-live="polite">
-          {problem ? `Not ready: ${problem}` : "Ready to save."}
+          {blocked ? `Not ready: ${blocked}` : "Ready to save."}
         </p>
         <Button type="submit" size="lg" loading={saving} className="w-full sm:w-auto sm:min-w-56">
           {saving ? (
