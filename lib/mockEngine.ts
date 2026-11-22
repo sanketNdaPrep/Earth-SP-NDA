@@ -1,4 +1,5 @@
 import type { AnswerItem, Letter } from "@/lib/mockScoring";
+import type { TestKind } from "@/lib/test-settings";
 
 /** A question as the test taker sees it. The answer key and the solution are never in here. */
 export interface PublicQuestion {
@@ -16,6 +17,9 @@ export interface PublicTest {
   exam: string;
   durationMinutes: number;
   totalMarks: number;
+  kind: TestKind;
+  marksPerCorrect: number;
+  negativeMarks: number;
 }
 
 export type EngineFailure =
@@ -57,11 +61,34 @@ export interface ResultItem {
   correct: Letter;
 }
 
+/** One earlier attempt at the same test, for the "your attempts" list. */
+export interface AttemptSummary {
+  attemptId: string;
+  attemptedAt: string | null;
+  marks: number;
+  totalMarks: number;
+  correct: number;
+  total: number;
+}
+
 export interface ResultData {
   attemptId: string;
   mockTestId: string | null;
+  kind: TestKind;
   title: string;
   exam: string;
+  /** Subject and chapter names, for subject-wise and chapter-wise tests. */
+  subjectName: string | null;
+  chapterName: string | null;
+  marksPerCorrect: number;
+  negativeMarks: number;
+  cutoffMin: number | null;
+  cutoffMax: number | null;
+  /** Right answers as a share of the questions answered. null when none were answered. */
+  accuracy: number | null;
+  attempted: number;
+  /** The same test, newest first, this attempt included. */
+  history: AttemptSummary[];
   attemptedAt: string | null;
   timeTakenSeconds: number;
   score: number;
@@ -84,6 +111,15 @@ export interface AttemptDetails {
   duration_minutes: number;
   total_marks: number;
   passing_marks: number;
+  kind?: TestKind;
+  subject_name?: string | null;
+  chapter_name?: string | null;
+  marks_per_correct?: number;
+  negative_marks?: number;
+  /** Marks after negative marking. Older attempts do not have it. */
+  marks?: number;
+  cutoff_min?: number | null;
+  cutoff_max?: number | null;
   wrong: number;
   unanswered: number;
   items: AnswerItem[];

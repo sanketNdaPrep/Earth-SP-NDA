@@ -16,7 +16,7 @@ import { ghostButton, primaryButton } from "@/components/quiz/styles";
 import { OPTION_LETTERS, type MarkingScheme, type OptionLetter, type PaletteStatus, type QuizQuestion, type QuizRecord } from "@/components/quiz/types";
 import { useCountdown } from "@/components/quiz/use-countdown";
 import type { PublicQuestion, PublicTest } from "@/lib/mockEngine";
-import { MOCK_COLUMNS, type MockTestRow } from "@/lib/mockTests";
+import { KIND_SHORT, MOCK_COLUMNS, type MockTestRow } from "@/lib/mockTests";
 import { supabase } from "@/lib/supabaseClient";
 
 type Phase = "checking" | "auth" | "missing" | "briefing" | "starting" | "running" | "submitting";
@@ -300,8 +300,7 @@ export function TestRunner({ testId }: { testId: string }) {
 
   if ((phase === "briefing" || phase === "starting") && row) {
     const quiz: QuizRecord = { id: row.id, title: row.title, category: row.target_exam, description: null, time_limit_mins: row.duration_minutes };
-    const perQuestion = row.total_questions > 0 ? row.total_marks / row.total_questions : 0;
-    const scheme: MarkingScheme = { id: "practice", label: row.target_exam, correct: perQuestion, wrong: 0 };
+    const scheme: MarkingScheme = { id: "practice", label: KIND_SHORT[row.kind] ?? row.target_exam, correct: Number(row.marks_per_correct), wrong: Number(row.negative_marks) };
     return (
       <MotionConfig reducedMotion="user">
         {startError ? (

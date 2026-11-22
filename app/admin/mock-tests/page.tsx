@@ -19,7 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { logAdminAction } from "@/lib/adminLog";
-import { MOCK_COLUMNS, type MockTestRow } from "@/lib/mockTests";
+import { KIND_LABEL, MOCK_COLUMNS, type MockTestRow } from "@/lib/mockTests";
 import { supabase } from "@/lib/supabaseClient";
 
 function Fact({ label, value }: { label: string; value: string | number }) {
@@ -101,7 +101,7 @@ export default function AdminMockTestsPage() {
         <Button asChild variant="primary">
           <Link href="/admin/mock-tests/new">
             <Icons.plus className="size-4" />
-            Create New Mock Test
+            Create New Test
           </Link>
         </Button>
       </div>
@@ -132,14 +132,14 @@ export default function AdminMockTestsPage() {
       {empty ? (
         <Card>
           <CardContent className="space-y-5 py-16 text-center">
-            <p className="text-2xl font-bold text-white">No mock tests yet</p>
+            <p className="text-2xl font-bold text-white">No tests yet</p>
             <p className="mx-auto max-w-md text-sm text-steel-300">
               Create a test, attach questions from the bank, and publish it for cadets.
             </p>
             <Button asChild variant="primary" size="lg">
               <Link href="/admin/mock-tests/new">
                 <Icons.plus className="size-4" />
-                Create your first mock test
+                Create your first test
               </Link>
             </Button>
           </CardContent>
@@ -157,6 +157,7 @@ export default function AdminMockTestsPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{test.code}</span>
                         <Badge variant="gold">{test.target_exam}</Badge>
+                        <Badge variant="outline">{KIND_LABEL[test.kind] ?? KIND_LABEL.mock}</Badge>
                         <Badge variant={test.is_published ? "emerald" : "neutral"}>{test.is_published ? "Published" : "Draft"}</Badge>
                       </div>
                       <h2 className="mt-2 text-xl font-bold text-white">{test.title}</h2>
@@ -192,7 +193,7 @@ export default function AdminMockTestsPage() {
                   <dl className="grid grid-cols-3 gap-3 rounded-control border border-steel-700/60 bg-navy-950 p-3 sm:max-w-md">
                     <Fact label="Duration" value={`${test.duration_minutes}m`} />
                     <Fact label="Questions" value={test.total_questions} />
-                    <Fact label="Marks" value={test.total_marks} />
+                    <Fact label="Marks" value={Number(test.total_marks)} />
                   </dl>
                 </CardContent>
               </Card>

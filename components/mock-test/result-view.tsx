@@ -8,6 +8,7 @@ import { SpinnerIcon } from "@/components/quiz/icons";
 import { QuestionCard } from "@/components/quiz/question-card";
 import { QuestionPalette } from "@/components/quiz/question-palette";
 import { formatDuration, formatMarks } from "@/components/quiz/scoring";
+import { cutoffStanding, cutoffText, KIND_LABEL } from "@/lib/test-settings";
 import { ghostButton, primaryButton } from "@/components/quiz/styles";
 import type { PaletteStatus, QuizQuestion } from "@/components/quiz/types";
 import { Badge } from "@/components/ui/badge";
@@ -211,6 +212,9 @@ export function ResultView({ attemptId }: { attemptId: string }) {
   const { result } = state;
   const passing = result.passingMarks > 0;
   const passed = passing && result.marks >= result.passingMarks;
+  const standing = cutoffStanding(result.marks, result.cutoffMin, result.cutoffMax);
+  const cutoff = cutoffText(result.cutoffMin, result.cutoffMax);
+  const place = [result.subjectName, result.chapterName].filter(Boolean).join(" > ");
   const when = result.attemptedAt ? dateFormat.format(new Date(result.attemptedAt)) : null;
 
   return (
@@ -222,8 +226,10 @@ export function ResultView({ attemptId }: { attemptId: string }) {
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="gold">Result</Badge>
                 <Badge variant="outline">{result.exam}</Badge>
+                <Badge variant="outline">{KIND_LABEL[result.kind]}</Badge>
               </div>
               <h1 className="mt-3 text-balance text-3xl font-bold tracking-tight text-white">{result.title}</h1>
+              {place ? <p className="mt-1 text-sm text-steel-300">{place}</p> : null}
               {when ? <p className="mt-1 text-sm text-steel-300">Submitted {when}</p> : null}
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -248,10 +254,16 @@ export function ResultView({ attemptId }: { attemptId: string }) {
             <Card>
               <CardContent className="grid gap-6 py-6 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] md:items-center">
                 <div className="text-center md:text-left">
-                  <p className="font-mono text-6xl font-bold tabular-nums text-gold-300">{result.percentage}%</p>
+                  <p className="font-mono text-6xl font-bold tabular-nums text-gold-300">{result.accuracy === null ? "-" : `${result.accuracy}%`}</p>
+                  <p className="mt-1 text-sm font-semibold uppercase tracking-wider text-steel-300">Accuracy</p>
                   <p className="mt-2 text-lg font-semibold text-white">
                     {result.score} of {result.total} correct
                   </p>
+                  {standing && cutoff ? (
+                    <p className={`mt-3 inline-flex rounded-md border px-3 py-1 text-sm font-semibold ${standing === "below" ? "border-gold-400 bg-gold-400/10 text-gold-300" : "border-emerald-400 bg-emerald-400/10 text-emerald-300"}`}>
+                      {standing === "below" ? "Below the cutoff" : standing === "within" ? "Within the cutoff range" : "Above the cutoff range"} ({cutoff})
+                    </p>
+                  ) : null}
                   {passing ? (
                     <p className={`mt-3 inline-flex rounded-md border px-3 py-1 text-sm font-semibold ${passed ? "border-emerald-400 bg-emerald-400/10 text-emerald-300" : "border-gold-400 bg-gold-400/10 text-gold-300"}`}>
                       {passed ? "Passed" : "Below the pass mark"} ({formatMarks(result.passingMarks)} needed)
@@ -260,15 +272,39 @@ export function ResultView({ attemptId }: { attemptId: string }) {
                 </div>
                 <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Stat label="Marks" value={`${formatMarks(result.marks)} / ${formatMarks(result.totalMarks)}`} />
+                  <Stat label="Answered" value={`${result.attempted} of ${result.total}`} />
                   <Stat label="Time taken" value={formatDuration(result.timeTakenSeconds)} />
                   <Stat label="Correct" value={result.score} tone="text-emerald-300" />
                   <Stat label="Wrong" value={result.wrong} tone="text-gold-300" />
+                  <Stat label="Marks lost" value={result.negativeMarks > 0 && result.wrong > 0 ? `-${formatMarks(result.wrong * result.negativeMarks)}` : "None"} tone="text-gold-300" />
                   <Stat label="Not answered" value={result.unanswered} />
-                  <Stat label="Questions" value={result.total} />
+                  <Stat label="Marking" value={`+${result.marksPerCorrect} / ${result.negativeMarks > 0 ? `-${result.negativeMarks}` : "0"}`} />
                 </dl>
               </CardContent>
             </Card>
           </section>
+
+          {result.history.length > 1 ? (
+            <section aria-labelledby="history-heading" className="space-y-3">
+              <h2 id="history-heading" className="text-xl font-bold text-white">Your attempts at this test</h2>
+              <ul className="divide-y divide-steel-700/40 rounded-lg border border-steel-700 bg-navy-900">
+                {result.history.map((h) => (
+                  <li key={h.attemptId}>
+                    <Link
+                      href={`/quizzes/${result.mockTestId}/result/${h.attemptId}`}
+                      aria-current={h.attemptId === result.attemptId ? "page" : undefined}
+                      className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm hover:bg-navy-800 ${h.attemptId === result.attemptId ? "text-gold-300" : "text-steel-100"}`}
+                    >
+                      <span>{h.attemptedAt ? dateFormat.format(new Date(h.attemptedAt)) : "Earlier attempt"}{h.attemptId === result.attemptId ? " (this one)" : ""}</span>
+                      <span className="font-mono tabular-nums">
+                        {formatMarks(h.marks)} / {formatMarks(h.totalMarks)} marks, {h.correct} of {h.total} correct
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <Review result={result} />
         </div>

@@ -10,14 +10,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
+import { emptyFiling, FilingFields } from "@/components/admin/filing-fields";
+import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { logAdminAction } from "@/lib/adminLog";
+import { checkFiling, type FilingInput } from "@/lib/filing";
+import { saveFiling } from "@/lib/filing-save";
+import type { ExamId } from "@/lib/subjects";
 import {
   checkMockTest,
   EXAMS,
   isMissingLinkTable,
+  KIND_LABEL,
   MOCK_COLUMNS,
   MOCK_LIMITS,
   nextMockCode,
+  TEST_KINDS,
+  totalMarksOf,
+  type TestKind,
   type AttachedQuestion,
   type Exam,
   type MockTestRow,
@@ -32,8 +41,13 @@ interface SavedState {
   title: string;
   exam: Exam;
   duration: number;
-  totalMarks: number;
-  passingMarks: number;
+  kind: TestKind;
+  subjectId: string | null;
+  chapterId: string | null;
+  marksPerCorrect: number;
+  negativeMarks: number;
+  cutoffMin: number | null;
+  cutoffMax: number | null;
   published: boolean;
   questionIds: string[];
 }
@@ -54,8 +68,15 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
   const [title, setTitle] = React.useState("");
   const [exam, setExam] = React.useState<Exam>("NDA");
   const [duration, setDuration] = React.useState("120");
-  const [totalMarks, setTotalMarks] = React.useState("300");
-  const [passingMarks, setPassingMarks] = React.useState("0");
+  const [kind, setKind] = React.useState<TestKind>("mock");
+  const [filing, setFiling] = React.useState<FilingInput>(emptyFiling());
+  const [marksPerCorrect, setMarksPerCorrect] = React.useState("1");
+  const [negativeMarks, setNegativeMarks] = React.useState("0");
+  const [cutoffMin, setCutoffMin] = React.useState("");
+  const [cutoffMax, setCutoffMax] = React.useState("");
+  const taxonomy = useTaxonomy();
+  // When editing, the saved subject and chapter are filled in once the folder list has loaded.
+  const pendingFiling = React.useRef<{ subjectId: string; chapterId: string | null } | null>(null);
   const [published, setPublished] = React.useState(false);
   const [attached, setAttached] = React.useState<AttachedQuestion[]>([]);
 
@@ -124,16 +145,25 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       setTitle(test.title);
       setExam(test.target_exam);
       setDuration(String(test.duration_minutes));
-      setTotalMarks(String(test.total_marks));
-      setPassingMarks(String(test.passing_marks));
+      setKind(test.kind);
+      pendingFiling.current = test.subject_id ? { subjectId: test.subject_id, chapterId: test.chapter_id } : null;
+      setMarksPerCorrect(String(Number(test.marks_per_correct)));
+      setNegativeMarks(String(Number(test.negative_marks)));
+      setCutoffMin(test.cutoff_min === null ? "" : String(Number(test.cutoff_min)));
+      setCutoffMax(test.cutoff_max === null ? "" : String(Number(test.cutoff_max)));
       setPublished(test.is_published);
       setAttached(questions);
       setSaved({
         title: test.title,
         exam: test.target_exam,
         duration: test.duration_minutes,
-        totalMarks: test.total_marks,
-        passingMarks: test.passing_marks,
+        kind: test.kind,
+        subjectId: test.subject_id,
+        chapterId: test.chapter_id,
+        marksPerCorrect: Number(test.marks_per_correct),
+        negativeMarks: Number(test.negative_marks),
+        cutoffMin: test.cutoff_min === null ? null : Number(test.cutoff_min),
+        cutoffMax: test.cutoff_max === null ? null : Number(test.cutoff_max),
         published: test.is_published,
         questionIds: questions.map((q) => q.id),
       });
@@ -143,6 +173,14 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       active = false;
     };
   }, [initialId]);
+
+  React.useEffect(() => {
+    const pending = pendingFiling.current;
+    if (!pending || taxonomy.loading) return;
+    pendingFiling.current = null;
+    const chapter = taxonomy.chapters.find((c) => c.id === pending.chapterId);
+    setFiling({ subjectChoice: pending.subjectId, newSubjectName: "", chapterName: chapter?.name ?? "" });
+  }, [taxonomy.loading, taxonomy.chapters, loadState]);
 
   // Wait a moment after typing before searching.
   React.useEffect(() => {
@@ -197,7 +235,20 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       return next;
     });
 
-  const problem = checkMockTest({ title, duration, totalMarks, passingMarks, published, questionCount: attached.length });
+  const problem = checkMockTest({
+    title,
+    kind,
+    hasSubject: filing.subjectChoice !== "",
+    hasChapter: filing.chapterName.trim() !== "",
+    duration,
+    marksPerCorrect,
+    negativeMarks,
+    cutoffMin,
+    cutoffMax,
+    published,
+    questionCount: attached.length,
+  });
+  const totalMarks = totalMarksOf(attached.length, Number(marksPerCorrect) || 0);
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -212,12 +263,39 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       return;
     }
 
+    // A subject-wise or chapter-wise test is filed under a subject (and chapter). A new one is created on the spot.
+    let subjectId: string | null = null;
+    let chapterId: string | null = null;
+    if (kind !== "mock") {
+      const filed = checkFiling(filing, taxonomy.subjects, taxonomy.chapters);
+      if (!filed.ok) {
+        setBanner({ type: "error", text: filed.error });
+        return;
+      }
+      setSaving(true);
+      const made = await saveFiling(filed, [exam.toLowerCase() as ExamId]);
+      setSaving(false);
+      if (!made.ok) {
+        setBanner({ type: "error", text: made.error });
+        return;
+      }
+      subjectId = made.subject.id;
+      chapterId = kind === "chapter" ? (made.chapter?.id ?? null) : null;
+    }
+
     const fields = {
       title: title.trim(),
       target_exam: exam,
+      kind,
+      subject_id: subjectId,
+      chapter_id: chapterId,
       duration_minutes: Number(duration),
-      total_marks: Number(totalMarks),
-      passing_marks: Number(passingMarks || "0"),
+      marks_per_correct: Number(marksPerCorrect),
+      negative_marks: Number(negativeMarks || "0"),
+      cutoff_min: cutoffMin.trim() === "" ? null : Number(cutoffMin),
+      cutoff_max: cutoffMax.trim() === "" ? null : Number(cutoffMax),
+      total_marks: totalMarksOf(attached.length, Number(marksPerCorrect)),
+      passing_marks: 0,
       is_published: published,
       total_questions: attached.length,
     };
@@ -228,7 +306,7 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
 
     // ---- Create ---------------------------------------------------------
     if (!testId) {
-      const code = await nextMockCode(exam);
+      const code = await nextMockCode(exam, kind);
       const created = await supabase.from("mock_tests").insert({ ...fields, code }).select("id");
       if (created.error || !created.data?.length) {
         setSaving(false);
@@ -250,15 +328,20 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
         action: "added",
         entityType: "mock_test",
         label: fields.title,
-        details: { mock_test_id: newId, code, exam, duration_minutes: fields.duration_minutes, total_marks: fields.total_marks, questions: ids.length, published },
+        details: { mock_test_id: newId, code, exam, kind, duration_minutes: fields.duration_minutes, total_marks: fields.total_marks, questions: ids.length, published },
       });
 
       setSaved({
         title: fields.title,
         exam,
         duration: fields.duration_minutes,
-        totalMarks: fields.total_marks,
-        passingMarks: fields.passing_marks,
+        kind,
+        subjectId,
+        chapterId,
+        marksPerCorrect: fields.marks_per_correct,
+        negativeMarks: fields.negative_marks,
+        cutoffMin: fields.cutoff_min,
+        cutoffMax: fields.cutoff_max,
         published,
         questionIds: linkFailure ? [] : ids,
       });
@@ -277,8 +360,10 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       if (before.title !== fields.title) changed.push("title");
       if (before.exam !== fields.target_exam) changed.push("exam");
       if (before.duration !== fields.duration_minutes) changed.push("duration");
-      if (before.totalMarks !== fields.total_marks) changed.push("total marks");
-      if (before.passingMarks !== fields.passing_marks) changed.push("passing marks");
+      if (before.kind !== fields.kind) changed.push("test type");
+      if (before.subjectId !== fields.subject_id || before.chapterId !== fields.chapter_id) changed.push("subject or chapter");
+      if (before.marksPerCorrect !== fields.marks_per_correct || before.negativeMarks !== fields.negative_marks) changed.push("marking");
+      if (before.cutoffMin !== fields.cutoff_min || before.cutoffMax !== fields.cutoff_max) changed.push("cutoff");
       if (before.published !== fields.is_published) changed.push(fields.is_published ? "published" : "unpublished");
     }
     const previousIds = before?.questionIds ?? [];
@@ -328,8 +413,13 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
       title: fields.title,
       exam,
       duration: fields.duration_minutes,
-      totalMarks: fields.total_marks,
-      passingMarks: fields.passing_marks,
+      kind,
+      subjectId,
+      chapterId,
+      marksPerCorrect: fields.marks_per_correct,
+      negativeMarks: fields.negative_marks,
+      cutoffMin: fields.cutoff_min,
+      cutoffMax: fields.cutoff_max,
       published,
       questionIds: ids,
     });
@@ -370,9 +460,9 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
         <div>
           <Badge variant="gold" className="mb-2">Test Center</Badge>
           <h1 className="text-balance text-3xl font-bold tracking-tight text-white">
-            {editing ? "Edit Mock Test" : "Create Mock Test"}
+            {editing ? "Edit Test" : "Create Test"}
           </h1>
-          <p className="mt-1 text-sm text-steel-300">Set the paper, attach questions from the bank, then save.</p>
+          <p className="mt-1 text-sm text-steel-300">Choose the type, set the marking, attach questions from the bank, then save.</p>
         </div>
         <Button asChild variant="outline" size="sm">
           <Link href="/admin/mock-tests">Back to Mock Tests</Link>
@@ -420,9 +510,27 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
               placeholder="NDA Maths Full Mock 01"
             />
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="mt-kind">Test type</Label>
+            <Select id="mt-kind" value={kind} onChange={(e) => setKind(e.target.value as TestKind)}>
+              {TEST_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {KIND_LABEL[k]}
+                </option>
+              ))}
+            </Select>
+          </div>
+          {kind !== "mock" ? (
+            <div className="space-y-2 rounded-control border border-steel-700/60 bg-navy-950 p-3">
+              <p className="text-xs text-steel-300">
+                {kind === "subject" ? "Pick the subject this test is for." : "Pick the subject and chapter this test is for."} Type a new one if it is not in the list.
+              </p>
+              <FilingFields idPrefix="mt-file" subjects={taxonomy.subjects} chapters={taxonomy.chapters} value={filing} onChange={setFiling} disabled={saving} />
+            </div>
+          ) : null}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-1.5">
-              <Label htmlFor="mt-exam">Exam domain</Label>
+              <Label htmlFor="mt-exam">Exam</Label>
               <Select id="mt-exam" value={exam} onChange={(e) => setExam(e.target.value as Exam)}>
                 {EXAMS.map((x) => (
                   <option key={x} value={x}>
@@ -432,16 +540,31 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="mt-duration">Duration (minutes)</Label>
+              <Label htmlFor="mt-duration">Time (minutes)</Label>
               <Input id="mt-duration" type="number" inputMode="numeric" required min={1} max={MOCK_LIMITS.durationMax} value={duration} onChange={(e) => setDuration(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="mt-marks">Total marks</Label>
-              <Input id="mt-marks" type="number" inputMode="numeric" required min={1} max={MOCK_LIMITS.marksMax} value={totalMarks} onChange={(e) => setTotalMarks(e.target.value)} />
+              <Label htmlFor="mt-total">Total marks</Label>
+              <Input id="mt-total" readOnly value={String(totalMarks)} aria-describedby="mt-total-hint" />
+              <p id="mt-total-hint" className="text-xs text-steel-500">{attached.length} questions x marks for a right answer. Worked out for you.</p>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="mt-pass">Passing marks (optional)</Label>
-              <Input id="mt-pass" type="number" inputMode="numeric" min={0} max={MOCK_LIMITS.marksMax} value={passingMarks} onChange={(e) => setPassingMarks(e.target.value)} />
+              <Label htmlFor="mt-plus">Marks for a right answer</Label>
+              <Input id="mt-plus" type="number" inputMode="decimal" step="any" required min={0} value={marksPerCorrect} onChange={(e) => setMarksPerCorrect(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="mt-minus">Marks taken off for a wrong answer</Label>
+              <Input id="mt-minus" type="number" inputMode="decimal" step="any" min={0} value={negativeMarks} onChange={(e) => setNegativeMarks(e.target.value)} />
+              <p className="text-xs text-steel-500">Write 0 for no negative marking.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="mt-cut-min">Cutoff range (marks)</Label>
+              <div className="flex items-center gap-2">
+                <Input id="mt-cut-min" type="number" inputMode="decimal" step="any" min={0} placeholder="Lowest" value={cutoffMin} onChange={(e) => setCutoffMin(e.target.value)} aria-label="Lowest expected cutoff" />
+                <span className="text-xs text-steel-500">to</span>
+                <Input id="mt-cut-max" type="number" inputMode="decimal" step="any" min={0} placeholder="Highest" value={cutoffMax} onChange={(e) => setCutoffMax(e.target.value)} aria-label="Highest expected cutoff" />
+              </div>
+              <p className="text-xs text-steel-500">Optional. Shown to students beside their score.</p>
             </div>
           </div>
           <label htmlFor="mt-published" className="flex cursor-pointer items-start gap-3 rounded-control border border-steel-700/60 bg-navy-950 p-3">

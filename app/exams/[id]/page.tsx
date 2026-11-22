@@ -143,6 +143,7 @@ function ExamDetailContent() {
         const { data, error } = await supabase
           .from("mock_tests")
           .select("*")
+          .eq("kind", "mock")
           .order("created_at", { ascending: false });
 
         if (!error && data && data.length > 0) {

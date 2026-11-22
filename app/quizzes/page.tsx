@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
+import { useTaxonomy } from "@/hooks/use-taxonomy";
+import { cutoffText, KIND_SHORT, TEST_KINDS, type TestKind } from "@/lib/test-settings";
 import { supabase } from "@/lib/supabaseClient";
 
 interface MockTest {
@@ -18,6 +20,13 @@ interface MockTest {
   duration_minutes: number;
   total_marks: number;
   passing_marks: number;
+  kind: TestKind;
+  subject_id: string | null;
+  chapter_id: string | null;
+  marks_per_correct: number;
+  negative_marks: number;
+  cutoff_min: number | null;
+  cutoff_max: number | null;
 }
 
 interface PracticeModule {
@@ -47,17 +56,80 @@ function ListSkeleton() {
   );
 }
 
+const EMPTY_TEXT: Record<TestKind, string> = {
+  mock: "No full mock tests are published yet.",
+  subject: "No subject-wise tests are published yet.",
+  chapter: "No chapter-wise tests are published yet.",
+};
+
+/** One test on the Test Center: what it is, how it is marked, and the Start button. */
+function TestCard({ test }: { test: MockTest }) {
+  const plus = Number(test.marks_per_correct);
+  const minus = Number(test.negative_marks);
+  const cutoff = cutoffText(test.cutoff_min === null ? null : Number(test.cutoff_min), test.cutoff_max === null ? null : Number(test.cutoff_max));
+  return (
+    <Card className="flex flex-col justify-between">
+      <CardHeader>
+        <div className="flex items-center justify-between gap-3">
+          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{test.code}</span>
+          <Badge variant="gold">{test.target_exam}</Badge>
+        </div>
+        <CardTitle className="mt-2 text-xl">{test.title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid grid-cols-3 gap-2 rounded-control border border-steel-700/60 bg-navy-950 p-3 text-center">
+          <Stat label="Questions" value={test.total_questions} />
+          <Stat label="Time" value={`${test.duration_minutes}m`} />
+          <Stat label="Marks" value={Number(test.total_marks)} />
+        </div>
+        <ul className="space-y-1 text-xs text-steel-300">
+          <li>
+            Right answer <span className="font-mono font-semibold text-emerald-300">+{plus}</span>, wrong answer{" "}
+            {minus > 0 ? <span className="font-mono font-semibold text-gold-300">-{minus}</span> : <span className="font-semibold text-steel-100">no penalty</span>}
+          </li>
+          {cutoff ? (
+            <li>
+              Expected cutoff <span className="font-mono font-semibold text-white">{cutoff}</span>
+            </li>
+          ) : null}
+        </ul>
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-steel-700/60 pt-4">
+          {test.kind === "mock" ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link href={`/exams/${test.target_exam.toLowerCase()}`}>
+                Details<span className="sr-only"> for {test.title}</span>
+              </Link>
+            </Button>
+          ) : null}
+          {test.total_questions > 0 ? (
+            <Button asChild variant="primary" size="sm">
+              <Link href={`/quizzes/${test.id}`}>
+                Start Test<span className="sr-only">: {test.title}</span>
+              </Link>
+            </Button>
+          ) : (
+            <Badge variant="outline">Questions coming soon</Badge>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function QuizzesPage() {
   const [mocks, setMocks] = React.useState<MockTest[] | null>(null);
   const [modules, setModules] = React.useState<PracticeModule[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [tab, setTab] = React.useState<TestKind>("mock");
+  const [subjectFilter, setSubjectFilter] = React.useState<string | null>(null);
+  const taxonomy = useTaxonomy();
 
   React.useEffect(() => {
     let active = true;
     Promise.all([
       supabase
         .from("mock_tests")
-        .select("id, title, code, target_exam, total_questions, duration_minutes, total_marks, passing_marks")
+        .select("id, title, code, target_exam, total_questions, duration_minutes, total_marks, passing_marks, kind, subject_id, chapter_id, marks_per_correct, negative_marks, cutoff_min, cutoff_max")
         .eq("is_published", true)
         .order("created_at", { ascending: false }),
       supabase
@@ -117,52 +189,79 @@ export default function QuizzesPage() {
         ) : null}
 
         {!loading && mocks.length > 0 ? (
-          <section aria-labelledby="mock-heading" className="space-y-4">
-            <div className="flex items-center gap-3">
-              <h2 id="mock-heading" className="text-xl font-bold text-white">Mock Tests</h2>
-              <Badge variant="outline">{mocks.length}</Badge>
+          <section aria-labelledby="mock-heading" className="space-y-5">
+            <h2 id="mock-heading" className="sr-only">Tests</h2>
+            <div role="group" aria-label="Kind of test" className="flex flex-wrap gap-2">
+              {TEST_KINDS.map((k) => {
+                const count = mocks.filter((t) => t.kind === k).length;
+                return (
+                  <Button key={k} size="sm" variant={tab === k ? "primary" : "outline"} aria-pressed={tab === k} onClick={() => { setTab(k); setSubjectFilter(null); }}>
+                    {KIND_SHORT[k]}
+                    <span className="font-mono text-xs opacity-80">{count}</span>
+                  </Button>
+                );
+              })}
             </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {mocks.map((test) => (
-                <Card key={test.id} className="flex flex-col justify-between">
-                  <CardHeader>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{test.code}</span>
-                      <Badge variant="gold">{test.target_exam}</Badge>
-                    </div>
-                    <CardTitle className="mt-2 text-xl">{test.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    <div className="grid grid-cols-3 gap-2 rounded-control border border-steel-700/60 bg-navy-950 p-3 text-center">
-                      <Stat label="Questions" value={test.total_questions} />
-                      <Stat label="Time" value={`${test.duration_minutes}m`} />
-                      <Stat label="Marks" value={test.total_marks} />
-                    </div>
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-steel-700/60 pt-4">
-                      <span className="text-xs text-steel-300">
-                        {test.passing_marks > 0 ? `Pass mark: ${test.passing_marks}` : "\u00a0"}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <Button asChild variant="ghost" size="sm">
-                          <Link href={`/exams/${test.target_exam.toLowerCase()}`}>
-                            Details<span className="sr-only"> for {test.title}</span>
-                          </Link>
+            {(() => {
+              const ofKind = mocks.filter((t) => t.kind === tab);
+              const subjectIds = [...new Set(ofKind.map((t) => t.subject_id).filter((x): x is string => Boolean(x)))];
+              const subjectName = (id: string | null) => taxonomy.subjects.find((x) => x.id === id)?.name ?? "Other subjects";
+              const chapterName = (id: string | null) => taxonomy.chapters.find((x) => x.id === id)?.name ?? null;
+              const shown = tab === "mock" || !subjectFilter ? ofKind : ofKind.filter((t) => t.subject_id === subjectFilter);
+              if (ofKind.length === 0) {
+                return (
+                  <Card>
+                    <CardContent className="py-10 text-center text-sm text-steel-300">{EMPTY_TEXT[tab]} Check back soon.</CardContent>
+                  </Card>
+                );
+              }
+              if (tab === "mock") {
+                return (
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {shown.map((t) => (
+                      <TestCard key={t.id} test={t} />
+                    ))}
+                  </div>
+                );
+              }
+              // Subject-wise and chapter-wise tests sit under their subject, and chapter-wise under the chapter too.
+              const groups = [...new Set(shown.map((t) => t.subject_id))];
+              return (
+                <div className="space-y-8">
+                  {subjectIds.length > 1 ? (
+                    <div role="group" aria-label="Filter by subject" className="flex flex-wrap gap-2">
+                      {[{ id: null as string | null, name: "All subjects" }, ...subjectIds.map((id) => ({ id: id as string | null, name: subjectName(id) }))].map((chip) => (
+                        <Button key={chip.name} size="sm" variant={subjectFilter === chip.id ? "primary" : "outline"} aria-pressed={subjectFilter === chip.id} onClick={() => setSubjectFilter(chip.id)}>
+                          {chip.name}
                         </Button>
-                        {test.total_questions > 0 ? (
-                          <Button asChild variant="primary" size="sm">
-                            <Link href={`/quizzes/${test.id}`}>
-                              Start Test<span className="sr-only">: {test.title}</span>
-                            </Link>
-                          </Button>
-                        ) : (
-                          <Badge variant="outline">Questions coming soon</Badge>
-                        )}
-                      </div>
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  ) : null}
+                  {groups.map((sid) => {
+                    const inSubject = shown.filter((t) => t.subject_id === sid);
+                    const chapterIds = tab === "chapter" ? [...new Set(inSubject.map((t) => t.chapter_id))] : [null];
+                    return (
+                      <div key={sid ?? "none"} className="space-y-5">
+                        <h3 className="border-b border-steel-700/60 pb-2 text-lg font-bold text-white">{subjectName(sid)}</h3>
+                        {chapterIds.map((cid) => {
+                          const list = tab === "chapter" ? inSubject.filter((t) => t.chapter_id === cid) : inSubject;
+                          return (
+                            <div key={cid ?? "all"} className="space-y-3">
+                              {tab === "chapter" ? <p className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{chapterName(cid) ?? "General"}</p> : null}
+                              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                {list.map((t) => (
+                                  <TestCard key={t.id} test={t} />
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </section>
         ) : null}
 

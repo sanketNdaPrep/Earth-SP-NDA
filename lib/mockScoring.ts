@@ -64,6 +64,20 @@ export function marksFor(correct: number, total: number, totalMarks: number): nu
   return Math.round((correct / total) * totalMarks * 100) / 100;
 }
 
+/**
+ * Marks with negative marking: right answers earn `perCorrect`, wrong answers lose `negative`,
+ * unanswered questions count for nothing. Can be below zero.
+ */
+export function marksWithNegative(correct: number, wrong: number, perCorrect: number, negative: number): number {
+  return Math.round((correct * perCorrect - wrong * negative + Number.EPSILON) * 100) / 100;
+}
+
+/** Of the questions answered, the share that were right, as a percentage. null when nothing was answered. */
+export function accuracyOf(correct: number, wrong: number): number | null {
+  const attempted = correct + wrong;
+  return attempted > 0 ? Math.round((correct / attempted) * 1000) / 10 : null;
+}
+
 /** Time taken, never negative and never more than the time allowed. */
 export function clampSeconds(elapsedMs: number, limitSeconds: number): number {
   const secs = Math.round(elapsedMs / 1000);
