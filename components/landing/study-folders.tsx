@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useStepState } from "@/hooks/use-step-state";
 import Link from "next/link";
 import { BackButton, ChapterThumb, plural, SubjectFolderCard } from "@/components/vault/folder-parts";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,8 +43,8 @@ function chapterSummary(entries: readonly Entry[]): string {
 export function StudyFolders() {
   const taxonomy = useTaxonomy();
   const [entries, setEntries] = React.useState<Entry[] | null>(null);
-  const [examId, setExamId] = React.useState<string | null>(null);
-  const [subjectId, setSubjectId] = React.useState<string | null>(null);
+  const [view, pushView, upView] = useStepState<{ examId: string | null; subjectId: string | null }>({ examId: null, subjectId: null }, "folders");
+  const { examId, subjectId } = view;
 
   React.useEffect(() => {
     let active = true;
@@ -64,10 +65,8 @@ export function StudyFolders() {
     };
   }, []);
 
-  const open = React.useCallback((exam: string | null, subject: string | null = null) => {
-    setExamId(exam);
-    setSubjectId(subject);
-  }, []);
+  const open = React.useCallback((exam: string | null, subject: string | null = null) => pushView({ examId: exam, subjectId: subject }), [pushView]);
+  const up = React.useCallback((exam: string | null, subject: string | null = null) => upView({ examId: exam, subjectId: subject }), [upView]);
 
   if (entries === null || taxonomy.loading) {
     return (
@@ -106,7 +105,7 @@ export function StudyFolders() {
       return (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-3">
-            <BackButton label={exam.name} onClick={() => open(exam.id)} />
+            <BackButton label={exam.name} onClick={() => up(exam.id)} />
             <h3 className="text-xl font-bold tracking-tight text-white">
               {exam.name} <span className="text-steel-500">/</span> {folder.subject.name}
             </h3>
@@ -151,7 +150,7 @@ export function StudyFolders() {
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-3">
-          <BackButton label="All folders" onClick={() => open(null)} />
+          <BackButton label="All folders" onClick={() => up(null)} />
           <h3 className="text-xl font-bold tracking-tight text-white">{exam.name}</h3>
         </div>
         {folders.length === 0 ? (

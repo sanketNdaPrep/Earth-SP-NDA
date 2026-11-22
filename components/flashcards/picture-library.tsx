@@ -1,5 +1,6 @@
 "use client";
 
+import { useBackToClose, useStepState } from "@/hooks/use-step-state";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,7 @@ interface Place {
 export function PictureLibrary({ exam = null, showRecent = true }: { exam?: string | null; showRecent?: boolean } = {}) {
   const [allPictures, setPictures] = React.useState<FlashcardImage[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [place, setPlace] = React.useState<Place | null>(null);
+  const [place, pushPlace, upPlace] = useStepState<Place | null>(null, "pictures");
   const [open, setOpen] = React.useState<Open | null>(null);
   const [building, setBuilding] = React.useState(false);
   const [pdfError, setPdfError] = React.useState<string | null>(null);
@@ -74,11 +75,23 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
     };
   }, []);
 
-  const go = React.useCallback((next: Place | null) => {
-    setPlace(next);
-    setPdfError(null);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
-  }, []);
+  const go = React.useCallback(
+    (next: Place | null) => {
+      pushPlace(next);
+      setPdfError(null);
+      if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+    },
+    [pushPlace],
+  );
+  const up = React.useCallback(
+    (next: Place | null) => {
+      upPlace(next);
+      setPdfError(null);
+      if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+    },
+    [upPlace],
+  );
+  useBackToClose(open !== null, () => setOpen(null));
 
   const nameOf = React.useCallback(
     (item: FlashcardImage) => {
@@ -131,7 +144,7 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
       <div className="space-y-6">
         {errorBox}
         <div className="flex flex-wrap items-center gap-3">
-          <BackButton label={folder.subject.name} onClick={() => go({ subjectId: folder.subject.id, chapter: null })} />
+          <BackButton label={folder.subject.name} onClick={() => up({ subjectId: folder.subject.id, chapter: null })} />
           <h2 className="text-xl font-bold tracking-tight text-white">
             {folder.subject.name} <span className="text-steel-500">/</span> {chapterName}
           </h2>
@@ -203,7 +216,7 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
       <div className="space-y-6">
         {errorBox}
         <div className="flex flex-wrap items-center gap-3">
-          <BackButton label="All subjects" onClick={() => go(null)} />
+          <BackButton label="All subjects" onClick={() => up(null)} />
           <h2 className="text-xl font-bold tracking-tight text-white">{folder.subject.name}</h2>
         </div>
         {rows.length === 0 ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useStepState } from "@/hooks/use-step-state";
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { PictureLibrary } from "@/components/flashcards/picture-library";
@@ -99,6 +100,12 @@ function FileCard({ m, shown, onDownload }: { m: Material; shown: number; onDown
  * subject folders, then chapters, then files that download one at a time. An exam filter narrows everything.
  * Open to everyone, signed in or not. `?vault=` and `?exam=` in the address open a vault or exam directly.
  */
+interface LibraryView {
+  vault: VaultKey | null;
+  subjectId: string | null;
+  chapter: string | null;
+}
+
 export function MaterialLibrary() {
   const params = useSearchParams();
   const startVault = params.get("vault");
@@ -108,9 +115,8 @@ export function MaterialLibrary() {
   const [pictureTags, setPictureTags] = React.useState<{ subject_id: string | null; exams: string[] }[]>([]);
   const [error, setError] = React.useState<string | null>(null);
   const [exam, setExam] = React.useState<string | null>(EXAMS.some((e) => e.id === startExam) ? startExam : null);
-  const [vault, setVault] = React.useState<VaultKey | null>(isVault(startVault) ? startVault : null);
-  const [subjectId, setSubjectId] = React.useState<string | null>(null);
-  const [chapter, setChapter] = React.useState<string | null>(null);
+  const [view, pushView, upView] = useStepState<LibraryView>({ vault: isVault(startVault) ? startVault : null, subjectId: null, chapter: null }, "library");
+  const { vault, subjectId, chapter } = view;
   const [search, setSearch] = React.useState("");
   const [counted, setCounted] = React.useState<ReadonlySet<string>>(new Set());
   const taxonomy = useTaxonomy();
@@ -135,12 +141,20 @@ export function MaterialLibrary() {
     };
   }, []);
 
-  const go = React.useCallback((v: VaultKey | null, s: string | null = null, c: string | null = null) => {
-    setVault(v);
-    setSubjectId(s);
-    setChapter(c);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
-  }, []);
+  const go = React.useCallback(
+    (v: VaultKey | null, s: string | null = null, c: string | null = null) => {
+      pushView({ vault: v, subjectId: s, chapter: c });
+      if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+    },
+    [pushView],
+  );
+  const up = React.useCallback(
+    (v: VaultKey | null, s: string | null = null, c: string | null = null) => {
+      upView({ vault: v, subjectId: s, chapter: c });
+      if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+    },
+    [upView],
+  );
 
   // Files that sit in a subject belong to a vault. The older official links have no subject and get their own section.
   const filed = React.useMemo(() => (items ?? []).filter((m) => m.subject_id && itemInExam(m.exams, exam)), [items, exam]);
@@ -197,7 +211,7 @@ export function MaterialLibrary() {
           {errorBox}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
-              <BackButton label="All vaults" onClick={() => go(null)} />
+              <BackButton label="All vaults" onClick={() => up(null)} />
               <h2 className="text-xl font-bold tracking-tight text-white">{vaultInfo.label}</h2>
             </div>
             {examChips}
@@ -222,7 +236,7 @@ export function MaterialLibrary() {
         <div className="space-y-6">
           {errorBox}
           <div className="flex flex-wrap items-center gap-3">
-            <BackButton label={folder.subject.name} onClick={() => go(vault, folder.subject.id, null)} />
+            <BackButton label={folder.subject.name} onClick={() => up(vault, folder.subject.id, null)} />
             <h2 className="text-xl font-bold tracking-tight text-white">
               {vaultInfo.label} <span className="text-steel-500">/</span> {folder.subject.name} <span className="text-steel-500">/</span> {chapterName}
             </h2>
@@ -252,7 +266,7 @@ export function MaterialLibrary() {
         <div className="space-y-6">
           {errorBox}
           <div className="flex flex-wrap items-center gap-3">
-            <BackButton label={vaultInfo.label} onClick={() => go(vault)} />
+            <BackButton label={vaultInfo.label} onClick={() => up(vault)} />
             <h2 className="text-xl font-bold tracking-tight text-white">
               {vaultInfo.label} <span className="text-steel-500">/</span> {folder.subject.name}
             </h2>
@@ -296,7 +310,7 @@ export function MaterialLibrary() {
         {errorBox}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <BackButton label="All vaults" onClick={() => go(null)} />
+            <BackButton label="All vaults" onClick={() => up(null)} />
             <h2 className="text-xl font-bold tracking-tight text-white">{vaultInfo.label}</h2>
           </div>
           {examChips}
