@@ -22,6 +22,8 @@ import { Icons } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
+import { TestList } from "@/components/admin/mock-tests/test-list";
+import { KIND_LABEL, TEST_KINDS, type TestKind } from "@/lib/test-settings";
 import { logAdminAction } from "@/lib/adminLog";
 import {
   BANK_COLUMNS,
@@ -151,7 +153,8 @@ function QuestionCardView({
   );
 }
 
-export default function AdminQuestionsPage() {
+/** The old one-question-at-a-time bank: questions that belong to practice modules. */
+function PracticeBank() {
   const [modules, setModules] = React.useState<BankModule[]>([]);
   const [topicSupported, setTopicSupported] = React.useState<boolean | null>(null);
   const [moduleId, setModuleId] = React.useState("all");
@@ -271,22 +274,6 @@ export default function AdminQuestionsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <Badge variant="gold" className="mb-2">Question Seeding Portal</Badge>
-          <h1 className="text-balance text-3xl font-bold tracking-tight text-white">Question Bank</h1>
-          <p className="mt-1 text-sm text-steel-300">
-            Every question, shown the way a cadet sees it. The correct answer is highlighted.
-          </p>
-        </div>
-        <Button asChild variant="primary">
-          <Link href="/admin/questions/new">
-            <Icons.plus className="size-4" />
-            Add Questions
-          </Link>
-        </Button>
-      </div>
-
       {notice ? (
         <p
           role={notice.type === "error" ? "alert" : "status"}
@@ -423,6 +410,50 @@ export default function AdminQuestionsPage() {
           </div>
         </>
       ) : null}
+    </div>
+  );
+}
+
+type BankTab = TestKind | "practice";
+
+const TAB_NOTE: Record<BankTab, string> = {
+  mock: "Full-length papers for NDA, CDS or AFCAT. Timed, with negative marking and a cutoff.",
+  subject: "Tests on one subject, kept in a folder for each subject.",
+  chapter: "Short tests on one chapter, kept in subject and chapter folders.",
+  practice: "Single questions in practice modules, the way the bank worked before.",
+};
+
+export default function AdminQuestionsPage() {
+  const [tab, setTab] = React.useState<BankTab>("mock");
+  const tabs: { id: BankTab; label: string }[] = [...TEST_KINDS.map((k) => ({ id: k as BankTab, label: KIND_LABEL[k] })), { id: "practice", label: "Practice modules" }];
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Badge variant="gold" className="mb-2">Question Seeding Portal</Badge>
+          <h1 className="text-balance text-3xl font-bold tracking-tight text-white">Question Bank</h1>
+          <p className="mt-1 text-sm text-steel-300">{TAB_NOTE[tab]}</p>
+        </div>
+        <Button asChild variant="primary">
+          <Link href={tab === "practice" ? "/admin/questions/new" : `/admin/mock-tests/new?kind=${tab}`}>
+            <Icons.plus className="size-4" />
+            {tab === "practice" ? "Add Questions" : "Add a Test"}
+          </Link>
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Question bank sections">
+        {tabs.map((t) => (
+          <Button key={t.id} type="button" role="tab" id={`bank-tab-${t.id}`} aria-selected={tab === t.id} aria-controls="bank-panel" size="sm" variant={tab === t.id ? "primary" : "outline"} onClick={() => setTab(t.id)}>
+            {t.label}
+          </Button>
+        ))}
+      </div>
+
+      <div id="bank-panel" role="tabpanel" aria-labelledby={`bank-tab-${tab}`}>
+        {tab === "practice" ? <PracticeBank /> : <TestList key={tab} kind={tab} />}
+      </div>
     </div>
   );
 }
