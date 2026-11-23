@@ -164,7 +164,7 @@ export default function QuizzesPage() {
             <p className="mt-1 text-sm text-steel-300">Select a test to measure your preparation.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <AdminShortcut href="/admin/mock-tests" label="Manage tests" />
+            <AdminShortcut href="/admin/questions" label="Manage tests" />
             <Button asChild variant="primary" size="sm">
               <Link href="/dashboard">Cadet Dashboard</Link>
             </Button>
