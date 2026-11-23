@@ -60,7 +60,7 @@ interface SavedState {
 const SEARCH_LIMIT = 15;
 
 /** Create or edit one mock test, including the questions attached to it. */
-export function MockTestForm({ testId: initialId }: { testId?: string }) {
+export function MockTestForm({ testId: initialId, initialKind }: { testId?: string; initialKind?: TestKind }) {
   const [testId, setTestId] = React.useState<string | undefined>(initialId);
   const editing = Boolean(testId);
 
@@ -73,7 +73,7 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
   const [title, setTitle] = React.useState("");
   const [exam, setExam] = React.useState<Exam>("NDA");
   const [duration, setDuration] = React.useState("120");
-  const [kind, setKind] = React.useState<TestKind>("mock");
+  const [kind, setKind] = React.useState<TestKind>(initialKind ?? "mock");
   const [filing, setFiling] = React.useState<FilingInput>(emptyFiling());
   const [marksPerCorrect, setMarksPerCorrect] = React.useState("1");
   const [negativeMarks, setNegativeMarks] = React.useState("0");
@@ -516,7 +516,7 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
             {loadState === "missing" ? "It may have been deleted." : (loadError ?? "Something went wrong.")}
           </p>
           <Button asChild variant="outline" size="sm">
-            <Link href="/admin/mock-tests">Back to Mock Tests</Link>
+            <Link href={`/admin/questions?tab=${kind}`}>Back to Question Bank</Link>
           </Button>
         </CardContent>
       </Card>
@@ -527,14 +527,14 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
     <form onSubmit={save} className="space-y-8" noValidate>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Badge variant="gold" className="mb-2">Test Center</Badge>
+          <Badge variant="gold" className="mb-2">Question Bank</Badge>
           <h1 className="text-balance text-3xl font-bold tracking-tight text-white">
-            {editing ? "Edit Test" : "Create Test"}
+            {editing ? `Edit ${KIND_LABEL[kind]}` : `Add a ${KIND_LABEL[kind]}`}
           </h1>
           <p className="mt-1 text-sm text-steel-300">Choose the type, set the marking, add questions by PDF, typing or the bank, check them, then save.</p>
         </div>
         <Button asChild variant="outline" size="sm">
-          <Link href="/admin/mock-tests">Back to Mock Tests</Link>
+          <Link href={`/admin/questions?tab=${kind}`}>Back to Question Bank</Link>
         </Button>
       </div>
 
@@ -555,8 +555,8 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
         >
           <span>{banner.text}</span>
           {banner.type === "success" ? (
-            <Link href="/admin/mock-tests" className="underline underline-offset-2 hover:text-emerald-200">
-              View all mock tests
+            <Link href={`/admin/questions?tab=${kind}`} className="underline underline-offset-2 hover:text-emerald-200">
+              Back to the Question Bank
             </Link>
           ) : null}
         </div>
@@ -788,7 +788,7 @@ export function MockTestForm({ testId: initialId }: { testId?: string }) {
           ) : (
             <>
               <Icons.checkCircle className="size-4" />
-              {editing ? "Save Changes" : "Create Mock Test"}
+              {editing ? "Save Changes" : "Create Test"}
             </>
           )}
         </Button>

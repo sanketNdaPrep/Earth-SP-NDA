@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { OPTS, TAXONOMY } from "@/components/admin/seed/data";
 import { MathText } from "@/components/quiz/math-text";
 import {
@@ -423,8 +424,9 @@ const TAB_NOTE: Record<BankTab, string> = {
   practice: "Single questions in practice modules, the way the bank worked before.",
 };
 
-export default function AdminQuestionsPage() {
-  const [tab, setTab] = React.useState<BankTab>("mock");
+function QuestionBank() {
+  const asked = useSearchParams().get("tab");
+  const [tab, setTab] = React.useState<BankTab>(asked === "subject" || asked === "chapter" || asked === "practice" ? asked : "mock");
   const tabs: { id: BankTab; label: string }[] = [...TEST_KINDS.map((k) => ({ id: k as BankTab, label: KIND_LABEL[k] })), { id: "practice", label: "Practice modules" }];
 
   return (
@@ -455,5 +457,13 @@ export default function AdminQuestionsPage() {
         {tab === "practice" ? <PracticeBank /> : <TestList key={tab} kind={tab} />}
       </div>
     </div>
+  );
+}
+
+export default function AdminQuestionsPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <QuestionBank />
+    </React.Suspense>
   );
 }
