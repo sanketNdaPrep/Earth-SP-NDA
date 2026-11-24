@@ -273,15 +273,42 @@ export function MockTestForm({ testId: initialId, initialKind }: { testId?: stri
   const move = (index: number, by: -1 | 1) => setAttached((list) => moveItem(list, index, by));
   const change = (index: number, next: BuilderQuestion) => setAttached((list) => list.map((q, i) => (i === index ? next : q)));
 
-  const onPdfRead = (reading: PdfReading) => {
+  // A PDF read while the form already holds questions waits here until the admin says what to do with it.
+  const [pendingPdf, setPendingPdf] = React.useState<PdfReading | null>(null);
+
+  const importReading = (reading: PdfReading, base: BuilderQuestion[]) => {
     setBanner(null);
-    const room = MOCK_LIMITS.questionsMax - attached.length;
-    setAttached((list) => [...list, ...reading.questions.slice(0, Math.max(0, room))]);
+    const room = Math.max(0, MOCK_LIMITS.questionsMax - base.length);
+    setAttached([...base, ...reading.questions.slice(0, room)]);
     setPdfFile(reading.file);
     setPdfWarnings(reading.warnings);
     const first = reading.questions.find((q) => q.flags.length > 0) ?? reading.questions[0];
     setOpenKey(first?.key ?? null);
-    if (!title.trim()) setTitle(reading.file.name.replace(/\.pdf$/i, "").replace(/[_-]+/g, " ").trim().slice(0, MOCK_LIMITS.titleMax));
+    setTitle((current) => (current.trim() ? current : reading.file.name.replace(/\.pdf$/i, "").replace(/[_-]+/g, " ").trim().slice(0, MOCK_LIMITS.titleMax)));
+  };
+
+  /** Clears the form for another test. The exam, time and marking stay, since a series is usually alike. Subject stays; the chapter must be typed again. */
+  const startNewTest = () => {
+    setTestId(undefined);
+    setSaved(null);
+    setTitle("");
+    setPublished(false);
+    setAttached([]);
+    setSavedQuestions(new Map());
+    setPdfFile(null);
+    setPdfWarnings([]);
+    setSourcePdf(null);
+    setOpenKey(null);
+    setPendingPdf(null);
+    setBanner(null);
+    setFiling((f) => ({ ...f, chapterName: "" }));
+    pendingFiling.current = null;
+    window.history.replaceState(null, "", `/admin/mock-tests/new?kind=${kind}`);
+  };
+
+  const onPdfRead = (reading: PdfReading) => {
+    if (attached.length === 0) importReading(reading, []);
+    else setPendingPdf(reading);
   };
 
   const summary = summarise(attached);
@@ -555,9 +582,14 @@ export function MockTestForm({ testId: initialId, initialKind }: { testId?: stri
         >
           <span>{banner.text}</span>
           {banner.type === "success" ? (
-            <Link href={`/admin/questions?tab=${kind}`} className="underline underline-offset-2 hover:text-emerald-200">
-              Back to the Question Bank
-            </Link>
+            <span className="flex flex-wrap items-center gap-4">
+              <button type="button" onClick={startNewTest} className="underline underline-offset-2 hover:text-emerald-200">
+                Add another test
+              </button>
+              <Link href={`/admin/questions?tab=${kind}`} className="underline underline-offset-2 hover:text-emerald-200">
+                Back to the Question Bank
+              </Link>
+            </span>
           ) : null}
         </div>
       ) : null}
@@ -668,7 +700,49 @@ export function MockTestForm({ testId: initialId, initialKind }: { testId?: stri
             ))}
           </div>
 
-          {tab === "pdf" ? <PdfImport disabled={atLimit} onRead={onPdfRead} /> : null}
+          {pendingPdf ? (
+            <div role="group" aria-label="What to do with this PDF" className="space-y-3 rounded-control border border-gold-400/40 bg-gold-400/5 p-4">
+              <p className="text-sm font-semibold text-white">
+                {pendingPdf.questions.length} questions were read from {pendingPdf.file.name}. This test already has {attached.length}. What should happen?
+              </p>
+              <p className="text-xs text-steel-300">
+                {editing
+                  ? "This test is already saved. A PDF for another chapter or paper should be its own test, so its marks, time and results stay separate."
+                  : "Questions from different chapters or papers should be separate tests, so marks and results are not mixed."}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    const reading = pendingPdf;
+                    if (editing || attached.length === 0) startNewTest();
+                    else {
+                      setAttached([]);
+                      setPdfFile(null);
+                      setPdfWarnings([]);
+                      setOpenKey(null);
+                      setTitle("");
+                    }
+                    setPendingPdf(null);
+                    importReading(reading, []);
+                  }}
+                >
+                  {editing ? "Make a new test from this PDF" : "Start over with this PDF"}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => { importReading(pendingPdf, attached); setPendingPdf(null); }}>
+                  Add to this test anyway
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setPendingPdf(null)}>
+                  Cancel
+                </Button>
+              </div>
+              {editing || sourcePdf || pdfFile ? <p className="text-xs text-steel-500">Adding to this test replaces its downloadable PDF with the new one.</p> : null}
+            </div>
+          ) : null}
+
+          {tab === "pdf" ? <PdfImport disabled={atLimit || pendingPdf !== null} onRead={onPdfRead} /> : null}
 
           {tab === "type" ? (
             <div className="space-y-2">
