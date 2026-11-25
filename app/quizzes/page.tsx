@@ -11,6 +11,8 @@ import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { cutoffText, KIND_SHORT, TEST_KINDS, type TestKind } from "@/lib/test-settings";
 import { supabase } from "@/lib/supabaseClient";
+import { getPausedTests, type PausedTest } from "@/app/quizzes/actions";
+import { Notice } from "@/components/ui/notice";
 
 interface MockTest {
   id: string;
@@ -64,8 +66,10 @@ const EMPTY_TEXT: Record<TestKind, string> = {
   chapter: "No chapter-wise tests are published yet.",
 };
 
+const formatClock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+
 /** One test on the Test Center: what it is, how it is marked, and the Start button. */
-function TestCard({ test }: { test: MockTest }) {
+function TestCard({ test, paused }: { test: MockTest; paused?: PausedTest }) {
   const plus = Number(test.marks_per_correct);
   const minus = Number(test.negative_marks);
   const cutoff = cutoffText(test.cutoff_min === null ? null : Number(test.cutoff_min), test.cutoff_max === null ? null : Number(test.cutoff_max));
@@ -74,7 +78,7 @@ function TestCard({ test }: { test: MockTest }) {
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <span className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{test.code}</span>
-          <Badge variant="gold">{test.target_exam}</Badge>
+          {paused ? <Badge variant="outline">Paused · {formatClock(paused.remainingSeconds)} left</Badge> : <Badge variant="gold">{test.target_exam}</Badge>}
         </div>
         <CardTitle className="mt-2 text-xl">{test.title}</CardTitle>
       </CardHeader>
@@ -107,7 +111,7 @@ function TestCard({ test }: { test: MockTest }) {
           {test.total_questions > 0 ? (
             <Button asChild variant="primary" size="sm">
               <Link href={`/quizzes/${test.id}`}>
-                Start Test<span className="sr-only">: {test.title}</span>
+                {paused ? "Continue Test" : "Start Test"}<span className="sr-only">: {test.title}</span>
               </Link>
             </Button>
           ) : (
@@ -126,6 +130,19 @@ export default function QuizzesPage() {
   const [tab, setTab] = React.useState<TestKind>("mock");
   const [subjectFilter, setSubjectFilter] = React.useState<string | null>(null);
   const taxonomy = useTaxonomy();
+  const [pausedList, setPausedList] = React.useState<PausedTest[]>([]);
+  const pausedById = React.useMemo(() => new Map(pausedList.map((p) => [p.mockTestId, p])), [pausedList]);
+
+  // Tests this cadet paused earlier, on this or another device.
+  React.useEffect(() => {
+    let active = true;
+    void getPausedTests().then((list) => {
+      if (active) setPausedList(list);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   React.useEffect(() => {
     let active = true;
@@ -180,6 +197,25 @@ export default function QuizzesPage() {
           </p>
         ) : null}
 
+        {!loading && mocks.some((t) => pausedById.has(t.id)) ? (
+          <Notice
+            kind="info"
+            reveal={false}
+            title="You have a paused test"
+            actions={mocks
+              .filter((t) => pausedById.has(t.id))
+              .map((t) => (
+                <Button key={t.id} asChild variant="primary" size="sm">
+                  <Link href={`/quizzes/${t.id}`}>
+                    Continue {t.title} ({formatClock(pausedById.get(t.id)?.remainingSeconds ?? 0)} left)
+                  </Link>
+                </Button>
+              ))}
+          >
+            Your timer is stopped. Continue from the exact question you left.
+          </Notice>
+        ) : null}
+
         {loading ? <ListSkeleton /> : null}
 
         {nothingAtAll ? (
@@ -222,7 +258,7 @@ export default function QuizzesPage() {
                 return (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     {shown.map((t) => (
-                      <TestCard key={t.id} test={t} />
+                      <TestCard key={t.id} test={t} paused={pausedById.get(t.id)} />
                     ))}
                   </div>
                 );
@@ -253,7 +289,7 @@ export default function QuizzesPage() {
                               {tab === "chapter" ? <p className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{chapterName(cid) ?? "General"}</p> : null}
                               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 {list.map((t) => (
-                                  <TestCard key={t.id} test={t} />
+                                  <TestCard key={t.id} test={t} paused={pausedById.get(t.id)} />
                                 ))}
                               </div>
                             </div>

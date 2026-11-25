@@ -5,7 +5,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MotionConfig } from "framer-motion";
-import { startMockTest, submitMockTest } from "@/app/quizzes/actions";
+import { getPausedTests, pauseMockTest, startMockTest, submitMockTest } from "@/app/quizzes/actions";
 import { BriefingScreen } from "@/components/quiz/briefing-screen";
 import { Dialog } from "@/components/quiz/dialog";
 import { AlertIcon, ChevronLeftIcon, ChevronRightIcon, GridIcon, SpinnerIcon } from "@/components/quiz/icons";
@@ -20,7 +20,7 @@ import type { PublicQuestion, PublicTest } from "@/lib/mockEngine";
 import { KIND_SHORT, MOCK_COLUMNS, type MockTestRow } from "@/lib/mockTests";
 import { supabase } from "@/lib/supabaseClient";
 
-type Phase = "checking" | "auth" | "missing" | "briefing" | "starting" | "running" | "submitting";
+type Phase = "checking" | "auth" | "missing" | "briefing" | "starting" | "running" | "submitting" | "pausing" | "paused";
 
 interface Saved {
   answers: Record<string, OptionLetter>;
@@ -79,7 +79,10 @@ export function TestRunner({ testId }: { testId: string }) {
   const [questions, setQuestions] = React.useState<QuizQuestion[]>([]);
   const [sittingId, setSittingId] = React.useState("");
   const [endsAt, setEndsAt] = React.useState<number | null>(null);
-  const [restored, setRestored] = React.useState(false);
+  const [restored, setRestored] = React.useState<string | null>(null);
+  // Set when this test was paused earlier: the seconds left, shown on the briefing and the paused screen.
+  const [pausedSecs, setPausedSecs] = React.useState<number | null>(null);
+  const [pauseError, setPauseError] = React.useState<string | null>(null);
 
   const [answers, setAnswers] = React.useState<Record<string, OptionLetter>>({});
   const [marked, setMarked] = React.useState<Record<string, true>>({});
@@ -103,6 +106,11 @@ export function TestRunner({ testId }: { testId: string }) {
         return;
       }
       setRow(result.data as unknown as MockTestRow);
+      if (auth?.user) {
+        const paused = (await getPausedTests()).find((p) => p.mockTestId === testId);
+        if (!active) return;
+        setPausedSecs(paused ? paused.remainingSeconds : null);
+      }
       setPhase(auth?.user ? "briefing" : "auth");
     })();
     return () => {
@@ -148,6 +156,26 @@ export function TestRunner({ testId }: { testId: string }) {
 
   const remaining = useCountdown(endsAt, running, () => void finalize());
 
+  // Stops the clock and keeps the answers and the current question on the server.
+  const pause = async () => {
+    setPauseError(null);
+    setDialog("none");
+    setPhase("pausing");
+    const result = await pauseMockTest(testId, { answers, marked: Object.keys(marked), visited: Object.keys(visited), current });
+    if (!result.ok) {
+      setPauseError(result.message);
+      setPhase("running");
+      return;
+    }
+    try {
+      window.localStorage.removeItem(storageKey(testId, sittingId));
+    } catch {
+      // Nothing to clean up.
+    }
+    setPausedSecs(result.remainingSeconds);
+    setPhase("paused");
+  };
+
   const begin = async () => {
     setPhase("starting");
     setStartError(null);
@@ -161,7 +189,12 @@ export function TestRunner({ testId }: { testId: string }) {
       return;
     }
     const list = result.questions.map(toQuizQuestion);
-    const saved = result.resumed ? readSaved(storageKey(testId, result.sittingId)) : null;
+    // A paused test comes back from the server (works after signing out and in, or on another device).
+    // Otherwise a reload is covered by what this browser saved.
+    const fromServer: Saved | null = result.progress
+      ? { answers: result.progress.answers, marked: Object.fromEntries(result.progress.marked.map((id) => [id, true as const])), visited: Object.fromEntries(result.progress.visited.map((id) => [id, true as const])), current: result.progress.current }
+      : null;
+    const saved = fromServer ?? (result.resumed ? readSaved(storageKey(testId, result.sittingId)) : null);
     const known = new Set(list.map((q) => q.id));
     const keepAnswers = Object.fromEntries(Object.entries(saved?.answers ?? {}).filter(([id]) => known.has(id)));
     const startIndex = saved && saved.current >= 0 && saved.current < list.length ? saved.current : 0;
@@ -173,7 +206,9 @@ export function TestRunner({ testId }: { testId: string }) {
     setMarked(saved?.marked ?? {});
     setVisited({ ...(saved?.visited ?? {}), [list[startIndex].id]: true });
     setCurrent(startIndex);
-    setRestored(Boolean(saved) && result.resumed);
+    setRestored(saved && result.resumed ? (fromServer ? "Welcome back. Your paused test continues from the question you left, with the time you had left." : "Welcome back. Your answers and timer were restored after the reload.") : null);
+    setPausedSecs(null);
+    setPauseError(null);
     setEndsAt(Date.now() + result.remainingSeconds * 1000);
     setPhase("running");
   };
@@ -299,6 +334,28 @@ export function TestRunner({ testId }: { testId: string }) {
     );
   }
 
+  if (phase === "paused") {
+    const left = pausedSecs ?? 0;
+    return (
+      <Notice
+        title="Test paused"
+        action={
+          <>
+            <button type="button" onClick={() => void begin()} className={primaryButton}>
+              Continue test
+            </button>
+            <Link href="/quizzes" className={ghostButton}>
+              Back to the Test Center
+            </Link>
+          </>
+        }
+      >
+        Your timer is stopped at {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}. Your answers are saved. You can continue from the same question any time,
+        even after you sign out and sign in again, or on another device.
+      </Notice>
+    );
+  }
+
   if ((phase === "briefing" || phase === "starting") && row) {
     const quiz: QuizRecord = { id: row.id, title: row.title, category: row.target_exam, description: null, time_limit_mins: row.duration_minutes };
     const scheme: MarkingScheme = { id: "practice", label: KIND_SHORT[row.kind] ?? row.target_exam, correct: Number(row.marks_per_correct), wrong: Number(row.negative_marks) };
@@ -319,6 +376,7 @@ export function TestRunner({ testId }: { testId: string }) {
           limitSecs={row.duration_minutes * 60}
           storageOk={storageOk}
           onBegin={() => void begin()}
+          pausedSecs={pausedSecs}
         />
         {phase === "starting" ? (
           <p role="status" className="sr-only">
@@ -347,6 +405,9 @@ export function TestRunner({ testId }: { testId: string }) {
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <QuizTimer remaining={remaining} untimed={false} />
+              <button type="button" onClick={() => void pause()} className={ghostButton} disabled={phase !== "running"}>
+                Pause
+              </button>
               <button type="button" onClick={() => setDialog("confirm")} className={primaryButton} disabled={phase === "submitting"}>
                 Submit test
               </button>
@@ -357,11 +418,20 @@ export function TestRunner({ testId }: { testId: string }) {
         {restored ? (
           <div role="status" className="border-b border-emerald-400/30 bg-emerald-400/10">
             <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-2 text-sm text-emerald-200 lg:px-6">
-              <p>Welcome back. Your answers and timer were restored after the reload.</p>
-              <button type="button" onClick={() => setRestored(false)} className="min-h-11 touch-manipulation px-2 font-semibold underline underline-offset-4">
+              <p>{restored}</p>
+              <button type="button" onClick={() => setRestored(null)} className="min-h-11 touch-manipulation px-2 font-semibold underline underline-offset-4">
                 Dismiss
               </button>
             </div>
+          </div>
+        ) : null}
+
+        {pauseError ? (
+          <div role="alert" className="border-b border-gold-400/40 bg-gold-400/10">
+            <p className="mx-auto flex w-full max-w-7xl items-center gap-2 px-4 py-2 text-sm text-gold-300 lg:px-6">
+              <AlertIcon className="size-4 shrink-0" />
+              {pauseError} The test is still running.
+            </p>
           </div>
         ) : null}
 
@@ -491,6 +561,15 @@ export function TestRunner({ testId }: { testId: string }) {
               </div>
             </div>
           </Dialog>
+        ) : null}
+
+        {phase === "pausing" ? (
+          <div role="status" className="fixed inset-0 z-50 grid place-items-center bg-navy-950/90 text-white">
+            <p className="flex items-center gap-3 text-base font-semibold">
+              <SpinnerIcon className="size-5 animate-spin" />
+              Pausing the test and saving your place...
+            </p>
+          </div>
         ) : null}
 
         {phase === "submitting" ? (

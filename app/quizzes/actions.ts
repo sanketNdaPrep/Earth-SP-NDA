@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import type { AttemptDetails, AttemptSummary, PublicQuestion, ResultFetch, ResultItem, StartResult, SubmitResult } from "@/lib/mockEngine";
 import { accuracyOf, clampSeconds, isLetter, marksFor, marksWithNegative, percentOf, scoreSubmission, type KeyEntry, type Letter } from "@/lib/mockScoring";
 import { totalMarksOf, type TestKind } from "@/lib/test-settings";
+import { cleanProgress, pauseExpired, secondsLeft, startedAtOnResume, type TestProgress } from "@/lib/test-pause";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
@@ -94,20 +95,33 @@ export async function startMockTest(mockTestId: string): Promise<StartResult> {
   const now = Date.now();
   const existing = await admin
     .from("mock_test_sessions")
-    .select("started_at")
+    .select("started_at, paused_at, remaining_seconds, progress")
     .eq("user_id", user.id)
     .eq("mock_test_id", mockTestId)
     .maybeSingle();
   if (existing.error) return fail("error", "The test could not be started. Has the latest SQL been run?");
 
-  let startedMs = existing.data ? Date.parse((existing.data as { started_at: string }).started_at) : Number.NaN;
+  const row = existing.data as { started_at: string; paused_at: string | null; remaining_seconds: number | null; progress: unknown } | null;
+  let startedMs = row ? Date.parse(row.started_at) : Number.NaN;
   let resumed = true;
-  if (Number.isNaN(startedMs) || now - startedMs > limitMs + RESTART_AFTER_MS) {
+  let progress: TestProgress | null = null;
+  if (row?.paused_at && row.remaining_seconds !== null && !pauseExpired(Date.parse(row.paused_at), now)) {
+    // A paused test: the clock starts again from the seconds that were left, and the answers come back.
+    const left = Math.min(row.remaining_seconds, Math.floor(limitMs / 1000));
+    startedMs = startedAtOnResume(now, limitMs, left);
+    progress = cleanProgress(row.progress);
+    const resumedRow = await admin
+      .from("mock_test_sessions")
+      .update({ started_at: new Date(startedMs).toISOString(), paused_at: null, remaining_seconds: null, progress: null })
+      .eq("user_id", user.id)
+      .eq("mock_test_id", mockTestId);
+    if (resumedRow.error) return fail("error", "The test could not be continued. Try again in a moment.");
+  } else if (Number.isNaN(startedMs) || row?.paused_at || now - startedMs > limitMs + RESTART_AFTER_MS) {
     startedMs = now;
     resumed = false;
     const saved = await admin
       .from("mock_test_sessions")
-      .upsert({ user_id: user.id, mock_test_id: mockTestId, started_at: new Date(now).toISOString() }, { onConflict: "user_id,mock_test_id" });
+      .upsert({ user_id: user.id, mock_test_id: mockTestId, started_at: new Date(now).toISOString(), paused_at: null, remaining_seconds: null, progress: null }, { onConflict: "user_id,mock_test_id" });
     if (saved.error) return fail("error", "The test could not be started. Has the latest SQL been run?");
   }
 
@@ -127,7 +141,71 @@ export async function startMockTest(mockTestId: string): Promise<StartResult> {
     remainingSeconds: Math.max(0, Math.ceil((startedMs + limitMs - now) / 1000)),
     sittingId: String(startedMs),
     resumed,
+    progress,
   };
+}
+
+/**
+ * Pauses a running test. The clock stops here: the seconds left are kept on the server, with the
+ * answers and the question the cadet was on. Continuing works after signing out and in, or on another device.
+ */
+export async function pauseMockTest(mockTestId: string, progress: TestProgress): Promise<{ ok: true; remainingSeconds: number } | Failure> {
+  if (!UUID.test(mockTestId)) return fail("missing", "That test could not be found.");
+  const { user } = await currentUser();
+  if (!user) return fail("auth", "Your session ended. Sign in again, then continue the test.");
+  const admin = createSupabaseAdminClient();
+  if (!admin) return fail("config", "The test server is not set up yet. Please tell your instructor.");
+
+  const sessionResult = await admin
+    .from("mock_test_sessions")
+    .select("started_at, paused_at, remaining_seconds")
+    .eq("user_id", user.id)
+    .eq("mock_test_id", mockTestId)
+    .maybeSingle();
+  if (sessionResult.error) return fail("error", "The test could not be paused. Try again.");
+  const session = sessionResult.data as { started_at: string; paused_at: string | null; remaining_seconds: number | null } | null;
+  if (!session) return fail("nosession", "This test was not started, or it was already submitted.");
+  if (session.paused_at && session.remaining_seconds !== null) return { ok: true, remainingSeconds: session.remaining_seconds };
+
+  const testResult = await admin.from("mock_tests").select("duration_minutes").eq("id", mockTestId).maybeSingle();
+  const minutes = (testResult.data as { duration_minutes: number } | null)?.duration_minutes;
+  if (testResult.error || !minutes) return fail("missing", "That test no longer exists.");
+
+  const now = Date.now();
+  const left = secondsLeft(Date.parse(session.started_at), minutes * 60 * 1000, now);
+  if (left <= 0) return fail("late", "The time for this test is over, so it cannot be paused. Submit it.");
+
+  const saved = await admin
+    .from("mock_test_sessions")
+    .update({ paused_at: new Date(now).toISOString(), remaining_seconds: left, progress: cleanProgress(progress) })
+    .eq("user_id", user.id)
+    .eq("mock_test_id", mockTestId);
+  if (saved.error) return fail("error", "The test could not be paused. Try again.");
+  return { ok: true, remainingSeconds: left };
+}
+
+export interface PausedTest {
+  mockTestId: string;
+  remainingSeconds: number;
+  pausedAt: string;
+}
+
+/** The tests this cadet has paused, so the Test Center can offer Continue. */
+export async function getPausedTests(): Promise<PausedTest[]> {
+  const { user } = await currentUser();
+  if (!user) return [];
+  const admin = createSupabaseAdminClient();
+  if (!admin) return [];
+  const result = await admin
+    .from("mock_test_sessions")
+    .select("mock_test_id, paused_at, remaining_seconds")
+    .eq("user_id", user.id)
+    .not("paused_at", "is", null);
+  if (result.error || !result.data) return [];
+  const now = Date.now();
+  return (result.data as { mock_test_id: string; paused_at: string; remaining_seconds: number | null }[])
+    .filter((r) => r.remaining_seconds !== null && !pauseExpired(Date.parse(r.paused_at), now))
+    .map((r) => ({ mockTestId: r.mock_test_id, remainingSeconds: r.remaining_seconds ?? 0, pausedAt: r.paused_at }));
 }
 
 /**
@@ -153,7 +231,7 @@ export async function submitMockTest(mockTestId: string, answers: Record<string,
 
   const sessionResult = await admin
     .from("mock_test_sessions")
-    .select("started_at")
+    .select("started_at, paused_at, remaining_seconds")
     .eq("user_id", user.id)
     .eq("mock_test_id", mockTestId)
     .maybeSingle();
@@ -168,8 +246,10 @@ export async function submitMockTest(mockTestId: string, answers: Record<string,
   const test = testResult.data as TestRow | null;
   if (testResult.error || !test) return fail("missing", "That test no longer exists.");
 
-  const startedMs = Date.parse((sessionResult.data as { started_at: string }).started_at);
+  const sessionRow = sessionResult.data as { started_at: string; paused_at: string | null; remaining_seconds: number | null };
   const limitSeconds = test.duration_minutes * 60;
+  // A paused test has not been using time: count it as if it had just continued.
+  const startedMs = sessionRow.paused_at && sessionRow.remaining_seconds !== null ? startedAtOnResume(Date.now(), limitSeconds * 1000, sessionRow.remaining_seconds) : Date.parse(sessionRow.started_at);
   const elapsedMs = Date.now() - startedMs;
   if (elapsedMs > limitSeconds * 1000 + LATE_SUBMIT_MS) {
     await admin.from("mock_test_sessions").delete().eq("user_id", user.id).eq("mock_test_id", mockTestId);

@@ -14,9 +14,11 @@ interface BriefingScreenProps {
   limitSecs: number | null;
   storageOk: boolean;
   onBegin: () => void;
+  /** Set when the cadet paused this test earlier: the seconds left. Changes the wording and the button. */
+  pausedSecs?: number | null;
 }
 
-export function BriefingScreen({ quiz, scheme, questionCount, limitSecs, storageOk, onBegin }: BriefingScreenProps) {
+export function BriefingScreen({ quiz, scheme, questionCount, limitSecs, storageOk, onBegin, pausedSecs = null }: BriefingScreenProps) {
   const facts = [
     { label: 'Questions', value: String(questionCount) },
     { label: 'Time allowed', value: limitSecs === null ? 'No limit' : formatDuration(limitSecs) },
@@ -55,6 +57,11 @@ export function BriefingScreen({ quiz, scheme, questionCount, limitSecs, storage
 
         <h2 className="mt-8 text-sm font-semibold text-steel-100">Before you start</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-steel-300 marker:text-steel-500">
+          {pausedSecs !== null ? (
+            <li className="text-gold-300">
+              You paused this test. Press Continue to carry on from the same question with {formatDuration(pausedSecs)} left. The timer is stopped until you do.
+            </li>
+          ) : null}
           {limitSecs !== null ? (
             <li>The timer starts when you press Begin and keeps running if you reload or close the tab.</li>
           ) : null}
@@ -64,6 +71,7 @@ export function BriefingScreen({ quiz, scheme, questionCount, limitSecs, storage
               : 'This browser is blocking site storage, so your answers cannot be auto-saved. Do not reload the page.'}
           </li>
           <li>Use the question palette to jump between questions. Mark any question for review and come back to it.</li>
+          <li>You can pause the test and continue later, even after you sign out and in. The timer stops while it is paused.</li>
           <li>When the time ends, your test is submitted automatically.</li>
         </ul>
 
@@ -75,7 +83,7 @@ export function BriefingScreen({ quiz, scheme, questionCount, limitSecs, storage
             Back to modules
           </Link>
           <button type="button" onClick={onBegin} className={`${primaryButton} sm:min-w-44`}>
-            Begin test
+            {pausedSecs !== null ? 'Continue test' : 'Begin test'}
           </button>
         </div>
       </motion.div>

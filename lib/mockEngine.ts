@@ -1,5 +1,6 @@
 import type { AnswerItem, Letter } from "@/lib/mockScoring";
 import type { TestKind } from "@/lib/test-settings";
+import type { TestProgress } from "@/lib/test-pause";
 
 /** A question as the test taker sees it. The answer key and the solution are never in here. */
 export interface PublicQuestion {
@@ -41,6 +42,8 @@ export type StartResult =
       /** Identifies this sitting, so saved answers match the right attempt. */
       sittingId: string;
       resumed: boolean;
+      /** Set when the cadet paused the test: their answers and place, kept on the server. */
+      progress: TestProgress | null;
     }
   | { ok: false; reason: EngineFailure; message: string };
 
