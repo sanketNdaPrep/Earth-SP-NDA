@@ -143,6 +143,24 @@
   }
 }
 
+/* Keep the scrollbar's space reserved, so the page does not shift sideways when a menu or popup locks scrolling. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* The gutter above already holds the scrollbar's place, so the extra margin that the dialog library adds
+   when it locks scrolling would shift the page a second time. Switch it off. */
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+}
+html .with-scroll-bars-hidden {
+  padding-right: 0 !important;
+}
+html .right-scroll-bar-position {
+  right: 0 !important;
+}
+
 body {
   background-color: var(--color-navy-950);
   color: var(--color-steel-100);
