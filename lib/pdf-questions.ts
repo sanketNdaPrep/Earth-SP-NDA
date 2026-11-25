@@ -301,10 +301,10 @@ interface KeyEntry {
 
 /** Reads a key laid out as a table: question number, answer, explanation. */
 function readKeyTable(lines: Line[]): KeyEntry[] {
-  const header = lines.find((l) => l.cells.some((c) => /^ans/i.test(c.str.trim())) && l.cells.some((c) => /^(?:expl|solution|reason)/i.test(c.str.trim())));
+  const header = lines.find((l) => l.cells.some((c) => /^ans/i.test(c.str.trim())) && l.cells.some((c) => /expl|solution|reason/i.test(c.str.trim())));
   if (!header) return [];
   const ansX = header.cells.find((c) => /^ans/i.test(c.str.trim()))?.x ?? 0;
-  const explX = header.cells.find((c) => /^(?:expl|solution|reason)/i.test(c.str.trim()))?.x ?? 0;
+  const explX = header.cells.find((c) => /expl|solution|reason/i.test(c.str.trim()))?.x ?? 0;
   const after = lines.slice(lines.indexOf(header) + 1);
 
   interface Row {
@@ -327,7 +327,7 @@ function readKeyTable(lines: Line[]): KeyEntry[] {
   const explanation = new Map<Row, { y: number; text: string }[]>();
   for (const line of after) {
     // The table heading is repeated at the top of every page. It is not an explanation.
-    if (line.cells.some((c) => /^ans/i.test(c.str.trim()) && c.x < explX - 6) && line.cells.some((c) => /^(?:expl|solution|reason)/i.test(c.str.trim()))) continue;
+    if (line.cells.some((c) => /^ans/i.test(c.str.trim()) && c.x < explX - 6) && line.cells.some((c) => /expl|solution|reason/i.test(c.str.trim()))) continue;
     const cells = line.cells.filter((c) => c.x >= explX - 3);
     if (cells.length === 0) continue;
     const onPage = rows.filter((r) => r.page === line.page);

@@ -91,3 +91,29 @@ export function insertAfter<T>(list: readonly T[], index: number, item: T): T[] 
   const at = index < 0 || index >= list.length ? list.length : index + 1;
   return [...list.slice(0, at), item, ...list.slice(at)];
 }
+
+const fingerprint = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 80);
+
+/**
+ * Fills explanations that are still empty from a re-read of the saved PDF. A question is matched by its text,
+ * or by its position when the PDF and the test have the same number of questions. An explanation already
+ * written is never replaced.
+ */
+export function fillMissingExplanations(list: readonly BuilderQuestion[], drafts: readonly DraftQuestion[]): { list: BuilderQuestion[]; filled: number } {
+  const owned = list.filter((q) => q.owned);
+  const samePlace = owned.length === drafts.length;
+  const byText = new Map<string, DraftQuestion>();
+  for (const d of drafts) byText.set(fingerprint(d.text), d);
+  let filled = 0;
+  let place = -1;
+  const next = list.map((q) => {
+    if (!q.owned) return q;
+    place += 1;
+    if (q.explanation.trim()) return q;
+    const draft = byText.get(fingerprint(q.text)) ?? (samePlace ? drafts[place] : undefined);
+    if (!draft || !draft.explanation.trim()) return q;
+    filled += 1;
+    return { ...q, explanation: draft.explanation };
+  });
+  return { list: next, filled };
+}

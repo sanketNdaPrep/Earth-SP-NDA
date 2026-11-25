@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blankQuestion, fromDraft, insertAfter, moveItem, questionProblems, signatureOf, summarise } from "../lib/test-questions";
+import { blankQuestion, fillMissingExplanations, fromDraft, insertAfter, moveItem, questionProblems, signatureOf, summarise } from "../lib/test-questions";
 
 const good = () => ({
   ...blankQuestion(),
@@ -65,5 +65,26 @@ describe("moveItem and insertAfter", () => {
   it("inserts after an index or at the end", () => {
     expect(insertAfter([1, 2, 3], 0, 9)).toEqual([1, 9, 2, 3]);
     expect(insertAfter([1, 2, 3], -1, 9)).toEqual([1, 2, 3, 9]);
+  });
+});
+
+describe("fillMissingExplanations", () => {
+  const draft = (text: string, explanation: string) => ({ number: 1, tag: "", text, options: { A: "a", B: "b", C: "c", D: "d" }, correct: "A" as const, explanation, flags: [] });
+  it("fills empty explanations by text and keeps written ones", () => {
+    const a = { ...good(), text: "Which river is longest?" };
+    const b = { ...good(), text: "Capital of India?", explanation: "My own note" };
+    const result = fillMissingExplanations([a, b], [draft("Which river is longest?", "The Nile."), draft("Capital of India?", "Pdf note")]);
+    expect(result.filled).toBe(1);
+    expect(result.list.map((q) => q.explanation)).toEqual(["The Nile.", "My own note"]);
+  });
+  it("falls back to position when the counts match", () => {
+    const a = { ...good(), text: "Edited wording" };
+    const result = fillMissingExplanations([a], [draft("Original wording", "By place.")]);
+    expect(result.list[0].explanation).toBe("By place.");
+  });
+  it("does not guess by position when the counts differ", () => {
+    const a = { ...good(), text: "Edited wording" };
+    const result = fillMissingExplanations([a], [draft("One", "x"), draft("Two", "y")]);
+    expect(result.filled).toBe(0);
   });
 });

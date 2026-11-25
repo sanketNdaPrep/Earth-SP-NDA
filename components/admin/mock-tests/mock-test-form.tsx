@@ -35,7 +35,10 @@ import {
 } from "@/lib/mockTests";
 import { clip, type BankModule } from "@/lib/questionBank";
 import { supabase } from "@/lib/supabaseClient";
-import { blankQuestion, insertAfter, moveItem, newKey, questionProblems, signatureOf, summarise, type BuilderQuestion } from "@/lib/test-questions";
+import { parseQuestionPdf } from "@/lib/pdf-questions";
+import { readPdfText } from "@/lib/pdf-text";
+import { RESOURCE_BUCKET } from "@/lib/resources";
+import { blankQuestion, fillMissingExplanations, insertAfter, moveItem, newKey, questionProblems, signatureOf, summarise, type BuilderQuestion } from "@/lib/test-questions";
 import { removeTestPdf, savedMapOf, saveTestQuestions, uploadTestPdf, type SavedQuestions } from "@/lib/test-save";
 
 type LoadState = "loading" | "ready" | "missing" | "error";
@@ -285,6 +288,33 @@ export function MockTestForm({ testId: initialId, initialKind }: { testId?: stri
     const first = reading.questions.find((q) => q.flags.length > 0) ?? reading.questions[0];
     setOpenKey(first?.key ?? null);
     setTitle((current) => (current.trim() ? current : reading.file.name.replace(/\.pdf$/i, "").replace(/[_-]+/g, " ").trim().slice(0, MOCK_LIMITS.titleMax)));
+  };
+
+  // Re-reads the PDF saved with this test and fills only the explanations that are still empty.
+  const [rereading, setRereading] = React.useState(false);
+  const missingExplanations = attached.filter((q) => q.owned && !q.explanation.trim()).length;
+  const rereadExplanations = async () => {
+    if (!sourcePdf) return;
+    setRereading(true);
+    setBanner(null);
+    try {
+      const url = supabase.storage.from(RESOURCE_BUCKET).getPublicUrl(sourcePdf).data.publicUrl;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("The saved PDF could not be downloaded.");
+      const file = new File([await res.blob()], "saved.pdf", { type: "application/pdf" });
+      const { items } = await readPdfText(file);
+      const result = fillMissingExplanations(attached, parseQuestionPdf(items).questions);
+      if (result.filled === 0) {
+        setBanner({ type: "error", text: "No explanations could be found in the saved PDF for the empty questions." });
+      } else {
+        setAttached(result.list);
+        setBanner({ type: "success", text: `${result.filled} explanation${result.filled === 1 ? "" : "s"} filled from the saved PDF. Press Save Changes to keep them.` });
+      }
+    } catch (e) {
+      setBanner({ type: "error", text: e instanceof Error ? e.message : "The saved PDF could not be read." });
+    } finally {
+      setRereading(false);
+    }
   };
 
   /** Clears the form for another test. The exam, time and marking stay, since a series is usually alike. Subject stays; the chapter must be typed again. */
@@ -819,7 +849,14 @@ export function MockTestForm({ testId: initialId, initialKind }: { testId?: stri
               From <span className="font-semibold text-white">{pdfFile.name}</span>. This PDF is saved with the test and students can download it as it is.
             </p>
           ) : sourcePdf ? (
-            <p className="rounded-control border border-steel-700/60 bg-navy-950 p-3 text-xs text-steel-300">This test has its original PDF saved. Uploading another PDF replaces it.</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-steel-700/60 bg-navy-950 p-3 text-xs text-steel-300">
+              <p>This test has its original PDF saved. Uploading another PDF replaces it.</p>
+              {editing && missingExplanations > 0 ? (
+                <Button type="button" variant="outline" size="sm" loading={rereading} disabled={rereading} onClick={() => void rereadExplanations()}>
+                  Fill {missingExplanations} missing explanation{missingExplanations === 1 ? "" : "s"} from the saved PDF
+                </Button>
+              ) : null}
+            </div>
           ) : null}
           {pdfWarnings.length > 0 ? (
             <ul className="space-y-1 rounded-control border border-gold-400/30 bg-gold-400/5 p-3 text-xs text-gold-300">

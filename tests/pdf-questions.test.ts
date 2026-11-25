@@ -171,3 +171,26 @@ describe("whole-file warnings", () => {
     expect(q.flags.join(" ")).toMatch(/picture or diagram/);
   });
 });
+
+describe("answer-key table whose explanation heading does not start with the word", () => {
+  const q = (n: number, y: number): TextItem[] => [
+    ...row(1, y, [60, `Q${String(n).padStart(3, "0")}`], [100, "Which river is longest?"]),
+    ...row(1, y + 20, [60, "(A)"], [80, "Nile"], [300, "(B)"], [320, "Amazon"]),
+    ...row(1, y + 36, [60, "(C)"], [80, "Ganga"], [300, "(D)"], [320, "Indus"]),
+  ];
+  const items = [
+    ...q(1, 100),
+    ...q(2, 200),
+    ...row(2, 75, [45, "Answer Key"]),
+    ...row(2, 110, [62, "Q.No"], [104, "Ans"], [155, "1-Line Explanation"]),
+    ...row(2, 150, [62, "Q001"], [104, "A"], [155, "The Nile is the longest river."]),
+    ...row(2, 190, [62, "Q002"], [104, "B"], [155, "The Amazon carries the most water."]),
+    ...footers(2),
+  ];
+  const result = parseQuestionPdf(items);
+
+  it("reads the answers and the explanations", () => {
+    expect(result.questions.map((x) => x.correct)).toEqual(["A", "B"]);
+    expect(result.questions.map((x) => x.explanation)).toEqual(["The Nile is the longest river.", "The Amazon carries the most water."]);
+  });
+});
