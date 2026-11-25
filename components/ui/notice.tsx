@@ -53,7 +53,7 @@ export interface NoticeProps {
   onClose?: () => void;
   /** Hides itself after this many milliseconds, with a line that drains. Leave out to stay until closed. */
   autoHideMs?: number;
-  /** Scrolls the notice into view when it appears, so a message at the top of a long form is not missed. Default true. */
+  /** If the notice appears outside the visible screen, scrolls just enough to show it. Never moves the page when it is already visible. Default true. */
   reveal?: boolean;
   className?: string;
 }
@@ -67,8 +67,14 @@ export function Notice({ kind, children, title, actions, onClose, autoHideMs, re
   });
   const v = look[kind];
 
+  // Only moves the page when the message is outside the visible screen, and then by the smallest amount.
+  // A message that is already in view never makes the page jump.
   React.useEffect(() => {
-    if (reveal) ref.current?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    const el = ref.current;
+    if (!reveal || !el) return;
+    const { top, bottom } = el.getBoundingClientRect();
+    if (top >= 0 && bottom <= window.innerHeight) return;
+    el.scrollIntoView({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [reveal]);
 
   React.useEffect(() => {

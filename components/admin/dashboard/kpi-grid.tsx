@@ -25,7 +25,7 @@ export function KpiGrid({ items }: { items: Kpi[] }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.1 + index * 0.06, ease: 'easeOut' }}
-          className="group flex flex-col rounded-md border border-steel-700 bg-navy-900 p-5 transition-[border-color,box-shadow] duration-200 hover:border-emerald-400/50 hover:shadow-[0_0_32px_-12px_rgb(52_211_153/0.55)]"
+          className="group flex flex-col rounded-md border border-steel-700 bg-navy-900 p-5 transition-colors duration-200 hover:border-emerald-400/50"
         >
           <div className="flex items-start justify-between gap-3">
             <span className="grid size-10 place-items-center rounded-md border border-steel-700 bg-navy-950 text-emerald-300 transition-colors group-hover:border-emerald-400/40">

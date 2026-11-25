@@ -7,12 +7,9 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outl
 export type ButtonSize = "sm" | "md" | "lg" | "icon";
 
 const base =
-  "relative isolate inline-flex shrink-0 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-button border border-transparent font-sans font-semibold tracking-normal " +
-  "transition-[translate,scale,box-shadow,background-color,border-color,color] duration-(--duration-base) ease-(--ease-standard) " +
-  "hover:-translate-y-px active:translate-y-px active:scale-98 active:duration-(--duration-fast) motion-reduce:translate-none motion-reduce:scale-100 motion-reduce:transition-none " +
-  // A soft light that sweeps across on hover.
-  "after:pointer-events-none after:absolute after:inset-0 after:-z-10 after:-translate-x-full after:bg-linear-105 after:from-transparent after:via-white/30 after:to-transparent " +
-  "after:transition-transform after:duration-700 hover:after:translate-x-full motion-reduce:after:hidden " +
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-button border border-transparent font-sans font-semibold tracking-normal " +
+  "transition-[box-shadow,background-color,border-color,color] duration-(--duration-base) ease-(--ease-standard) " +
+  "active:duration-(--duration-fast) motion-reduce:transition-none " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 focus-visible:ring-offset-2 focus-visible:ring-offset-navy-950 " +
   "disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none aria-disabled:pointer-events-none aria-disabled:opacity-50";
 

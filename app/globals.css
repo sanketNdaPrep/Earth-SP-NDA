@@ -42,13 +42,13 @@
   --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 2px rgb(0 0 0 / 0.28);
   --shadow-button-hover: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 12px -4px rgb(0 0 0 / 0.45);
   /* Rich buttons: a lit top edge, a shaded bottom edge and a soft coloured glow. */
-  --shadow-rich: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -2px 0 rgb(0 0 0 / 0.14), 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 16px -6px rgb(250 204 21 / 0.45);
-  --shadow-rich-hover: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -2px 0 rgb(0 0 0 / 0.14), 0 2px 4px rgb(0 0 0 / 0.4), 0 10px 24px -6px rgb(250 204 21 / 0.6);
+  --shadow-rich: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -2px 0 rgb(0 0 0 / 0.14), 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-rich-hover: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -2px 0 rgb(0 0 0 / 0.14), 0 2px 4px rgb(0 0 0 / 0.4);
   --shadow-rich-quiet: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-rich-quiet-hover: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 0 0 3px rgb(250 204 21 / 0.12), 0 6px 16px -8px rgb(0 0 0 / 0.7);
-  --shadow-rich-success: inset 0 1px 0 rgb(255 255 255 / 0.5), inset 0 -2px 0 rgb(0 0 0 / 0.14), 0 6px 16px -6px rgb(52 211 153 / 0.5);
-  --shadow-rich-danger: 0 6px 16px -6px rgb(239 68 68 / 0.6);
-  --shadow-notice: 0 12px 30px -14px rgb(52 211 153 / 0.4);
+  --shadow-rich-quiet-hover: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 2px 4px rgb(0 0 0 / 0.4);
+  --shadow-rich-success: inset 0 1px 0 rgb(255 255 255 / 0.5), inset 0 -2px 0 rgb(0 0 0 / 0.14), 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-rich-danger: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-notice: 0 1px 2px rgb(0 0 0 / 0.3);
 
   /* Motion */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -98,13 +98,13 @@
   --shadow-glow: 0 0 24px -4px rgb(27 54 93 / 0.25);
   --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(27 54 93 / 0.3);
   --shadow-button-hover: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 12px -4px rgb(27 54 93 / 0.45);
-  --shadow-rich: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 1px 2px rgb(27 54 93 / 0.35), 0 6px 16px -6px rgb(27 54 93 / 0.45);
-  --shadow-rich-hover: inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 2px 4px rgb(27 54 93 / 0.35), 0 10px 24px -6px rgb(27 54 93 / 0.55);
+  --shadow-rich: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 1px 2px rgb(27 54 93 / 0.35);
+  --shadow-rich-hover: inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 2px 4px rgb(27 54 93 / 0.35);
   --shadow-rich-quiet: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(27 54 93 / 0.18);
-  --shadow-rich-quiet-hover: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0 0 3px rgb(27 54 93 / 0.12), 0 6px 16px -8px rgb(27 54 93 / 0.35);
-  --shadow-rich-success: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 6px 16px -6px rgb(31 107 74 / 0.5);
-  --shadow-rich-danger: 0 6px 16px -6px rgb(180 35 24 / 0.5);
-  --shadow-notice: 0 12px 30px -14px rgb(31 107 74 / 0.35);
+  --shadow-rich-quiet-hover: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 2px 4px rgb(27 54 93 / 0.22);
+  --shadow-rich-success: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 1px 2px rgb(27 54 93 / 0.35);
+  --shadow-rich-danger: 0 1px 2px rgb(27 54 93 / 0.3);
+  --shadow-notice: 0 1px 2px rgb(27 54 93 / 0.2);
   --color-sky-300: #1d5f99;
 
   /* Older pages still use the default grey, amber and red palettes: map them onto the light surfaces and navy text. */
