@@ -286,8 +286,8 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
           </form>
         ) : null}
       </div>
-      {note ? <Notice kind="success" onClose={() => setNote(null)} autoHideMs={8000}>{note}</Notice> : null}
-      {problem ? <Notice kind="error" onClose={() => setProblem(null)}>{problem}</Notice> : null}
+      {note ? <Notice kind="success" reveal={false} onClose={() => setNote(null)} autoHideMs={8000}>{note}</Notice> : null}
+      {problem ? <Notice kind="error" reveal={false} onClose={() => setProblem(null)}>{problem}</Notice> : null}
     </div>
   );
 }

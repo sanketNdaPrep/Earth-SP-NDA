@@ -100,7 +100,7 @@ export function SyllabusManager() {
       <CardContent className="space-y-4">
         <p className="text-xs text-steel-500">Upload one PDF per entry scheme (up to 50 MB). Students see a &quot;Download syllabus&quot; button on that exam&apos;s page.</p>
         {msg ? (
-        <Notice kind={msg.type} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
+        <Notice kind={msg.type} reveal={false} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
       ) : null}
         {loadError ? <Notice kind="error" reveal={false} title="Could not load">Could not load the entry schemes: {loadError}. Has migration 017 been run?</Notice> : null}
         {!rows && !loadError ? <p className="text-xs text-steel-300">Loading...</p> : null}
