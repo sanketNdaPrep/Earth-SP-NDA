@@ -9,6 +9,7 @@ import { countFiled } from "@/lib/usage-check";
 import { blockedMessage, splitDeletable } from "@/lib/usage";
 import { CHAPTER_NAME, chapterNameProblem, parseChapterList, sortChapters, type Chapter } from "@/lib/taxonomy";
 import { supabase } from "@/lib/supabaseClient";
+import { Notice } from "@/components/ui/notice";
 
 const inputClass =
   "w-full rounded-control border border-steel-700 bg-navy-950 px-3 py-2 text-sm text-steel-100 placeholder:text-steel-500 focus:border-gold-400 focus:outline-none";
@@ -285,8 +286,8 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
           </form>
         ) : null}
       </div>
-      {note ? <p role="status" className="text-xs text-emerald-300">{note}</p> : null}
-      {problem ? <p role="alert" className="text-xs text-danger-400">{problem}</p> : null}
+      {note ? <Notice kind="success" onClose={() => setNote(null)} autoHideMs={8000}>{note}</Notice> : null}
+      {problem ? <Notice kind="error" onClose={() => setProblem(null)}>{problem}</Notice> : null}
     </div>
   );
 }

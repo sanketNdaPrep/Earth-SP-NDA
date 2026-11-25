@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
+import { Notice } from "@/components/ui/notice";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -602,26 +603,25 @@ export function MockTestForm({ testId: initialId, initialKind }: { testId?: stri
       ) : null}
 
       {banner ? (
-        <div
-          role={banner.type === "error" ? "alert" : "status"}
-          className={
-            banner.type === "error"
-              ? "rounded-control border border-danger-500/40 bg-danger-500/10 p-3 text-xs font-semibold text-danger-400"
-              : "flex flex-wrap items-center justify-between gap-3 rounded-control border border-emerald-400/30 bg-emerald-400/10 p-3 text-xs font-semibold text-emerald-300"
+        <Notice
+          kind={banner.type}
+          onClose={() => setBanner(null)}
+          actions={
+            banner.type === "success" && !banner.text.includes("Press Save Changes") ? (
+              <>
+                <Button type="button" variant="success" size="sm" onClick={startNewTest}>
+                  <Icons.plus className="size-4" aria-hidden />
+                  Add another test
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/admin/questions?tab=${kind}`}>Back to the Question Bank</Link>
+                </Button>
+              </>
+            ) : null
           }
         >
-          <span>{banner.text}</span>
-          {banner.type === "success" ? (
-            <span className="flex flex-wrap items-center gap-4">
-              <button type="button" onClick={startNewTest} className="underline underline-offset-2 hover:text-emerald-200">
-                Add another test
-              </button>
-              <Link href={`/admin/questions?tab=${kind}`} className="underline underline-offset-2 hover:text-emerald-200">
-                Back to the Question Bank
-              </Link>
-            </span>
-          ) : null}
-        </div>
+          {banner.text}
+        </Notice>
       ) : null}
 
       <Card>

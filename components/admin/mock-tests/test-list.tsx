@@ -31,6 +31,7 @@ import { BackButton, ChapterThumb, plural } from "@/components/vault/folder-part
 import { subjectCoverUrl } from "@/components/flashcards/picture-url";
 import type { ExamId } from "@/lib/subjects";
 import { cutoffText, KIND_SHORT, type TestKind } from "@/lib/test-settings";
+import { Notice } from "@/components/ui/notice";
 
 function Fact({ label, value }: { label: string; value: string | number }) {
   return (
@@ -306,16 +307,9 @@ export function TestList({ kind }: { kind: TestKind }) {
   }, [all, kind, taxonomy.subjects, taxonomy.chapters]);
 
   const notice_ = notice ? (
-    <p
-      role={notice.type === "error" ? "alert" : "status"}
-      className={
-        notice.type === "error"
-          ? "rounded-control border border-danger-500/40 bg-danger-500/10 p-3 text-xs font-semibold text-danger-400"
-          : "rounded-control border border-emerald-400/30 bg-emerald-400/10 p-3 text-xs font-semibold text-emerald-300"
-      }
-    >
+    <Notice kind={notice.type} onClose={() => setNotice(null)} autoHideMs={notice.type === "success" ? 8000 : undefined}>
       {notice.text}
-    </p>
+    </Notice>
   ) : null;
 
   const header = (

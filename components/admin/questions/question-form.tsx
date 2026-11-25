@@ -25,6 +25,7 @@ import {
   type BankQuestion,
 } from "@/lib/questionBank";
 import { supabase } from "@/lib/supabaseClient";
+import { Notice } from "@/components/ui/notice";
 
 type FieldKey = "question" | "explanation" | Opt;
 type Options = Record<Opt, string>;
@@ -374,21 +375,19 @@ export function QuestionForm({ questionId }: QuestionFormProps) {
       </div>
 
       {banner ? (
-        <div
-          role={banner.type === "error" ? "alert" : "status"}
-          className={
-            banner.type === "error"
-              ? "rounded-control border border-danger-500/40 bg-danger-500/10 p-3 text-xs font-semibold text-danger-400"
-              : "flex flex-wrap items-center justify-between gap-3 rounded-control border border-emerald-400/30 bg-emerald-400/10 p-3 text-xs font-semibold text-emerald-300"
+        <Notice
+          kind={banner.type}
+          onClose={() => setBanner(null)}
+          actions={
+            banner.type === "success" ? (
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/questions">View question bank</Link>
+              </Button>
+            ) : null
           }
         >
-          <span>{banner.text}</span>
-          {banner.type === "success" ? (
-            <Link href="/admin/questions" className="underline underline-offset-2 hover:text-emerald-200">
-              View question bank
-            </Link>
-          ) : null}
-        </div>
+          {banner.text}
+        </Notice>
       ) : null}
 
       <Card>
