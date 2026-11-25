@@ -6,6 +6,7 @@ import { formatStamp } from './format';
 import { Panel } from './panel';
 import { isDone, StatusBadge } from './status-badge';
 import type { QueryItem } from './types';
+import { Table, TBody, Td, THead, Th, Tr } from "@/components/ui/data-table";
 
 type Filter = 'all' | 'pending' | 'resolved';
 
@@ -94,50 +95,50 @@ export function QueriesPanel({
         </p>
       ) : (
         <div className="md:max-h-[34rem] md:overflow-auto">
-          <table className="hidden w-full border-separate border-spacing-0 text-left md:table">
+          <Table className="hidden min-w-0 md:table">
             <caption className="sr-only">Recent student queries</caption>
-            <thead className="sticky top-0 z-10 bg-navy-900">
-              <tr className="text-xs font-medium text-steel-300">
-                <th scope="col" className="border-b border-steel-700/60 px-6 py-3 font-medium">
+            <THead>
+              <Tr className="even:bg-transparent hover:bg-transparent">
+                <Th>
                   Cadet
-                </th>
-                <th scope="col" className="border-b border-steel-700/60 px-3 py-3 font-medium">
+                </Th>
+                <Th>
                   Query
-                </th>
-                <th scope="col" className="border-b border-steel-700/60 px-3 py-3 font-medium">
+                </Th>
+                <Th>
                   Status and time
-                </th>
-                <th scope="col" className="border-b border-steel-700/60 px-6 py-3 text-right font-medium">
+                </Th>
+                <Th className="text-right">
                   Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </Th>
+              </Tr>
+            </THead>
+            <TBody>
               {rows.map((query) => (
-                <tr key={query.id} className="transition-colors hover:bg-white/5">
-                  <td className="w-56 border-b border-steel-700/40 py-4 pl-6 pr-2 align-top">
+                <Tr key={query.id}>
+                  <Td className="w-56 align-top">
                     <p className="break-words font-medium text-white">{query.student_name}</p>
                     <p className="break-words text-xs text-steel-300">{query.student_email}</p>
-                  </td>
-                  <td className="border-b border-steel-700/40 px-3 py-4 align-top">
+                  </Td>
+                  <Td className="align-top">
                     <p className="line-clamp-3 leading-relaxed text-steel-100">
                       {query.query_text}
                     </p>
-                  </td>
-                  <td className="w-36 whitespace-nowrap border-b border-steel-700/40 px-3 py-4 align-top">
+                  </Td>
+                  <Td className="w-36 whitespace-nowrap align-top">
                     <StatusBadge status={query.status} />
                     <p className="mt-2 text-xs tabular-nums text-steel-300">
                       <span className="sr-only">Received </span>
                       <time dateTime={query.created_at}>{formatStamp(query.created_at)}</time>
                     </p>
-                  </td>
-                  <td className="border-b border-steel-700/40 px-6 py-4 text-right align-top">
+                  </Td>
+                  <Td className="text-right align-top">
                     <ActionButton query={query} onOpen={onOpen} />
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))}
-            </tbody>
-          </table>
+            </TBody>
+          </Table>
 
           <ul className="md:hidden">
             {rows.map((query) => (

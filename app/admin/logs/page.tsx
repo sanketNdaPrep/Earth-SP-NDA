@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { describeLog, type AdminLogAction, type AdminLogRow } from "@/lib/adminLog";
 import { supabase } from "@/lib/supabaseClient";
+import { Table, TableShell, TBody, Td, THead, Th, Tr } from "@/components/ui/data-table";
 
 const ACTION_BADGE: Record<AdminLogAction, "emerald" | "gold" | "outline" | "danger"> = {
   added: "emerald",
@@ -78,31 +79,31 @@ export default function AdminLogsPage() {
           {!rows && !error ? <p className="text-xs text-steel-300">Loading logs...</p> : null}
           {rows && rows.length === 0 ? <p className="text-xs text-steel-300">No actions recorded yet.</p> : null}
           {rows && rows.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-lg text-left text-xs">
+            <TableShell>
+              <Table>
                 <caption className="sr-only">Recent admin actions, newest first</caption>
-                <thead className="text-steel-500">
-                  <tr className="border-b border-steel-700/60">
-                    <th scope="col" className="py-2 pr-4 font-semibold uppercase tracking-wider">When</th>
-                    <th scope="col" className="py-2 pr-4 font-semibold uppercase tracking-wider">Action</th>
-                    <th scope="col" className="py-2 font-semibold uppercase tracking-wider">What happened</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-steel-700/40">
+                <THead>
+                  <Tr>
+                    <Th>When</Th>
+                    <Th>Action</Th>
+                    <Th>What happened</Th>
+                  </Tr>
+                </THead>
+                <TBody>
                   {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="whitespace-nowrap py-3 pr-4 text-steel-300">
+                    <Tr key={row.id}>
+                      <Td className="whitespace-nowrap text-steel-300">
                         <time dateTime={row.created_at}>{new Date(row.created_at).toLocaleString()}</time>
-                      </td>
-                      <td className="py-3 pr-4">
+                      </Td>
+                      <Td>
                         <Badge variant={ACTION_BADGE[row.action]}>{row.action}</Badge>
-                      </td>
-                      <td className="py-3 text-steel-100">{describeLog(row)}</td>
-                    </tr>
+                      </Td>
+                      <Td className="text-steel-100">{describeLog(row)}</Td>
+                    </Tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TBody>
+              </Table>
+            </TableShell>
           ) : null}
         </CardContent>
       </Card>

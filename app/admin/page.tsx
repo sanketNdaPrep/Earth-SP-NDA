@@ -10,6 +10,7 @@ import { ApprovalsPanel } from "@/components/admin/approvals-panel";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { useRoster } from "@/components/admin/use-roster";
 import { formatDay } from "@/lib/adminRoster";
+import { Table, TableShell, TBody, Td, THead, Th, Tr } from "@/components/ui/data-table";
 
 const RECENT_COUNT = 6;
 
@@ -96,33 +97,33 @@ export default function AdminOverviewPage() {
             <p className="py-6 text-sm text-steel-300">No students have registered yet. New sign-ups will appear here.</p>
           ) : null}
           {ready && ready.students.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-steel-700 bg-navy-950 font-mono text-steel-400 uppercase">
-                  <tr>
-                    <th className="p-3">Candidate</th>
-                    <th className="p-3">Target Exam</th>
-                    <th className="p-3">Tests Taken</th>
-                    <th className="p-3">Accuracy</th>
-                    <th className="p-3">Joined Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-steel-700/50">
+            <TableShell>
+              <Table>
+                <THead>
+                  <Tr>
+                    <Th>Candidate</Th>
+                    <Th>Target Exam</Th>
+                    <Th>Tests Taken</Th>
+                    <Th>Accuracy</Th>
+                    <Th>Joined Date</Th>
+                  </Tr>
+                </THead>
+                <TBody>
                   {ready.students.slice(0, RECENT_COUNT).map((std) => (
-                    <tr key={std.id} className="hover:bg-navy-800/40">
-                      <td className="p-3">
+                    <Tr key={std.id}>
+                      <Td>
                         <div className="font-semibold text-white">{std.name}</div>
                         <div className="text-steel-500">{std.email}</div>
-                      </td>
-                      <td className="p-3 font-mono text-gold-300">{std.targetExam}</td>
-                      <td className="p-3 font-mono text-white">{std.testsTaken}</td>
-                      <td className="p-3 font-mono font-bold text-white">{std.accuracy === null ? "-" : `${std.accuracy}%`}</td>
-                      <td className="p-3 text-steel-400">{formatDay(std.joinedAt)}</td>
-                    </tr>
+                      </Td>
+                      <Td className="font-mono text-gold-300">{std.targetExam}</Td>
+                      <Td className="font-mono text-white">{std.testsTaken}</Td>
+                      <Td className="font-mono font-bold text-white">{std.accuracy === null ? "-" : `${std.accuracy}%`}</Td>
+                      <Td className="text-steel-400">{formatDay(std.joinedAt)}</Td>
+                    </Tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TBody>
+              </Table>
+            </TableShell>
           ) : null}
         </CardContent>
       </Card>

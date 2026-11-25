@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { ROSTER_LIMIT, useRoster } from "@/components/admin/use-roster";
 import { EXAMS, filterStudents, formatDay } from "@/lib/adminRoster";
+import { Table, TableShell, TBody, Td, THead, Th, Tr } from "@/components/ui/data-table";
 
 export default function AdminStudentsPage() {
   const { state, retry } = useRoster();
@@ -81,35 +82,35 @@ export default function AdminStudentsPage() {
             <p className="py-6 text-sm text-steel-300">No candidates match that search.</p>
           ) : null}
           {filtered.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-steel-700 bg-navy-950 font-mono text-steel-400 uppercase">
-                  <tr>
-                    <th className="p-3">Candidate Name</th>
-                    <th className="p-3">Target Exam</th>
-                    <th className="p-3">Tests Taken</th>
-                    <th className="p-3">Accuracy</th>
-                    <th className="p-3">Last Test</th>
-                    <th className="p-3">Registered On</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-steel-700/50">
+            <TableShell>
+              <Table>
+                <THead>
+                  <Tr>
+                    <Th>Candidate Name</Th>
+                    <Th>Target Exam</Th>
+                    <Th>Tests Taken</Th>
+                    <Th>Accuracy</Th>
+                    <Th>Last Test</Th>
+                    <Th>Registered On</Th>
+                  </Tr>
+                </THead>
+                <TBody>
                   {filtered.map((std) => (
-                    <tr key={std.id} className="hover:bg-navy-800/40">
-                      <td className="p-3">
+                    <Tr key={std.id}>
+                      <Td>
                         <div className="font-semibold text-white">{std.name}</div>
                         <div className="text-steel-500">{std.email}</div>
-                      </td>
-                      <td className="p-3 font-mono text-gold-300">{std.targetExam}</td>
-                      <td className="p-3 font-mono text-white">{std.testsTaken}</td>
-                      <td className="p-3 font-mono font-bold text-white">{std.accuracy === null ? "-" : `${std.accuracy}%`}</td>
-                      <td className="p-3 text-steel-400">{formatDay(std.lastAttempt)}</td>
-                      <td className="p-3 text-steel-400">{formatDay(std.joinedAt)}</td>
-                    </tr>
+                      </Td>
+                      <Td className="font-mono text-gold-300">{std.targetExam}</Td>
+                      <Td className="font-mono text-white">{std.testsTaken}</Td>
+                      <Td className="font-mono font-bold text-white">{std.accuracy === null ? "-" : `${std.accuracy}%`}</Td>
+                      <Td className="text-steel-400">{formatDay(std.lastAttempt)}</Td>
+                      <Td className="text-steel-400">{formatDay(std.joinedAt)}</Td>
+                    </Tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TBody>
+              </Table>
+            </TableShell>
           ) : null}
           {ready && ready.students.length >= ROSTER_LIMIT ? (
             <p className="mt-4 text-xs text-steel-400">Showing the newest {ROSTER_LIMIT.toLocaleString("en-IN")} students. The exam counts above are exact.</p>

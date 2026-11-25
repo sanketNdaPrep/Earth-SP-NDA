@@ -32,6 +32,7 @@ import { subjectCoverUrl } from "@/components/flashcards/picture-url";
 import type { ExamId } from "@/lib/subjects";
 import { cutoffText, KIND_SHORT, type TestKind } from "@/lib/test-settings";
 import { Notice } from "@/components/ui/notice";
+import { cn } from "@/lib/utils";
 
 function Fact({ label, value }: { label: string; value: string | number }) {
   return (
@@ -211,7 +212,7 @@ export function TestList({ kind }: { kind: TestKind }) {
     const minus = Number(test.negative_marks);
     return (
       <li key={test.id}>
-        <Card>
+        <Card className={cn("transition-[border-color,background-color,box-shadow] duration-(--duration-base) hover:border-steel-500", selected.has(test.id) && "border-gold-400/60 bg-gold-400/5 shadow-rich-quiet")}>
           <CardContent className="space-y-4 py-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
