@@ -44,6 +44,7 @@ import { saveFiling } from "@/lib/filing-save";
 import { cleanExams, type ExamId } from "@/lib/subjects";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { supabase } from "@/lib/supabaseClient";
+import { Notice } from "@/components/ui/notice";
 
 type Message = { type: "success" | "error"; text: string } | null;
 
@@ -383,16 +384,7 @@ export default function AdminResourcesPage() {
       </div>
 
       {msg ? (
-        <p
-          role={msg.type === "success" ? "status" : "alert"}
-          className={
-            msg.type === "success"
-              ? "rounded-control border border-emerald-400/30 bg-emerald-400/10 p-3 text-xs font-semibold text-emerald-300"
-              : "rounded-control border border-danger-500/40 bg-danger-500/10 p-3 text-xs font-semibold text-danger-400"
-          }
-        >
-          {msg.text}
-        </p>
+        <Notice kind={msg.type} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
       ) : null}
 
       <Card className="max-w-3xl">
@@ -502,7 +494,7 @@ export default function AdminResourcesPage() {
           <CardTitle className="text-lg">Uploaded Files</CardTitle>
         </CardHeader>
         <CardContent>
-          {loadError ? <p role="alert" className="text-xs text-danger-400">Could not load files: {loadError}</p> : null}
+          {loadError ? <Notice kind="error" reveal={false} title="Could not load">Could not load files: {loadError}</Notice> : null}
           {!rows && !loadError ? <p className="text-xs text-steel-300">Loading files...</p> : null}
           {rows && rows.length === 0 ? <p className="text-xs text-steel-300">No files yet. Upload the first one above.</p> : null}
 
@@ -521,12 +513,12 @@ export default function AdminResourcesPage() {
           ) : null}
 
           {rows && rows.length > 0 ? (
-            <ul className="divide-y divide-steel-700/40">
+            <ul className="divide-y divide-steel-700/40 overflow-hidden rounded-panel border border-steel-700/60">
               {rows.map((row) => {
                 const kind = resourceKind(row);
                 const hasLink = row.download_url && row.download_url !== "#";
                 return (
-                  <li key={row.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <li key={row.id} className="flex flex-col gap-3 py-4 px-4 transition-colors duration-(--duration-base) even:bg-steel-100/2 hover:bg-gold-400/6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <div className="min-w-0 space-y-2">
                       <label className="flex min-w-0 items-center gap-2">
                         <input type="checkbox" className="size-4 shrink-0 accent-gold-400" checked={ticked.has(row.id)} onChange={(e) => toggleTick(row.id, e.target.checked)} aria-label={`Select ${row.title}`} />

@@ -340,7 +340,7 @@ function PracticeBank() {
         </div>
       ) : null}
 
-      {error ? <p role="alert" className="text-xs text-danger-400">Could not load questions: {error}</p> : null}
+      {error ? <Notice kind="error" reveal={false} title="Could not load">Could not load questions: {error}</Notice> : null}
 
       {rows === null && !error ? (
         <SkeletonGroup label="Loading questions" className="space-y-4">

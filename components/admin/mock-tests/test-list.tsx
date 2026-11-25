@@ -316,7 +316,7 @@ export function TestList({ kind }: { kind: TestKind }) {
   const header = (
     <>
       {notice_}
-      {error ? <p role="alert" className="text-xs text-danger-400">Could not load tests: {error}</p> : null}
+      {error ? <Notice kind="error" reveal={false} title="Could not load">Could not load tests: {error}</Notice> : null}
       {tests === null && !error ? (
         <SkeletonGroup label="Loading tests" className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (

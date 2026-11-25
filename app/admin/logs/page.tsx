@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { describeLog, type AdminLogAction, type AdminLogRow } from "@/lib/adminLog";
 import { supabase } from "@/lib/supabaseClient";
 import { Table, TableShell, TBody, Td, THead, Th, Tr } from "@/components/ui/data-table";
+import { Notice } from "@/components/ui/notice";
 
 const ACTION_BADGE: Record<AdminLogAction, "emerald" | "gold" | "outline" | "danger"> = {
   added: "emerald",
@@ -75,7 +76,7 @@ export default function AdminLogsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {error ? <p role="alert" className="text-xs text-danger-400">Could not load the logs: {error}</p> : null}
+          {error ? <Notice kind="error" reveal={false} title="Could not load">Could not load the logs: {error}</Notice> : null}
           {!rows && !error ? <p className="text-xs text-steel-300">Loading logs...</p> : null}
           {rows && rows.length === 0 ? <p className="text-xs text-steel-300">No actions recorded yet.</p> : null}
           {rows && rows.length > 0 ? (

@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PictureManager } from "@/components/flashcards/picture-manager";
-import { Icons } from "@/components/ui/icons";
 import { FilingFields, emptyFiling } from "@/components/admin/filing-fields";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { checkFiling, type FilingInput } from "@/lib/filing";
@@ -13,6 +12,7 @@ import { saveFiling } from "@/lib/filing-save";
 import { logAdminAction } from "@/lib/adminLog";
 import { cardCount, DECK_LIMITS, formatCards, parseCards, type Card as FlashCard, type Deck } from "@/lib/flashcards";
 import { supabase } from "@/lib/supabaseClient";
+import { Notice } from "@/components/ui/notice";
 
 type Message = { type: "success" | "error"; text: string } | null;
 interface FormState {
@@ -192,15 +192,7 @@ export default function AdminFlashcardsPage() {
       </div>
 
       {msg ? (
-        <div
-          role={msg.type === "error" ? "alert" : "status"}
-          className={`flex max-w-3xl items-start gap-2 rounded-control border p-3 text-xs ${
-            msg.type === "success" ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-danger-500/40 bg-danger-500/10 text-danger-400"
-          }`}
-        >
-          {msg.type === "success" ? <Icons.checkCircle className="mt-0.5 size-4 shrink-0" aria-hidden /> : <Icons.info className="mt-0.5 size-4 shrink-0" aria-hidden />}
-          <span>{msg.text}</span>
-        </div>
+        <Notice kind={msg.type} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
       ) : null}
 
       <Card className="max-w-3xl">
@@ -254,13 +246,13 @@ export default function AdminFlashcardsPage() {
           {decks ? <Badge variant="outline">{decks.length} total</Badge> : null}
         </CardHeader>
         <CardContent>
-          {loadError ? <p role="alert" className="text-xs text-danger-400">Could not load decks: {loadError}. Have you run migration 011?</p> : null}
+          {loadError ? <Notice kind="error" reveal={false} title="Could not load">Could not load decks: {loadError}. Have you run migration 011?</Notice> : null}
           {!decks && !loadError ? <p className="text-xs text-steel-300">Loading decks...</p> : null}
           {decks && decks.length === 0 ? <p className="text-xs text-steel-300">No decks yet. Add the first one above.</p> : null}
           {decks && decks.length > 0 ? (
-            <ul className="divide-y divide-steel-700/50">
+            <ul className="divide-y divide-steel-700/50 overflow-hidden rounded-panel border border-steel-700/60">
               {decks.map((d) => (
-                <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-4 px-4 transition-colors duration-(--duration-base) even:bg-steel-100/2 hover:bg-gold-400/6">
                   <div className="min-w-0">
                     <div className="font-semibold text-white">{d.title}</div>
                     <p className="mt-0.5 text-xs text-steel-300">{filedLabel(d, taxonomy)} · {cardCount(d)} cards</p>

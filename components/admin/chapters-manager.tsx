@@ -190,7 +190,7 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
     <div className="w-full space-y-3 rounded-control border border-steel-700/60 bg-navy-950 p-4">
       <p className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">Chapters in {subjectName}</p>
 
-      {loadError ? <p role="alert" className="text-xs text-danger-400">{loadError}</p> : null}
+      {loadError ? <Notice kind="error" reveal={false} title="Could not load">{loadError}</Notice> : null}
       {!chapters && !loadError ? <p className="text-xs text-steel-300">Loading chapters...</p> : null}
       {chapters && chapters.length === 0 ? <p className="text-xs text-steel-300">No chapters yet. Add the first one below.</p> : null}
 
@@ -209,9 +209,9 @@ export function ChaptersManager({ subjectId, subjectName }: { subjectId: string;
       ) : null}
 
       {list.length > 0 ? (
-        <ul className="divide-y divide-steel-700/40">
+        <ul className="divide-y divide-steel-700/40 overflow-hidden rounded-panel border border-steel-700/60">
           {list.map((c, i) => (
-            <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+            <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2 px-4 transition-colors duration-(--duration-base) even:bg-steel-100/2 hover:bg-gold-400/6">
               {editingId === c.id ? (
                 <form
                   className="flex min-w-0 flex-1 gap-2"

@@ -20,6 +20,7 @@ import { cleanExams, type ExamId } from "@/lib/subjects";
 import { buildFolders } from "@/lib/taxonomy";
 import { BackButton, ChapterThumb, plural, SubjectFolderCard } from "@/components/vault/folder-parts";
 import { useStepState } from "@/hooks/use-step-state";
+import { Notice } from "@/components/ui/notice";
 
 const LOOSE = "loose";
 
@@ -337,15 +338,7 @@ export function PictureManager() {
   return (
     <div className="space-y-8">
       {msg ? (
-        <div
-          role={msg.type === "error" ? "alert" : "status"}
-          className={`flex max-w-3xl items-start gap-2 rounded-control border p-3 text-xs ${
-            msg.type === "success" ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-danger-500/40 bg-danger-500/10 text-danger-400"
-          }`}
-        >
-          {msg.type === "success" ? <Icons.checkCircle className="mt-0.5 size-4 shrink-0" aria-hidden /> : <Icons.info className="mt-0.5 size-4 shrink-0" aria-hidden />}
-          <span>{msg.text}</span>
-        </div>
+        <Notice kind={msg.type} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
       ) : null}
 
       <Card className="max-w-3xl">
@@ -415,7 +408,7 @@ export function PictureManager() {
               </div>
             </div>
           ) : null}
-          {loadError ? <p role="alert" className="text-xs text-danger-400">Could not load pictures: {loadError}. Have you run migration 014?</p> : null}
+          {loadError ? <Notice kind="error" reveal={false} title="Could not load">Could not load pictures: {loadError}. Have you run migration 014?</Notice> : null}
           {!pictures && !loadError ? <p className="text-xs text-steel-300">Loading pictures...</p> : null}
           {pictures && pictures.length === 0 ? <p className="text-xs text-steel-300">No pictures yet. Add the first ones above.</p> : null}
           {pictures && pictures.length > 0 && !folder ? (

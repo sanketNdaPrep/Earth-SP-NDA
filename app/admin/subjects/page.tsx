@@ -11,6 +11,7 @@ import { StudySubjectsManager } from "@/components/admin/study-subjects-manager"
 import { logAdminAction } from "@/lib/adminLog";
 import { slugify, SUBJECT_ICONS, type Subject } from "@/lib/subjects";
 import { supabase } from "@/lib/supabaseClient";
+import { Notice } from "@/components/ui/notice";
 
 type Message = { type: "success" | "error"; text: string } | null;
 
@@ -180,17 +181,7 @@ export default function AdminSubjectsPage() {
       </div>
 
       {msg ? (
-        <div
-          role={msg.type === "error" ? "alert" : "status"}
-          className={`flex max-w-3xl items-start gap-2 rounded-control border p-3 text-xs ${
-            msg.type === "success"
-              ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
-              : "border-danger-500/40 bg-danger-500/10 text-danger-400"
-          }`}
-        >
-          {msg.type === "success" ? <Icons.checkCircle className="mt-0.5 size-4 shrink-0" aria-hidden /> : <Icons.info className="mt-0.5 size-4 shrink-0" aria-hidden />}
-          <span>{msg.text}</span>
-        </div>
+        <Notice kind={msg.type} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
       ) : null}
 
       <Card className="max-w-3xl">
@@ -259,13 +250,13 @@ export default function AdminSubjectsPage() {
           {subjects ? <Badge variant="outline">{subjects.length} total</Badge> : null}
         </CardHeader>
         <CardContent>
-          {loadError ? <p role="alert" className="text-xs text-danger-400">Could not load subjects: {loadError}</p> : null}
+          {loadError ? <Notice kind="error" reveal={false} title="Could not load">Could not load subjects: {loadError}</Notice> : null}
           {!subjects && !loadError ? <p className="text-xs text-steel-300">Loading subjects...</p> : null}
           {subjects && subjects.length === 0 ? <p className="text-xs text-steel-300">No subjects yet. Add the first one above.</p> : null}
           {subjects && subjects.length > 0 ? (
-            <ul className="divide-y divide-steel-700/50">
+            <ul className="divide-y divide-steel-700/50 overflow-hidden rounded-panel border border-steel-700/60">
               {subjects.map((s) => (
-                <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-4 px-4 transition-colors duration-(--duration-base) even:bg-steel-100/2 hover:bg-gold-400/6">
                   <div className="flex min-w-0 items-start gap-3">
                     <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-control border border-steel-700 bg-navy-950 text-gold-400">
                       <SubjectIcon name={s.icon_name} className="size-5" />
