@@ -48,8 +48,8 @@ async function toJpeg(blob: Blob): Promise<{ bytes: Uint8Array; width: number; h
   return { bytes: new Uint8Array(await out.arrayBuffer()), width: canvas.width, height: canvas.height };
 }
 
-/** Builds one PDF with a page per picture, in the order given, and downloads it. */
-export async function downloadChapterPdf(items: readonly Pick<FlashcardImage, "image_path">[], filename: string): Promise<void> {
+/** Builds one PDF with a page per picture, in the order given. */
+export async function buildChapterPdf(items: readonly Pick<FlashcardImage, "image_path">[]): Promise<Blob> {
   const { PDFDocument } = await import("pdf-lib");
   const doc = await PDFDocument.create();
   for (const item of items) {
@@ -60,5 +60,10 @@ export async function downloadChapterPdf(items: readonly Pick<FlashcardImage, "i
     page.drawImage(image, { x: 0, y: 0, width: size.width, height: size.height });
   }
   const pdf = await doc.save();
-  save(new Blob([pdf as BlobPart], { type: "application/pdf" }), filename);
+  return new Blob([pdf as BlobPart], { type: "application/pdf" });
+}
+
+/** Builds the chapter PDF and downloads it. */
+export async function downloadChapterPdf(items: readonly Pick<FlashcardImage, "image_path">[], filename: string): Promise<void> {
+  save(await buildChapterPdf(items), filename);
 }

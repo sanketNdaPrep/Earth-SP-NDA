@@ -17,10 +17,14 @@ interface PictureViewerProps {
   onClose: () => void;
   /** File name for downloading the open picture. Leave out to hide the download button. */
   fileName?: (item: FlashcardImage, index: number) => string;
+  /** Switches to reading the same cards as a PDF. Leave out to hide the button. */
+  onPdfView?: () => void;
+  /** True while the PDF is being built. */
+  pdfBusy?: boolean;
 }
 
 /** A full-screen look at one picture, with next and previous. Esc closes it, the arrow keys move. */
-export function PictureViewer({ items, index, label, onIndex, onClose, fileName }: PictureViewerProps) {
+export function PictureViewer({ items, index, label, onIndex, onClose, fileName, onPdfView, pdfBusy }: PictureViewerProps) {
   const closeRef = React.useRef<HTMLButtonElement>(null);
   const item = items[index];
   const [saving, setSaving] = React.useState(false);
@@ -86,6 +90,12 @@ export function PictureViewer({ items, index, label, onIndex, onClose, fileName 
           {many ? <p className="font-mono text-xs text-steel-300">{index + 1} of {items.length}</p> : null}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
+          {onPdfView ? (
+            <Button variant="secondary" size="sm" onClick={onPdfView} loading={pdfBusy} disabled={pdfBusy}>
+              <Icons.book className="size-4" aria-hidden />
+              {pdfBusy ? "Building PDF" : "PDF view"}
+            </Button>
+          ) : null}
           {fileName ? (
             <Button variant="primary" size="sm" onClick={save} disabled={saving} aria-label={item.source_pdf ? "Download this page" : "Download this flashcard"}>
               <Icons.download className="size-4" aria-hidden />

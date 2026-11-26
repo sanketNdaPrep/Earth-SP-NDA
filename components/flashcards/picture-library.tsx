@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { PictureViewer } from "@/components/flashcards/picture-viewer";
-import { downloadChapterPdf } from "@/components/flashcards/download";
+import { PdfViewer } from "@/components/ui/pdf-viewer";
+import { buildChapterPdf, downloadChapterPdf } from "@/components/flashcards/download";
 import { pictureUrl } from "@/components/flashcards/picture-url";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { IMAGE_COLUMNS, recentPictures, type FlashcardImage } from "@/lib/flashcard-images";
@@ -20,6 +21,8 @@ import { Icons } from "@/components/ui/icons";
 interface Open {
   items: FlashcardImage[];
   index: number;
+  /** Pictures one by one, or the whole chapter as a PDF. */
+  mode: "image" | "pdf";
 }
 
 function Tile({ item, name, onOpen }: { item: FlashcardImage; name: string; onOpen: () => void }) {
@@ -55,7 +58,40 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
   const [open, setOpen] = React.useState<Open | null>(null);
   const [building, setBuilding] = React.useState(false);
   const [pdfError, setPdfError] = React.useState<string | null>(null);
+  const [pdf, setPdf] = React.useState<{ key: string; url: string } | null>(null);
+  const [pdfBusy, setPdfBusy] = React.useState(false);
   const taxonomy = useTaxonomy();
+
+  // The chapter's PDF is built once from its pictures and kept while the chapter stays open.
+  const pdfRef = React.useRef(pdf);
+  React.useEffect(() => {
+    pdfRef.current = pdf;
+  });
+  React.useEffect(
+    () => () => {
+      if (pdfRef.current) URL.revokeObjectURL(pdfRef.current.url);
+    },
+    [],
+  );
+
+  const openPdf = React.useCallback(async (items: FlashcardImage[], index: number) => {
+    const key = items.map((i) => i.id).join(",");
+    setPdfError(null);
+    if (pdfRef.current?.key !== key) {
+      setPdfBusy(true);
+      try {
+        const blob = await buildChapterPdf(items);
+        if (pdfRef.current) URL.revokeObjectURL(pdfRef.current.url);
+        setPdf({ key, url: URL.createObjectURL(blob) });
+      } catch {
+        setPdfError("The PDF could not be built. Check your connection and try again.");
+        setPdfBusy(false);
+        return;
+      }
+      setPdfBusy(false);
+    }
+    setOpen({ items, index, mode: "pdf" });
+  }, []);
 
   React.useEffect(() => {
     let active = true;
@@ -170,6 +206,10 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
               <Icons.download className="size-4" aria-hidden />
               {building ? "Building PDF" : "Download chapter as PDF"}
             </Button>
+            <Button variant="secondary" size="sm" disabled={pdfBusy} loading={pdfBusy} onClick={() => void openPdf(items, 0)}>
+              <Icons.book className="size-4" aria-hidden />
+              {pdfBusy ? "Building PDF" : "View as PDF"}
+            </Button>
             <span className="font-mono text-xs text-steel-300">{plural(items.length, "card")}. Open a card to save it on its own.</span>
           </div>
         ) : null}
@@ -188,11 +228,23 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
         ) : (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {items.map((item, i) => (
-              <Tile key={item.id} item={item} name={chapterName} onOpen={() => setOpen({ items, index: i })} />
+              <Tile key={item.id} item={item} name={chapterName} onOpen={() => setOpen({ items, index: i, mode: "image" })} />
             ))}
           </div>
         )}
-        {open ? (
+        {open && open.mode === "pdf" && pdf ? (
+          <PdfViewer
+            url={pdf.url}
+            title={`${folder.subject.name} ${chapterName} flashcards`}
+            onClose={() => setOpen(null)}
+            extra={
+              <Button variant="secondary" size="sm" onClick={() => setOpen({ ...open, mode: "image" })}>
+                <Icons.component className="size-4" aria-hidden />
+                Image view
+              </Button>
+            }
+          />
+        ) : open ? (
           <PictureViewer
             items={open.items}
             index={open.index}
@@ -200,6 +252,8 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
             fileName={(item, i) => pictureFileName(folder.subject.name, isLoose ? null : chapterName, item.source_page ?? i + 1, item.image_path)}
             onIndex={(index) => setOpen({ ...open, index })}
             onClose={() => setOpen(null)}
+            onPdfView={() => void openPdf(open.items, open.index)}
+            pdfBusy={pdfBusy}
           />
         ) : null}
       </div>
@@ -265,7 +319,7 @@ export function PictureLibrary({ exam = null, showRecent = true }: { exam?: stri
           </div>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {recent.map((item, i) => (
-              <Tile key={item.id} item={item} name={nameOf(item)} onOpen={() => setOpen({ items: recent, index: i })} />
+              <Tile key={item.id} item={item} name={nameOf(item)} onOpen={() => setOpen({ items: recent, index: i, mode: "image" })} />
             ))}
           </div>
         </section>

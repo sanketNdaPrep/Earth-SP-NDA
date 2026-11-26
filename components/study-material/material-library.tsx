@@ -1,6 +1,6 @@
 "use client";
 
-import { useStepState } from "@/hooks/use-step-state";
+import { useBackToClose, useStepState } from "@/hooks/use-step-state";
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { PictureLibrary } from "@/components/flashcards/picture-library";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
+import { PdfViewer } from "@/components/ui/pdf-viewer";
 import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { resourceKind, VAULTS } from "@/lib/resources";
@@ -52,7 +53,7 @@ function isVault(value: string | null): value is VaultKey {
   return VAULT_LIST.some((v) => v.id === value);
 }
 
-function FileCard({ m, shown, onDownload }: { m: Material; shown: number; onDownload: () => void }) {
+function FileCard({ m, shown, onDownload, onView }: { m: Material; shown: number; onDownload: () => void; onView: () => void }) {
   const kind = resourceKind(m);
   const usable = Boolean(m.download_url) && m.download_url !== "#";
   return (
@@ -78,12 +79,20 @@ function FileCard({ m, shown, onDownload }: { m: Material; shown: number; onDown
             <span className="tabular-nums">{shown}</span> {shown === 1 ? "download" : "downloads"}
           </span>
           {usable ? (
-            <Button asChild variant="primary" size="sm">
-              <a href={m.download_url} target="_blank" rel="noopener noreferrer" onClick={onDownload}>
-                <Icons.download className="size-4" />
-                Download<span className="sr-only"> {m.title} (opens in a new tab)</span>
-              </a>
-            </Button>
+            <div className="flex flex-wrap justify-end gap-2">
+              {kind === "pdf" ? (
+                <Button variant="secondary" size="sm" onClick={onView}>
+                  <Icons.eye className="size-4" aria-hidden />
+                  View<span className="sr-only"> {m.title}</span>
+                </Button>
+              ) : null}
+              <Button asChild variant="primary" size="sm">
+                <a href={m.download_url} target="_blank" rel="noopener noreferrer" onClick={onDownload}>
+                  <Icons.download className="size-4" />
+                  Download<span className="sr-only"> {m.title} (opens in a new tab)</span>
+                </a>
+              </Button>
+            </div>
           ) : (
             <Button variant="outline" size="sm" disabled>
               Unavailable
@@ -118,8 +127,10 @@ export function MaterialLibrary() {
   const [view, pushView, upView] = useStepState<LibraryView>({ vault: isVault(startVault) ? startVault : null, subjectId: null, chapter: null }, "library");
   const { vault, subjectId, chapter } = view;
   const [search, setSearch] = React.useState("");
+  const [viewing, setViewing] = React.useState<Material | null>(null);
   const [counted, setCounted] = React.useState<ReadonlySet<string>>(new Set());
   const taxonomy = useTaxonomy();
+  useBackToClose(viewing !== null, () => setViewing(null));
 
   React.useEffect(() => {
     let active = true;
@@ -203,6 +214,7 @@ export function MaterialLibrary() {
   ) : null;
   const vaultInfo = VAULT_LIST.find((v) => v.id === vault);
 
+  const content = (() => {
   // Inside a vault.
   if (vault && vaultInfo) {
     if (vault === "flashcards") {
@@ -251,7 +263,7 @@ export function MaterialLibrary() {
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {files.map((m) => (
-                <FileCard key={m.id} m={m} shown={shownDownloads(m)} onDownload={() => countDownload(m.id)} />
+                <FileCard key={m.id} m={m} shown={shownDownloads(m)} onDownload={() => countDownload(m.id)} onView={() => setViewing(m)} />
               ))}
             </div>
           )}
@@ -284,7 +296,12 @@ export function MaterialLibrary() {
                 <li key={row.id}>
                   <button
                     type="button"
-                    onClick={() => go(vault, folder.subject.id, row.id)}
+                    onClick={() => {
+                      // A chapter with one PDF opens that PDF straight away. Close returns here.
+                      const only = inVault.filter((m) => m.subject_id === folder.subject.id && (row.id === LOOSE ? !folder.chapters.some((c) => c.id === m.chapter_id) : m.chapter_id === row.id));
+                      if (only.length === 1 && resourceKind(only[0]) === "pdf" && only[0].download_url && only[0].download_url !== "#") setViewing(only[0]);
+                      else go(vault, folder.subject.id, row.id);
+                    }}
                     className="flex w-full items-center justify-between gap-3 rounded-panel border border-steel-700/60 bg-navy-900 px-4 py-3 text-left transition-colors hover:border-gold-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400"
                   >
                     <span className="flex min-w-0 items-center gap-3">
@@ -359,7 +376,7 @@ export function MaterialLibrary() {
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {searchHits.map((m) => (
-                <FileCard key={m.id} m={m} shown={shownDownloads(m)} onDownload={() => countDownload(m.id)} />
+                <FileCard key={m.id} m={m} shown={shownDownloads(m)} onDownload={() => countDownload(m.id)} onView={() => setViewing(m)} />
               ))}
             </div>
           )}
@@ -395,11 +412,19 @@ export function MaterialLibrary() {
           <h2 className="text-xl font-bold tracking-tight text-white">Official links</h2>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {official.map((m) => (
-              <FileCard key={m.id} m={m} shown={shownDownloads(m)} onDownload={() => countDownload(m.id)} />
+              <FileCard key={m.id} m={m} shown={shownDownloads(m)} onDownload={() => countDownload(m.id)} onView={() => setViewing(m)} />
             ))}
           </div>
         </section>
       ) : null}
     </div>
+  );
+  })();
+
+  return (
+    <>
+      {content}
+      {viewing ? <PdfViewer url={viewing.download_url} title={viewing.title} onClose={() => setViewing(null)} onDownload={() => countDownload(viewing.id)} /> : null}
+    </>
   );
 }
