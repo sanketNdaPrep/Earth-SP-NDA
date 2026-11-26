@@ -42,6 +42,8 @@ import { emptyFiling, FilingFields } from "@/components/admin/filing-fields";
 import { checkFiling, NEW_SUBJECT, type FilingInput } from "@/lib/filing";
 import { saveFiling } from "@/lib/filing-save";
 import { cleanExams, type ExamId } from "@/lib/subjects";
+import { Icons } from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
 import { useTaxonomy } from "@/hooks/use-taxonomy";
 import { supabase } from "@/lib/supabaseClient";
 import { Notice } from "@/components/ui/notice";
@@ -373,6 +375,125 @@ export default function AdminResourcesPage() {
       return next;
     });
 
+  const [closed, setClosed] = React.useState<ReadonlySet<string>>(new Set());
+  const toggleOpen = (key: string) =>
+    setClosed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  // Sections (PDF Notes, Formulas, Questions PDF, then the older links with no subject), each split by subject.
+  const groups = React.useMemo(() => {
+    const list = rows ?? [];
+    const subjectOrder = new Map(taxonomy.subjects.map((x, i) => [x.id, i]));
+    const make = (key: string, label: string, inSection: StoredResource[]) => {
+      const bySubject = new Map<string, StoredResource[]>();
+      for (const row of inSection) {
+        const id = row.subject_id ?? "none";
+        bySubject.set(id, [...(bySubject.get(id) ?? []), row]);
+      }
+      const subjects = [...bySubject.entries()]
+        .map(([id, subjectRows]) => ({ key: `${key}:${id}`, id, label: taxonomy.subjects.find((x) => x.id === id)?.name ?? (id === "none" ? "No subject" : "Subject"), rows: subjectRows }))
+        .sort((x, y) => (subjectOrder.get(x.id) ?? 999) - (subjectOrder.get(y.id) ?? 999));
+      return { key, label, count: inSection.length, subjects };
+    };
+    const filedRows = list.filter((r) => r.subject_id);
+    return [
+      ...VAULTS.map((v) => make(v.id, v.label, filedRows.filter((r) => r.vault === v.id))),
+      make("older", "Older links", list.filter((r) => !r.subject_id)),
+    ].filter((g) => g.count > 0);
+  }, [rows, taxonomy.subjects]);
+
+  const renderRow = (row: StoredResource) => {
+                const kind = resourceKind(row);
+                const hasLink = row.download_url && row.download_url !== "#";
+                return (
+                  <li key={row.id} className="flex flex-col gap-3 py-4 px-4 transition-colors duration-(--duration-base) even:bg-steel-100/2 hover:bg-gold-400/6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                    <div className="min-w-0 space-y-2">
+                      <label className="flex min-w-0 items-center gap-2">
+                        <input type="checkbox" className="size-4 shrink-0 accent-gold-400" checked={ticked.has(row.id)} onChange={(e) => toggleTick(row.id, e.target.checked)} aria-label={`Select ${row.title}`} />
+                        <span className="min-w-0 truncate text-sm font-semibold text-white">{row.title}</span>
+                      </label>
+                      {row.description ? <p className="line-clamp-2 text-xs text-steel-300">{row.description}</p> : null}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">{vaultLabel(row.vault)}</Badge>
+                        {row.subject_id ? <Badge variant="neutral">{taxonomy.subjects.find((x) => x.id === row.subject_id)?.name ?? "Subject"}</Badge> : null}
+                        <Badge variant={kind === "pdf" ? "gold" : "emerald"}>{kind === "pdf" ? "PDF" : "Image"}</Badge>
+                        {row.size ? <Badge variant="neutral">{row.size}</Badge> : null}
+                        {row.exams.length > 0 ? <span className="text-xs text-steel-300">For {examsLabel(row.exams)}</span> : row.recommended_for ? <span className="text-xs text-steel-300">For {row.recommended_for}</span> : null}
+                        <span className="text-xs tabular-nums text-steel-500">{row.downloads} downloads</span>
+                        {!row.file_path ? <span className="text-xs text-steel-500">External link</span> : null}
+                      </div>
+                      <CoverEditor label={row.title} coverPath={row.cover_path} busy={busyId === row.id} onChange={(file) => setRowCover(row, file)} />
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      {hasLink ? (
+                        <Button asChild variant="outline" size="sm">
+                          <a href={row.download_url} target="_blank" rel="noopener noreferrer">
+                            Open<span className="sr-only"> {row.title} (opens in a new tab)</span>
+                          </a>
+                        </Button>
+                      ) : null}
+                      <Button variant="outline" size="sm" disabled={busyId === row.id} aria-expanded={movingId === row.id} aria-label={`Move ${row.title}`} onClick={() => (movingId === row.id ? setMovingId(null) : startMove(row))}>
+                        Move
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" disabled={busyId === row.id} aria-label={`Delete ${row.title}`}>
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent tone="danger">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this file?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              &quot;{row.title}&quot; will disappear from the student Study Material page and the stored file is removed for good.
+                              The action is saved in the audit log.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Keep it</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => void remove(row)}>Delete file</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+
+                    {movingId === row.id ? (
+                      <div className="w-full space-y-4 rounded-control border border-steel-700/60 bg-navy-950 p-4 sm:basis-full">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`mv-vault-${row.id}`}>Vault</Label>
+                            <Select id={`mv-vault-${row.id}`} value={mVault} onChange={(e) => setMVault(e.target.value as VaultId)}>
+                              {VAULTS.map((v) => (
+                                <option key={v.id} value={v.id}>{v.label}</option>
+                              ))}
+                            </Select>
+                          </div>
+                        </div>
+                        <FilingFields
+                          idPrefix={`mv-${row.id}`}
+                          subjects={taxonomy.subjects}
+                          chapters={taxonomy.chapters}
+                          value={mFiling}
+                          onChange={setMFiling}
+                          onSubjectPicked={(subject) => setMExams(cleanExams(subject?.exams))}
+                          disabled={busyId === row.id}
+                        />
+                        <ExamPicker value={mExams} onChange={setMExams} />
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setMovingId(null)}>Cancel</Button>
+                          <Button variant="gold" size="sm" disabled={busyId === row.id} onClick={() => void saveMove(row)}>Save move</Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -513,95 +634,50 @@ export default function AdminResourcesPage() {
           ) : null}
 
           {rows && rows.length > 0 ? (
-            <ul className="divide-y divide-steel-700/40 overflow-hidden rounded-panel border border-steel-700/60">
-              {rows.map((row) => {
-                const kind = resourceKind(row);
-                const hasLink = row.download_url && row.download_url !== "#";
-                return (
-                  <li key={row.id} className="flex flex-col gap-3 py-4 px-4 transition-colors duration-(--duration-base) even:bg-steel-100/2 hover:bg-gold-400/6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                    <div className="min-w-0 space-y-2">
-                      <label className="flex min-w-0 items-center gap-2">
-                        <input type="checkbox" className="size-4 shrink-0 accent-gold-400" checked={ticked.has(row.id)} onChange={(e) => toggleTick(row.id, e.target.checked)} aria-label={`Select ${row.title}`} />
-                        <span className="min-w-0 truncate text-sm font-semibold text-white">{row.title}</span>
-                      </label>
-                      {row.description ? <p className="line-clamp-2 text-xs text-steel-300">{row.description}</p> : null}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline">{vaultLabel(row.vault)}</Badge>
-                        {row.subject_id ? <Badge variant="neutral">{taxonomy.subjects.find((x) => x.id === row.subject_id)?.name ?? "Subject"}</Badge> : null}
-                        <Badge variant={kind === "pdf" ? "gold" : "emerald"}>{kind === "pdf" ? "PDF" : "Image"}</Badge>
-                        {row.size ? <Badge variant="neutral">{row.size}</Badge> : null}
-                        {row.exams.length > 0 ? <span className="text-xs text-steel-300">For {examsLabel(row.exams)}</span> : row.recommended_for ? <span className="text-xs text-steel-300">For {row.recommended_for}</span> : null}
-                        <span className="text-xs tabular-nums text-steel-500">{row.downloads} downloads</span>
-                        {!row.file_path ? <span className="text-xs text-steel-500">External link</span> : null}
-                      </div>
-                      <CoverEditor label={row.title} coverPath={row.cover_path} busy={busyId === row.id} onChange={(file) => setRowCover(row, file)} />
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                      {hasLink ? (
-                        <Button asChild variant="outline" size="sm">
-                          <a href={row.download_url} target="_blank" rel="noopener noreferrer">
-                            Open<span className="sr-only"> {row.title} (opens in a new tab)</span>
-                          </a>
-                        </Button>
-                      ) : null}
-                      <Button variant="outline" size="sm" disabled={busyId === row.id} aria-expanded={movingId === row.id} aria-label={`Move ${row.title}`} onClick={() => (movingId === row.id ? setMovingId(null) : startMove(row))}>
-                        Move
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" disabled={busyId === row.id} aria-label={`Delete ${row.title}`}>
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent tone="danger">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete this file?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              &quot;{row.title}&quot; will disappear from the student Study Material page and the stored file is removed for good.
-                              The action is saved in the audit log.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Keep it</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => void remove(row)}>Delete file</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-
-                    {movingId === row.id ? (
-                      <div className="w-full space-y-4 rounded-control border border-steel-700/60 bg-navy-950 p-4 sm:basis-full">
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`mv-vault-${row.id}`}>Vault</Label>
-                            <Select id={`mv-vault-${row.id}`} value={mVault} onChange={(e) => setMVault(e.target.value as VaultId)}>
-                              {VAULTS.map((v) => (
-                                <option key={v.id} value={v.id}>{v.label}</option>
-                              ))}
-                            </Select>
+            <div className="space-y-6">
+              {groups.map((section) => (
+                <section key={section.key} aria-label={section.label} className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleOpen(section.key)}
+                    aria-expanded={!closed.has(section.key)}
+                    className="flex w-full items-center justify-between gap-3 rounded-control border border-steel-700/60 bg-navy-900 px-4 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400"
+                  >
+                    <span className="flex items-center gap-2 text-base font-bold text-white">
+                      <Icons.chevronRight className={cn("size-4 transition-transform", !closed.has(section.key) && "rotate-90")} aria-hidden />
+                      {section.label}
+                    </span>
+                    <Badge variant="gold">{section.count} {section.count === 1 ? "file" : "files"}</Badge>
+                  </button>
+                  {!closed.has(section.key) ? (
+                    <div className="space-y-4 pl-0 sm:pl-3">
+                      {section.subjects.map((group) => (
+                        <div key={group.key} className="space-y-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <button type="button" onClick={() => toggleOpen(group.key)} aria-expanded={!closed.has(group.key)} aria-label={`${closed.has(group.key) ? "Show" : "Hide"} ${group.label} files`} className="rounded-control p-1 text-steel-300 hover:text-white focus-visible:outline-2 focus-visible:outline-gold-400">
+                                <Icons.chevronRight className={cn("size-4 transition-transform", !closed.has(group.key) && "rotate-90")} aria-hidden />
+                              </button>
+                              <h3 className="text-sm font-bold text-gold-300">{group.label}</h3>
+                              <span className="font-mono text-xs text-steel-300">{group.rows.length} {group.rows.length === 1 ? "file" : "files"}</span>
+                            </div>
+                            <label className="flex items-center gap-2 text-xs text-steel-300">
+                              <input type="checkbox" className="size-4 accent-gold-400" checked={group.rows.every((r) => ticked.has(r.id))} onChange={(e) => setTicked((prev) => { const next = new Set(prev); group.rows.forEach((r) => (e.target.checked ? next.add(r.id) : next.delete(r.id))); return next; })} aria-label={`Select all ${group.label} files in ${section.label}`} />
+                              Select these
+                            </label>
                           </div>
+                          {!closed.has(group.key) ? (
+                            <ul className="divide-y divide-steel-700/40 overflow-hidden rounded-panel border border-steel-700/60">
+                              {group.rows.map((row) => renderRow(row))}
+                            </ul>
+                          ) : null}
                         </div>
-                        <FilingFields
-                          idPrefix={`mv-${row.id}`}
-                          subjects={taxonomy.subjects}
-                          chapters={taxonomy.chapters}
-                          value={mFiling}
-                          onChange={setMFiling}
-                          onSubjectPicked={(subject) => setMExams(cleanExams(subject?.exams))}
-                          disabled={busyId === row.id}
-                        />
-                        <ExamPicker value={mExams} onChange={setMExams} />
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => setMovingId(null)}>Cancel</Button>
-                          <Button variant="gold" size="sm" disabled={busyId === row.id} onClick={() => void saveMove(row)}>Save move</Button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
+                      ))}
+                    </div>
+                  ) : null}
+                </section>
+              ))}
+            </div>
           ) : null}
         </CardContent>
       </Card>
