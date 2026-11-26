@@ -55,11 +55,13 @@ export interface NoticeProps {
   autoHideMs?: number;
   /** If the notice appears outside the visible screen, scrolls just enough to show it. Never moves the page when it is already visible. Default true. */
   reveal?: boolean;
+  /** Pins the message to the bottom of the screen, so it is seen wherever the page is scrolled and takes no room in the page. */
+  floating?: boolean;
   className?: string;
 }
 
 /** The saved / error / warning / info message used across the admin. Follows the dark and light themes. */
-export function Notice({ kind, children, title, actions, onClose, autoHideMs, reveal = true, className }: NoticeProps) {
+export function Notice({ kind, children, title, actions, onClose, autoHideMs, reveal = true, floating = false, className }: NoticeProps) {
   const ref = React.useRef<HTMLDivElement>(null);
   const closeRef = React.useRef(onClose);
   React.useEffect(() => {
@@ -71,11 +73,11 @@ export function Notice({ kind, children, title, actions, onClose, autoHideMs, re
   // A message that is already in view never makes the page jump.
   React.useEffect(() => {
     const el = ref.current;
-    if (!reveal || !el) return;
+    if (!reveal || floating || !el) return;
     const { top, bottom } = el.getBoundingClientRect();
     if (top >= 0 && bottom <= window.innerHeight) return;
     el.scrollIntoView({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-  }, [reveal]);
+  }, [reveal, floating]);
 
   React.useEffect(() => {
     if (!autoHideMs || !closeRef.current) return;
@@ -83,11 +85,11 @@ export function Notice({ kind, children, title, actions, onClose, autoHideMs, re
     return () => clearTimeout(timer);
   }, [autoHideMs]);
 
-  return (
+  const box = (
     <div
       ref={ref}
       role={kind === "error" ? "alert" : "status"}
-      className={cn("notice-in relative flex flex-wrap items-start gap-x-3.5 gap-y-3 overflow-hidden rounded-panel border py-3.5 pr-11 pl-4 sm:flex-nowrap sm:items-center", v.box, className)}
+      className={cn("notice-in relative flex flex-wrap items-start gap-x-3.5 gap-y-3 overflow-hidden rounded-panel border py-3.5 pr-11 pl-4 sm:flex-nowrap sm:items-center", v.box, floating && "w-full max-w-2xl bg-navy-900 shadow-panel", className)}
     >
       <span className={cn("grid size-8 shrink-0 place-items-center rounded-full", v.icon)} aria-hidden>
         <v.Icon className="size-4.5" />
@@ -108,6 +110,13 @@ export function Notice({ kind, children, title, actions, onClose, autoHideMs, re
         </button>
       ) : null}
       {autoHideMs && onClose ? <span aria-hidden className={cn("notice-bar absolute inset-x-0 bottom-0 h-0.75", v.bar)} style={{ "--notice-ms": `${autoHideMs}ms` } as React.CSSProperties} /> : null}
+    </div>
+  );
+
+  if (!floating) return box;
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-60 flex justify-center px-4 pb-4">
+      <div className="pointer-events-auto flex w-full justify-center">{box}</div>
     </div>
   );
 }

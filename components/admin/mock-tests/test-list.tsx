@@ -308,7 +308,7 @@ export function TestList({ kind }: { kind: TestKind }) {
   }, [all, kind, taxonomy.subjects, taxonomy.chapters]);
 
   const notice_ = notice ? (
-    <Notice kind={notice.type} onClose={() => setNotice(null)} autoHideMs={notice.type === "success" ? 8000 : undefined}>
+    <Notice floating kind={notice.type} onClose={() => setNotice(null)} autoHideMs={notice.type === "success" ? 8000 : undefined}>
       {notice.text}
     </Notice>
   ) : null;

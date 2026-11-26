@@ -277,7 +277,7 @@ function PracticeBank() {
   return (
     <div className="space-y-8">
       {notice ? (
-        <Notice kind={notice.type} onClose={() => setNotice(null)} autoHideMs={notice.type === "success" ? 8000 : undefined}>
+        <Notice floating kind={notice.type} onClose={() => setNotice(null)} autoHideMs={notice.type === "success" ? 8000 : undefined}>
           {notice.text}
         </Notice>
       ) : null}

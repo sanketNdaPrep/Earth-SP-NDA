@@ -181,7 +181,7 @@ export default function AdminSubjectsPage() {
       </div>
 
       {msg ? (
-        <Notice kind={msg.type} reveal={false} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
+        <Notice floating kind={msg.type} reveal={false} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
       ) : null}
 
       <Card className="max-w-3xl">

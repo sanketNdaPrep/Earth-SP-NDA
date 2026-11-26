@@ -338,7 +338,7 @@ export function PictureManager() {
   return (
     <div className="space-y-8">
       {msg ? (
-        <Notice kind={msg.type} reveal={false} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
+        <Notice floating kind={msg.type} reveal={false} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
       ) : null}
 
       <Card className="max-w-3xl">
