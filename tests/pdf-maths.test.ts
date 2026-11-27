@@ -35,4 +35,26 @@ describe("maths question PDF (LaTeX-made NDA mock)", async () => {
     expect(squash(opts(27))).toContain("\\lim_{x\\toa^{-}}");
     expect(squash(q(28).text)).toContain("\\begin{bmatrix}0&1\\\\1&0\\end{bmatrix}");
   });
+
+  it("joins equations broken around Greek letters and minus signs", () => {
+    expect(squash(q(16).text)).toContain("$(a\\cos\\alpha,a\\sin\\alpha)$");
+    expect(squash(q(20).text)).toContain("\\sin^{-1}(-\\frac{\\sqrt{3}}{2})");
+  });
+
+  it("says where each question sits on its page", () => {
+    for (const x of result.questions) {
+      expect(x.spans?.length).toBeGreaterThan(0);
+      for (const s of x.spans ?? []) {
+        expect(s.top).toBeGreaterThanOrEqual(0);
+        expect(s.bottom).toBeLessThanOrEqual(1);
+        expect(s.bottom).toBeGreaterThan(s.top);
+      }
+    }
+    expect(q(2).spans?.[0].top).toBeGreaterThanOrEqual(q(1).spans?.[0].bottom ?? 1);
+  });
+
+  it("flags the question whose options came out the same", () => {
+    expect(q(16).flags.join(" ")).toMatch(/same/);
+    expect(q(1).flags).toEqual([]);
+  });
 });

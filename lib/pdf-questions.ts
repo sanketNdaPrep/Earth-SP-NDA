@@ -5,8 +5,10 @@
  * each with notes about anything the reader was not sure of, so the admin checks it in a preview
  * before saving. The reader never guesses silently: a missing answer or option is flagged.
  *
- * No imports, so it runs in tests and in the browser.
+ * Runs in tests and in the browser.
  */
+
+import { joinBrokenFormulas, mathFlags } from "./pdf-math-check";
 
 export type OptionLetter = "A" | "B" | "C" | "D";
 export const OPTION_LETTERS: readonly OptionLetter[] = ["A", "B", "C", "D"];
@@ -36,6 +38,15 @@ export interface DraftQuestion {
   explanation: string;
   /** What the reader was not sure of, in plain words. Empty when everything was found. */
   flags: string[];
+  /** Where the question sits in the PDF, so the preview can show the original picture of it. */
+  spans?: PageSpan[];
+}
+
+/** A strip of one page, as fractions of the page height (0 is the top). */
+export interface PageSpan {
+  page: number;
+  top: number;
+  bottom: number;
 }
 
 export interface ParseResult {
@@ -165,6 +176,9 @@ interface Block {
   number: number;
   tag: string;
   lines: Line[];
+  /** Where the "Q12" heading was found. */
+  page: number;
+  y: number;
 }
 
 interface Marker {
@@ -250,7 +264,7 @@ function readBlock(block: Block): DraftQuestion {
   else if (missing.length > 0) flags.push(`Option ${missing.join(", ")} was not found.`);
   if (PICTURE_HINT.test(text)) flags.push("This question may refer to a picture or diagram that the reader cannot copy.");
 
-  return { number: block.number, tag: block.tag, text, options, correct, explanation: clean(explanation.join(" ")), flags };
+  return { number: block.number, tag: block.tag, text, options, correct, explanation: clean(explanation.join(" ")), flags, spans: [] };
 }
 
 /** A type label printed beside the number: short, no sentence punctuation. */
@@ -278,7 +292,7 @@ function splitBlocks(lines: Line[]): Block[] {
       const number = Number((q ?? n)?.[1]);
       const rest = (q ? q[2] : "") ?? "";
       const tag = q ? asTag(rest, i + 1 < lines.length) : "";
-      current = { number, tag, lines: [] };
+      current = { number, tag, lines: [], page: line.page, y: line.y };
       blocks.push(current);
       seenOptions = false;
       last = number;
@@ -379,12 +393,18 @@ export function parseQuestionPdf(rawItems: TextItem[]): ParseResult {
 
   const blocks = splitBlocks(questionLines);
   const questions = blocks.map(readBlock);
+  const heights = new Map(rawItems.map((i) => [i.page, i.pageHeight]));
+  blocks.forEach((b, i) => {
+    questions[i].spans = blockSpans(b, blocks[i + 1], heights);
+  });
 
   let key = keyLines.length ? readKeyTable(keyLines) : [];
   if (keyLines.length && key.length === 0) key = readKeyList(keyLines);
   const byNumber = new Map(key.map((k) => [k.number, k]));
   let fromKey = 0;
   for (const q of questions) {
+    q.text = joinBrokenFormulas(q.text);
+    for (const letter of OPTION_LETTERS) q.options[letter] = joinBrokenFormulas(q.options[letter]);
     const k = byNumber.get(q.number);
     if (k) {
       fromKey += 1;
@@ -396,6 +416,8 @@ export function parseQuestionPdf(rawItems: TextItem[]): ParseResult {
       q.flags.push(`The answer is ${q.correct}, but option ${q.correct} was not found.`);
     }
     if (!q.explanation) q.flags.push("No explanation was found.");
+    q.explanation = joinBrokenFormulas(q.explanation);
+    q.flags.push(...mathFlags(q));
   }
 
   // Checks on the file as a whole.
@@ -415,6 +437,28 @@ export function parseQuestionPdf(rawItems: TextItem[]): ParseResult {
   if (keyLines.length === 0 && questions.every((q) => !q.correct)) warnings.push("No answer key was found. Set the correct option of each question in the preview.");
   if (key.length > 0 && fromKey < questions.length) warnings.push(`The answer key matched ${fromKey} of ${questions.length} questions.`);
   return { questions, warnings };
+}
+
+/** Room kept above a heading and below the last line, for fraction bars and tall brackets. */
+const SPAN_ABOVE = 12;
+const SPAN_BELOW = 16;
+
+/** The strips of the pages a question covers: from its heading to the next question, or to its last line. */
+function blockSpans(block: Block, next: Block | undefined, heights: Map<number, number>): PageSpan[] {
+  const rows = [{ page: block.page, y: block.y }, ...block.lines.map((l) => ({ page: l.page, y: l.y }))];
+  const pages = [...new Set(rows.map((r) => r.page))].sort((a, b) => a - b);
+  const spans: PageSpan[] = [];
+  for (const page of pages) {
+    const height = heights.get(page);
+    if (!height) continue;
+    const ys = rows.filter((r) => r.page === page).map((r) => r.y);
+    const top = page === block.page ? block.y - SPAN_ABOVE : Math.min(...ys) - SPAN_ABOVE;
+    const bottom = next && next.page === page ? next.y - SPAN_ABOVE - 2 : Math.max(...ys) + SPAN_BELOW;
+    const t = Math.max(0, top) / height;
+    const b = Math.min(height, Math.max(bottom, top + 20)) / height;
+    spans.push({ page, top: Math.round(t * 10000) / 10000, bottom: Math.round(b * 10000) / 10000 });
+  }
+  return spans;
 }
 
 /** True when a draft is complete enough to save as a question: text, four options, and an answer. */

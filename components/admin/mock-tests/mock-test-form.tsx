@@ -882,6 +882,7 @@ export function MockTestForm({ testId: initialId, initialKind }: { testId?: stri
                   onRemove={() => removeAt(i)}
                   onAddBelow={() => addBlank(i)}
                   moduleName={q.moduleTitle}
+                  pdfFile={pdfFile}
                 />
               ))}
             </ol>

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { OriginalPicture } from "@/components/admin/mock-tests/original-picture";
+import { MathText } from "@/components/quiz/math-text";
 import { OPTION_LETTERS, type OptionLetter } from "@/lib/pdf-questions";
 import { questionProblems, TAG_MAX, type BuilderQuestion } from "@/lib/test-questions";
 import { cn } from "@/lib/utils";
@@ -26,10 +28,12 @@ interface Props {
   onRemove: () => void;
   onAddBelow: () => void;
   moduleName?: string;
+  /** The PDF this question was read from, to show the original beside the preview. */
+  pdfFile?: File | null;
 }
 
 /** One question in the test builder: a summary row that opens into an editor, with a student-style preview. */
-export function QuestionEditor({ index, total, question: q, open, onToggle, onChange, onMove, onRemove, onAddBelow, moduleName }: Props) {
+export function QuestionEditor({ index, total, question: q, open, onToggle, onChange, onMove, onRemove, onAddBelow, moduleName, pdfFile }: Props) {
   const [preview, setPreview] = React.useState(false);
   const problems = questionProblems(q);
   const id = `q-${q.key}`;
@@ -63,7 +67,7 @@ export function QuestionEditor({ index, total, question: q, open, onToggle, onCh
             {q.tag ? <Badge variant="outline">{q.tag}</Badge> : null}
             {moduleName ? <Badge variant="outline">{moduleName}</Badge> : null}
           </span>
-          <span className="line-clamp-2 block text-sm text-steel-100">{q.text.trim() || "Empty question. Open it to write the question."}</span>
+          <span className="line-clamp-2 block text-sm text-steel-100">{q.text.trim() ? <MathText text={q.text} /> : "Empty question. Open it to write the question."}</span>
         </button>
         <div className="flex shrink-0 items-center gap-1">
           <Button type="button" variant="ghost" size="icon" className="size-8" disabled={index === 0} onClick={() => onMove(-1)} aria-label={`Move question ${index + 1} up`}>
@@ -102,7 +106,7 @@ export function QuestionEditor({ index, total, question: q, open, onToggle, onCh
               </div>
 
               {preview ? (
-                <StudentPreview q={q} number={index + 1} />
+                <StudentPreview q={q} number={index + 1} pdfFile={pdfFile ?? null} />
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-1.5">
@@ -169,30 +173,49 @@ export function QuestionEditor({ index, total, question: q, open, onToggle, onCh
   );
 }
 
-/** The question as a student sees it while taking the test, plus the answer the student sees after. */
-function StudentPreview({ q, number }: { q: BuilderQuestion; number: number }) {
+/** The question as a student sees it while taking the test, plus the answer the student sees after. For a PDF question the original sits beside it. */
+function StudentPreview({ q, number, pdfFile }: { q: BuilderQuestion; number: number; pdfFile: File | null }) {
+  const [original, setOriginal] = React.useState(true);
+  const canCompare = pdfFile !== null && (q.spans?.length ?? 0) > 0;
+  const shown = canCompare && original;
   return (
-    <div className="space-y-3 rounded-control border border-steel-700/60 bg-navy-900 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-steel-500">Question {number}</p>
-      <p className="whitespace-pre-line text-sm font-medium text-white">{q.text || "(no question text)"}</p>
-      <ul className="space-y-2">
-        {OPTION_LETTERS.map((letter) => (
-          <li
-            key={letter}
-            className={cn(
-              "flex gap-3 rounded-control border p-3 text-sm",
-              q.correct === letter ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-200" : "border-steel-700 text-steel-100",
-            )}
-          >
-            <span className="font-mono font-bold">{letter}</span>
-            <span className="min-w-0 whitespace-pre-line">{q.options[letter] || "(empty)"}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-xs text-steel-300">
-        <span className="font-semibold text-emerald-300">{q.correct ? `Correct: ${q.correct}.` : "No correct option chosen."}</span>{" "}
-        {q.explanation ? <span className="whitespace-pre-line">{q.explanation}</span> : "No explanation."}
-      </p>
+    <div className="space-y-3">
+      {canCompare ? (
+        <label className="flex items-center gap-2 text-xs text-steel-300">
+          <input type="checkbox" checked={original} onChange={(e) => setOriginal(e.target.checked)} className="size-4 accent-gold-400" />
+          Show the original from the PDF
+        </label>
+      ) : null}
+      <div className={cn("grid grid-cols-1 gap-3", shown && "lg:grid-cols-2")}>
+        <div className="min-w-0 space-y-3 rounded-control border border-steel-700/60 bg-navy-900 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-steel-500">Question {number}</p>
+          <div className="text-sm font-medium text-white">{q.text ? <MathText text={q.text} /> : "(no question text)"}</div>
+          <ul className="space-y-2">
+            {OPTION_LETTERS.map((letter) => (
+              <li
+                key={letter}
+                className={cn(
+                  "flex gap-3 rounded-control border p-3 text-sm",
+                  q.correct === letter ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-200" : "border-steel-700 text-steel-100",
+                )}
+              >
+                <span className="font-mono font-bold">{letter}</span>
+                <span className="min-w-0">{q.options[letter] ? <MathText text={q.options[letter]} /> : "(empty)"}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="text-xs text-steel-300">
+            <span className="font-semibold text-emerald-300">{q.correct ? `Correct: ${q.correct}.` : "No correct option chosen."}</span>{" "}
+            {q.explanation ? <MathText text={q.explanation} /> : "No explanation."}
+          </div>
+        </div>
+        {shown && pdfFile && q.spans ? (
+          <div className="min-w-0 space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-steel-500">Original in the PDF</p>
+            <OriginalPicture file={pdfFile} spans={q.spans} />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { isCompleteDraft, OPTION_LETTERS, type DraftQuestion, type OptionLetter } from "./pdf-questions";
+import { isCompleteDraft, OPTION_LETTERS, type DraftQuestion, type OptionLetter, type PageSpan } from "./pdf-questions";
 
 /** One question in the test builder: typed by hand, read from a PDF, or borrowed from the shared bank. */
 export interface BuilderQuestion {
@@ -16,6 +16,8 @@ export interface BuilderQuestion {
   tag: string;
   /** What the PDF reader was not sure of. Cleared when the admin edits the question. */
   flags: string[];
+  /** Where the question sits in the uploaded PDF. Only for questions read from a PDF in this session. */
+  spans?: PageSpan[];
   /** For a shared bank question: the module it comes from. */
   moduleTitle?: string;
 }
@@ -43,6 +45,7 @@ export function fromDraft(draft: DraftQuestion): BuilderQuestion {
     explanation: draft.explanation,
     tag: draft.tag.slice(0, TAG_MAX),
     flags: draft.flags,
+    spans: draft.spans,
   };
 }
 
