@@ -21,6 +21,8 @@ export interface TextItem {
   /** Height of the page, to tell page headers and footers from content. */
   pageHeight: number;
   str: string;
+  /** Font size in points. Only the maths reader needs it. */
+  size?: number;
 }
 
 export interface DraftQuestion {
@@ -65,6 +67,8 @@ export function decodeText(text: string): string {
 }
 
 const clean = (s: string) => s.replace(/\s+/g, " ").trim();
+/** Closes up the space a PDF leaves before commas and closing brackets and after opening ones. */
+const tidy = (s: string) => s.replace(/[ \t]+([,;.!?)\]])/g, "$1").replace(/([(\[])[ \t]+/g, "$1");
 
 interface Cell {
   x: number;
@@ -100,10 +104,10 @@ function buildLines(items: TextItem[]): Line[] {
     let end = Number.NEGATIVE_INFINITY;
     for (const c of line.cells) {
       const gap = c.x - end;
-      text += (text && gap > 1.2 && !/\s$/.test(text) && !/^\s/.test(c.str) ? " " : "") + c.str;
+      text += (text && gap > 1.2 && !/\s$/.test(text) && !/^\s/.test(c.str) && !/^[,.;:!?)\]]/.test(c.str) ? " " : "") + c.str;
       end = c.x + c.w;
     }
-    line.text = clean(text);
+    line.text = clean(text).replace(/\s+([,;:.!?)\]])/g, "$1").replace(/([(\[])\s+/g, "$1");
   }
   return lines;
 }
@@ -216,7 +220,7 @@ function readBlock(block: Block): DraftQuestion {
       parts[marker.letter].push(str);
     }
   }
-  for (const letter of OPTION_LETTERS) options[letter] = clean(parts[letter].join(" "));
+  for (const letter of OPTION_LETTERS) options[letter] = tidy(clean(parts[letter].join(" ")));
 
   // Answer and explanation written under the question.
   let correct: OptionLetter | null = null;
@@ -239,7 +243,7 @@ function readBlock(block: Block): DraftQuestion {
     }
   }
 
-  const text = joinWrapped(textLines);
+  const text = tidy(joinWrapped(textLines));
   const missing = OPTION_LETTERS.filter((l) => !options[l]);
   if (!text) flags.push("The question text was not found.");
   if (missing.length === 4) flags.push("No options were found.");
@@ -323,24 +327,25 @@ function readKeyTable(lines: Line[]): KeyEntry[] {
   }
   if (rows.length === 0) return [];
 
-  // Explanation text sits to the right and is centred on its row, so each piece goes to the nearest row on the page.
-  const explanation = new Map<Row, { y: number; text: string }[]>();
+  // Explanation text sits to the right of its row and runs below it. A line belongs to the last row that starts
+  // at or above it (a little above, for a number written over a fraction bar). Lines at the top of a page
+  // carry on from the last row of an earlier page.
+  const explanation = new Map<Row, { page: number; y: number; text: string }[]>();
   for (const line of after) {
     // The table heading is repeated at the top of every page. It is not an explanation.
     if (line.cells.some((c) => /^ans/i.test(c.str.trim()) && c.x < explX - 6) && line.cells.some((c) => /expl|solution|reason/i.test(c.str.trim()))) continue;
     const cells = line.cells.filter((c) => c.x >= explX - 3);
     if (cells.length === 0) continue;
-    const onPage = rows.filter((r) => r.page === line.page);
-    if (onPage.length === 0) continue;
-    const nearest = onPage.reduce((a, b) => (Math.abs(b.y - line.y) < Math.abs(a.y - line.y) ? b : a));
-    const list = explanation.get(nearest) ?? [];
-    list.push({ y: line.y, text: cells.map((c) => c.str).join(" ") });
-    explanation.set(nearest, list);
+    const owner = [...rows].reverse().find((r) => r.page < line.page || (r.page === line.page && r.y <= line.y + 8));
+    if (!owner) continue;
+    const list = explanation.get(owner) ?? [];
+    list.push({ page: line.page, y: line.y, text: cells.map((c) => c.str).join(" ") });
+    explanation.set(owner, list);
   }
   return rows.map((r) => ({
     number: r.number,
     correct: r.correct,
-    explanation: clean((explanation.get(r)?.sort((a, b) => a.y - b.y).map((p) => p.text) ?? []).join(" ")),
+    explanation: tidy(clean((explanation.get(r)?.sort((a, b) => a.page - b.page || a.y - b.y).map((p) => p.text) ?? []).join(" "))),
   }));
 }
 
