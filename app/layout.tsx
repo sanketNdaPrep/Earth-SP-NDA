@@ -11,6 +11,7 @@ import { BackBar } from "@/components/ui/back-bar";
 import { Toaster } from "@/components/ui/toast";
 import { SITE_URL } from "@/lib/site";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const SITE_TITLE = "EARTH SP NDA - Defence Exam Prep";
 const SITE_DESCRIPTION =
@@ -52,6 +53,7 @@ export default function RootLayout({
         {children}
         <ThemeSync />
         <Toaster />
+        <SpeedInsights />
       </body>
     </html>
   );
