@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MathKeyboard } from "@/components/admin/mock-tests/math-keyboard";
 import { OriginalPicture } from "@/components/admin/mock-tests/original-picture";
 import { MathText } from "@/components/quiz/math-text";
+import { insertMath, stepCursor } from "@/lib/math-insert";
 import { OPTION_LETTERS, type OptionLetter } from "@/lib/pdf-questions";
 import { questionProblems, TAG_MAX, type BuilderQuestion } from "@/lib/test-questions";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,30 @@ export function QuestionEditor({ index, total, question: q, open, onToggle, onCh
   const id = `q-${q.key}`;
   const set = (patch: Partial<BuilderQuestion>) => onChange({ ...q, ...patch, flags: [] });
   const setOption = (letter: OptionLetter, value: string) => set({ options: { ...q.options, [letter]: value } });
+
+  // The maths keyboard types into whichever box was tapped last.
+  type Box = "text" | "why" | OptionLetter;
+  const [box, setBox] = React.useState<Box>("text");
+  const boxEl = (name: Box) => document.getElementById(`${id}-${name}`) as HTMLTextAreaElement | null;
+  const valueOf = (name: Box) => (name === "text" ? q.text : name === "why" ? q.explanation : q.options[name]);
+  const store = (name: Box, value: string) => (name === "text" ? set({ text: value }) : name === "why" ? set({ explanation: value }) : setOption(name, value));
+  const boxName = box === "text" ? "the question" : box === "why" ? "the explanation" : `option ${box}`;
+  const edit = (change: (text: string, start: number, end: number) => { text: string; cursor: number }) => {
+    const el = boxEl(box);
+    const text = valueOf(box);
+    const result = change(text, el?.selectionStart ?? text.length, el?.selectionEnd ?? text.length);
+    store(box, result.text);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(result.cursor, result.cursor);
+    });
+  };
+  const typeKey = (tex: string) => edit((text, a, b) => insertMath(text, a, b, tex));
+  const stepKey = (dir: -1 | 1) =>
+    edit((text, a, b) => {
+      const at = stepCursor(text, dir === 1 ? Math.max(a, b) : Math.min(a, b), dir);
+      return { text, cursor: at };
+    });
 
   const status =
     problems.length > 0 ? (
@@ -111,13 +137,13 @@ export function QuestionEditor({ index, total, question: q, open, onToggle, onCh
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor={`${id}-text`}>Question</Label>
-                    <textarea id={`${id}-text`} rows={4} className={AREA} value={q.text} onChange={(e) => set({ text: e.target.value })} />
+                    <textarea id={`${id}-text`} onFocus={() => setBox("text")} rows={4} className={AREA} value={q.text} onChange={(e) => set({ text: e.target.value })} />
                   </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {OPTION_LETTERS.map((letter) => (
                       <div key={letter} className="space-y-1.5">
                         <Label htmlFor={`${id}-${letter}`}>Option {letter}</Label>
-                        <textarea id={`${id}-${letter}`} rows={2} className={AREA} value={q.options[letter]} onChange={(e) => setOption(letter, e.target.value)} />
+                        <textarea id={`${id}-${letter}`} onFocus={() => setBox(letter)} rows={2} className={AREA} value={q.options[letter]} onChange={(e) => setOption(letter, e.target.value)} />
                       </div>
                     ))}
                   </div>
@@ -140,12 +166,13 @@ export function QuestionEditor({ index, total, question: q, open, onToggle, onCh
                   </fieldset>
                   <div className="space-y-1.5">
                     <Label htmlFor={`${id}-why`}>Explanation (shown to students after the test)</Label>
-                    <textarea id={`${id}-why`} rows={3} className={AREA} value={q.explanation} onChange={(e) => set({ explanation: e.target.value })} />
+                    <textarea id={`${id}-why`} onFocus={() => setBox("why")} rows={3} className={AREA} value={q.explanation} onChange={(e) => set({ explanation: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor={`${id}-tag`}>Label (optional)</Label>
                     <Input id={`${id}-tag`} maxLength={TAG_MAX} value={q.tag} onChange={(e) => set({ tag: e.target.value })} placeholder="Statement-Based" />
                   </div>
+                  <MathKeyboard target={boxName} value={valueOf(box)} onInsert={typeKey} onStep={stepKey} />
                   {problems.length > 0 ? (
                     <ul role="status" className="space-y-1 text-xs text-danger-400">
                       {problems.map((p) => (
