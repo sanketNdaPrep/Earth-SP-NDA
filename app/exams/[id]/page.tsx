@@ -1,6 +1,7 @@
 "use client";
 
 import { ExamGuide } from "@/components/exams/exam-guide";
+import { SyllabusTopics } from "@/components/exams/syllabus-topics";
 import { SyllabusDownload } from "@/components/exams/syllabus-download";
 import * as React from "react";
 import Link from "next/link";
@@ -19,7 +20,6 @@ interface ExamConfig {
   ageLimit: string;
   markingScheme: string;
   pattern: { paper: string; duration: string; marks: string; questions: string }[];
-  syllabus: { subject: string; topics: string }[];
 }
 
 const EXAM_DATA: Record<string, ExamConfig> = {
@@ -37,29 +37,6 @@ const EXAM_DATA: Record<string, ExamConfig> = {
       { paper: "Paper II Part B: General Knowledge (GAT)", duration: "2.5 Hours for Paper II", marks: "400 Marks", questions: "100 Qs" },
       { paper: "SSB Interview", duration: "5 Days", marks: "900 Marks", questions: "Five-day process" },
     ],
-    syllabus: [
-      {
-        subject: "Mathematics",
-        topics:
-          "Algebra, Matrices & Determinants, Trigonometry, Analytical Geometry (2D/3D), Differential & Integral Calculus, Vector Algebra, Statistics & Probability.",
-      },
-      {
-        subject: "English (GAT Part A)",
-        topics: "Grammar & Usage, Vocabulary, Reading Comprehension, Spotting Errors, Sentence Improvement & Ordering.",
-      },
-      {
-        subject: "General Science (GAT Part B)",
-        topics: "Physics (Mechanics, Optics, Electricity), Chemistry (Physical & Organic Basics), General Biology.",
-      },
-      {
-        subject: "History & Civics",
-        topics: "Indian Freedom Movement, Constitution of India, World History Overview, Fundamental Rights & Duties.",
-      },
-      {
-        subject: "Geography & Current Affairs",
-        topics: "Physical Geography, Climate Systems, Natural Resources, Indian Geography, Defence Updates & Global Events.",
-      },
-    ],
   },
   cds: {
     code: "CDS (IMA/INA/AFA/OTA)",
@@ -75,20 +52,6 @@ const EXAM_DATA: Record<string, ExamConfig> = {
       { paper: "Paper III: Elementary Mathematics (not for OTA)", duration: "2.0 Hours", marks: "100 Marks", questions: "100 Qs" },
       { paper: "SSB Interview (IMA, INA, AFA)", duration: "5 Days", marks: "300 Marks", questions: "Five-day process" },
     ],
-    syllabus: [
-      {
-        subject: "English",
-        topics: "Synonyms & Antonyms, Reading Comprehension, Sentence Ordering, Idioms & Phrases, Cloze Test.",
-      },
-      {
-        subject: "General Knowledge",
-        topics: "Indian Polity & Constitution, Modern Indian History, Physical Geography, Basic Science, International Relations.",
-      },
-      {
-        subject: "Elementary Mathematics",
-        topics: "Arithmetic, Algebra, Geometry, Mensuration, Trigonometry, Statistics & Data Interpretation.",
-      },
-    ],
   },
   afcat: {
     code: "AFCAT Flying & Ground Duty",
@@ -100,24 +63,6 @@ const EXAM_DATA: Record<string, ExamConfig> = {
     pattern: [
       { paper: "AFCAT Online Examination", duration: "2.0 Hours", marks: "300 Marks", questions: "100 Qs" },
       { paper: "EKT (Technical Branch Candidates Only)", duration: "45 Minutes", marks: "150 Marks", questions: "50 Qs" },
-    ],
-    syllabus: [
-      {
-        subject: "Verbal Ability in English",
-        topics: "Comprehension, Error Detection, Sentence Completion, Synonyms & Antonyms, Idioms & Phrases.",
-      },
-      {
-        subject: "Numerical Ability",
-        topics: "Decimal Fractions, Time & Work, Averages, Profit & Loss, Percentage, Simple Interest, Ratio & Proportion.",
-      },
-      {
-        subject: "Reasoning & Military Aptitude",
-        topics: "Verbal Skills, Spatial Reasoning, Analogy, Data Sufficiency, Embedded Figures & Pattern Matching.",
-      },
-      {
-        subject: "General Awareness",
-        topics: "Indian History, Sports, National & International Organisations, Science & Technology, Defence News.",
-      },
     ],
   },
 };
@@ -260,26 +205,8 @@ function ExamDetailContent() {
           {/* Full guide: eligibility, age, medical, selection, SSB */}
           <ExamGuide examId={examId} />
 
-          {/* Official Syllabus Breakdown */}
-          <Card id="syllabus" className="scroll-mt-24">
-            <CardHeader>
-              <CardTitle className="text-lg">Syllabus & Core Topics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-xs text-steel-300">
-                A student-friendly summary. Syllabus, pattern and dates can change, so check the latest notice on the official website
-                ({examId === "afcat" ? "afcat.cdac.in" : "upsc.gov.in"}) before you apply.
-              </p>
-              <div className="space-y-4">
-                {exam.syllabus.map((item, idx) => (
-                  <div key={idx} className="rounded-control border border-steel-700/60 bg-navy-950 p-4 space-y-1">
-                    <div className="font-mono text-xs font-bold uppercase text-gold-300">{item.subject}</div>
-                    <p className="text-xs text-steel-200 leading-relaxed">{item.topics}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Every unit and topic, with a download for each subject */}
+          <SyllabusTopics examId={examId} examName={exam.code} />
 
           {/* Interactive Mock Test Series */}
           <div className="space-y-4">
