@@ -4,20 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
 import { StackedSectionsDemo } from "@/components/ui/stacked-sections-demo";
-import { StatsGrid, type StatItem } from "@/components/ui/stats-grid";
 import { TimelineDemo } from "@/components/ui/timeline-demo";
 import { EntrySchemes, EntrySchemesSkeleton } from "@/components/landing/entry-schemes";
 import { StudyFolders } from "@/components/landing/study-folders";
+import { Hero } from "@/components/landing/hero";
 import { HeaderActions } from "@/components/landing/header-actions";
 import { SiteMenu } from "@/components/landing/site-menu";
-import { FEATURE_ITEMS, HERO_CONTENT } from "@/lib/landing-content";
-
-// Plain facts about the portal. No user counts or accuracy figures: those are only shown once they are real.
-const HERO_STATS: StatItem[] = [
-  { id: "1", title: "Entry schemes", value: "3", description: "NDA, CDS and AFCAT", icon: "shield" },
-  { id: "2", title: "Cost to start", value: "Free", description: "Practice, study material and tracking", icon: "checkCircle" },
-  { id: "3", title: "Answer review", value: "After every test", description: "Marks, explanations and weak topics", icon: "target" },
-];
+import { FEATURE_ITEMS } from "@/lib/landing-content";
 
 export default function Home() {
   return (
@@ -35,11 +28,11 @@ export default function Home() {
           </div>
 
           <nav className="hidden gap-6 md:flex">
-            <Link href="#study-material" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Study Material</Link>
-            <Link href="#features" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Features</Link>
-            <Link href="#exams" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Exams</Link>
-            <Link href="#roadmap" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Roadmap</Link>
-            <Link href="/flashcards" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Flashcards</Link>
+            <Link href="#study-material" className="text-xs font-semibold uppercase tracking-widest text-steel-300 transition-colors hover:text-gold-300">Study Material</Link>
+            <Link href="#features" className="text-xs font-semibold uppercase tracking-widest text-steel-300 transition-colors hover:text-gold-300">Features</Link>
+            <Link href="#exams" className="text-xs font-semibold uppercase tracking-widest text-steel-300 transition-colors hover:text-gold-300">Exams</Link>
+            <Link href="#roadmap" className="text-xs font-semibold uppercase tracking-widest text-steel-300 transition-colors hover:text-gold-300">Roadmap</Link>
+            <Link href="/flashcards" className="text-xs font-semibold uppercase tracking-widest text-steel-300 transition-colors hover:text-gold-300">Flashcards</Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -49,43 +42,7 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden px-4 py-20 md:px-8 md:py-28">
-          <div className="stack-grid pointer-events-none absolute inset-0 opacity-40" />
-          
-          <div className="relative z-10 mx-auto max-w-4xl text-center">
-            <Badge variant="gold" className="mb-6">
-              {HERO_CONTENT.badgeText}
-            </Badge>
-
-            <h1 className="text-balance text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl">
-              {HERO_CONTENT.title}
-            </h1>
-
-            <p className="mx-auto mt-6 max-w-2xl text-pretty text-base text-steel-300 sm:text-lg">
-              {HERO_CONTENT.subtitle}
-            </p>
-
-            <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
-              <Button asChild variant="primary" size="lg" className="w-full">
-                <Link href="/register">
-                  Start Free Practice
-                  <Icons.chevronRight className="size-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="secondary" size="lg" className="w-full">
-                <Link href="#roadmap">Explore Exam Roadmap</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="w-full">
-                <Link href="/study-material">Get Free Study Material</Link>
-              </Button>
-            </div>
-          </div>
-
-          <div className="mx-auto mt-16 max-w-5xl">
-            <StatsGrid stats={HERO_STATS} label="Platform Stats Overview" />
-          </div>
-        </section>
+        <Hero />
 
         {/* Free Study Material: exam folders and the four vaults, always shown */}
         <section id="study-material" className="border-t border-steel-700 px-4 py-16 md:px-8">
