@@ -101,7 +101,7 @@ export async function EntrySchemes() {
                   <Link href={page}>Open folder</Link>
                 </Button>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href={`${page}#syllabus`}>View syllabus</Link>
+                  <Link href={`${page}?view=syllabus#syllabus`}>View syllabus</Link>
                 </Button>
               </div>
             </div>

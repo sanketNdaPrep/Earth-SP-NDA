@@ -1,5 +1,6 @@
 "use client";
 
+import { ExamGuide } from "@/components/exams/exam-guide";
 import { SyllabusDownload } from "@/components/exams/syllabus-download";
 import * as React from "react";
 import Link from "next/link";
@@ -27,12 +28,14 @@ const EXAM_DATA: Record<string, ExamConfig> = {
     name: "National Defence Academy",
     description:
       "Joint Services academy of the Indian Armed Forces evaluating candidates through Mathematics and General Ability Test (GAT) papers.",
-    eligibility: "10+2 Passed or Appearing (Physics, Chemistry, Maths required for Air Force & Navy branches).",
+    eligibility: "10+2 passed or appearing. Physics and Mathematics are needed for the Air Force, Naval and Naval Academy entries.",
     ageLimit: "16.5 to 19.5 years",
-    markingScheme: "+2.5 / -0.83 Marks (Maths) | +4.0 / -1.33 Marks (GAT)",
+    markingScheme: "+2.50 / -0.83 per question in Maths. +4.00 / -1.33 per question in GAT.",
     pattern: [
       { paper: "Paper I: Mathematics", duration: "2.5 Hours", marks: "300 Marks", questions: "120 Qs" },
-      { paper: "Paper II: General Ability Test (GAT)", duration: "2.5 Hours", marks: "600 Marks", questions: "150 Qs" },
+      { paper: "Paper II Part A: English (GAT)", duration: "2.5 Hours for Paper II", marks: "200 Marks", questions: "50 Qs" },
+      { paper: "Paper II Part B: General Knowledge (GAT)", duration: "2.5 Hours for Paper II", marks: "400 Marks", questions: "100 Qs" },
+      { paper: "SSB Interview", duration: "5 Days", marks: "900 Marks", questions: "Five-day process" },
     ],
     syllabus: [
       {
@@ -63,13 +66,14 @@ const EXAM_DATA: Record<string, ExamConfig> = {
     name: "Combined Defence Services",
     description:
       "Graduate-level entry examination conducted by UPSC for officer cadre entry into Indian Military Academy, Naval Academy, Air Force Academy, and Officer's Training Academy.",
-    eligibility: "Graduation Degree in any discipline (B.E./B.Tech required for Naval & Air Force entries).",
-    ageLimit: "19 to 24 years (IMA/INA/AFA) | 19 to 25 years (OTA)",
-    markingScheme: "+1.0 / -0.33 Marks per question across all papers.",
+    eligibility: "A bachelor's degree. Engineering for the Naval Academy, and Physics and Maths at Class 12 or engineering for the Air Force Academy.",
+    ageLimit: "19 to 24 years (IMA/INA) | 20 to 24 years (AFA) | 19 to 25 years (OTA)",
+    markingScheme: "One third of a question's marks is deducted for every wrong answer.",
     pattern: [
       { paper: "Paper I: English", duration: "2.0 Hours", marks: "100 Marks", questions: "120 Qs" },
       { paper: "Paper II: General Knowledge", duration: "2.0 Hours", marks: "100 Marks", questions: "120 Qs" },
-      { paper: "Paper III: Elementary Mathematics (Non-OTA)", duration: "2.0 Hours", marks: "100 Marks", questions: "100 Qs" },
+      { paper: "Paper III: Elementary Mathematics (not for OTA)", duration: "2.0 Hours", marks: "100 Marks", questions: "100 Qs" },
+      { paper: "SSB Interview (IMA, INA, AFA)", duration: "5 Days", marks: "300 Marks", questions: "Five-day process" },
     ],
     syllabus: [
       {
@@ -90,9 +94,9 @@ const EXAM_DATA: Record<string, ExamConfig> = {
     code: "AFCAT Flying & Ground Duty",
     name: "Air Force Common Admission Test",
     description: "Official entry exam conducted by the Indian Air Force for Flying Branch and Ground Duty (Technical & Non-Technical) branches.",
-    eligibility: "Graduation with minimum 60% marks and minimum 60% in 10+2 Math & Physics.",
+    eligibility: "Graduation with at least 60%. Flying and Technical branches also need 50% in Maths and Physics in Class 12.",
     ageLimit: "20 to 24 years (Flying Branch) | 20 to 26 years (Ground Duty)",
-    markingScheme: "+3.0 / -1.0 Marks per question.",
+    markingScheme: "+3 for a right answer and -1 for a wrong answer.",
     pattern: [
       { paper: "AFCAT Online Examination", duration: "2.0 Hours", marks: "300 Marks", questions: "100 Qs" },
       { paper: "EKT (Technical Branch Candidates Only)", duration: "45 Minutes", marks: "150 Marks", questions: "50 Qs" },
@@ -189,18 +193,18 @@ function ExamDetailContent() {
           {/* Hero Banner */}
           <div className="rounded-panel border border-gold-400/30 bg-navy-900 p-6 md:p-8">
             <Badge variant="gold" className="mb-3">{exam.code} Examination</Badge>
-            <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">{exam.name}</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-steel-300 md:text-base">{exam.description}</p>
+            <h1 className="text-balance font-display text-4xl font-bold tracking-tight text-white md:text-5xl">{exam.name}</h1>
+            <p className="mt-3 max-w-3xl text-base leading-relaxed text-steel-300 md:text-lg">{exam.description}</p>
             <SyllabusDownload examSlug={examId} examName={examId.toUpperCase()} />
             
-            <div className="mt-6 flex flex-wrap gap-4 border-t border-steel-700/60 pt-4 text-xs">
+            <div className="mt-6 grid grid-cols-1 gap-3 border-t border-steel-700/60 pt-4 text-sm sm:grid-cols-2">
               <div>
-                <span className="text-steel-400 uppercase font-semibold">Eligibility:</span>
-                <span className="ml-2 font-medium text-white">{exam.eligibility}</span>
+                <span className="block text-xs font-semibold uppercase tracking-wide text-steel-500">Eligibility</span>
+                <span className="mt-1 block font-medium leading-relaxed text-white">{exam.eligibility}</span>
               </div>
               <div>
-                <span className="text-steel-400 uppercase font-semibold">Age Limit:</span>
-                <span className="ml-2 font-mono font-bold text-gold-300">{exam.ageLimit}</span>
+                <span className="block text-xs font-semibold uppercase tracking-wide text-steel-500">Age limit</span>
+                <span className="mt-1 block font-semibold leading-relaxed text-gold-300">{exam.ageLimit}</span>
               </div>
             </div>
           </div>
@@ -209,12 +213,12 @@ function ExamDetailContent() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle className="text-lg">Examination Structure & Paper Pattern</CardTitle>
+                <CardTitle className="font-display text-2xl">Examination Structure & Paper Pattern</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="border-b border-steel-700 bg-navy-950 font-mono text-steel-400 uppercase">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-steel-700 bg-navy-950 text-xs font-semibold uppercase tracking-wide text-steel-500">
                       <tr>
                         <th className="p-3">Paper</th>
                         <th className="p-3">Duration</th>
@@ -226,9 +230,9 @@ function ExamDetailContent() {
                       {exam.pattern.map((p, idx) => (
                         <tr key={idx} className="hover:bg-navy-800/40">
                           <td className="p-3 font-semibold text-white">{p.paper}</td>
-                          <td className="p-3 font-mono text-steel-300">{p.duration}</td>
-                          <td className="p-3 font-mono text-steel-300">{p.questions}</td>
-                          <td className="p-3 font-mono font-bold text-gold-300">{p.marks}</td>
+                          <td className="p-3 text-steel-300">{p.duration}</td>
+                          <td className="p-3 text-steel-300">{p.questions}</td>
+                          <td className="p-3 font-semibold text-gold-300">{p.marks}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -239,12 +243,12 @@ function ExamDetailContent() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Marking Scheme</CardTitle>
+                <CardTitle className="font-display text-2xl">Marking Scheme</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-xs">
+              <CardContent className="space-y-4 text-sm">
                 <div className="rounded-control border border-steel-700/60 bg-navy-950 p-4">
-                  <div className="text-steel-400 font-semibold uppercase">Official Marking Rule</div>
-                  <div className="mt-2 font-mono font-bold text-gold-300">{exam.markingScheme}</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-steel-500">Official marking rule</div>
+                  <div className="mt-2 font-semibold leading-relaxed text-gold-300">{exam.markingScheme}</div>
                 </div>
                 <div className="rounded-control border border-emerald-400/30 bg-emerald-400/10 p-4 text-emerald-300">
                   ⚡ Negative marking applies to all incorrect choices. Accurate answer selection is essential for clearing cutoffs.
@@ -252,6 +256,9 @@ function ExamDetailContent() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Full guide: eligibility, age, medical, selection, SSB */}
+          <ExamGuide examId={examId} />
 
           {/* Official Syllabus Breakdown */}
           <Card id="syllabus" className="scroll-mt-24">

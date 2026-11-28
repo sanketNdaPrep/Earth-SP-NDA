@@ -1,17 +1,23 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
+import { PdfViewer } from "@/components/ui/pdf-viewer";
 import { RESOURCE_BUCKET } from "@/lib/resources";
 import { syllabusDownloadName } from "@/lib/pdf-upload";
 import { supabase } from "@/lib/supabaseClient";
 
-/** A "Download syllabus" button on an exam page. It shows only when an admin has uploaded one. */
+/** "View syllabus" and "Download syllabus" buttons on an exam page. They show only when an admin has uploaded one. `?view=syllabus` opens the viewer straight away. */
 export function SyllabusDownload({ examSlug, examName }: { examSlug: string; examName: string }) {
   const [path, setPath] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
+  // null means "follow the address": /exams/nda?view=syllabus opens the viewer once the file is known.
+  const [opened, setOpened] = React.useState<boolean | null>(null);
+  const openAtStart = useSearchParams().get("view") === "syllabus";
+  const viewing = opened ?? (openAtStart && Boolean(path));
 
   React.useEffect(() => {
     let active = true;
@@ -55,7 +61,11 @@ export function SyllabusDownload({ examSlug, examName }: { examSlug: string; exa
 
   return (
     <div className="mt-5 flex flex-wrap items-center gap-3">
-      <Button variant="primary" size="sm" onClick={() => void save()} disabled={busy}>
+      <Button variant="primary" size="sm" onClick={() => setOpened(true)}>
+        <Icons.eye className="size-4" aria-hidden />
+        View syllabus
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => void save()} disabled={busy}>
         <Icons.download className="size-4" aria-hidden />
         {busy ? "Saving" : "Download syllabus"}
       </Button>
@@ -64,6 +74,7 @@ export function SyllabusDownload({ examSlug, examName }: { examSlug: string; exa
           The download did not work. <a className="underline" href={url} target="_blank" rel="noreferrer">Open it in a new tab</a>.
         </span>
       ) : null}
+      {viewing ? <PdfViewer url={url} title={`${examName} syllabus`} onClose={() => setOpened(false)} /> : null}
     </div>
   );
 }
