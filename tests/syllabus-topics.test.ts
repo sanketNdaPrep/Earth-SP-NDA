@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { subjectSyllabusName } from "../lib/syllabus-files";
+import { subjectSyllabusName } from "../lib/pdf-upload";
 import { SYLLABUS_TOPICS, topicCount } from "../lib/syllabus-topics";
 
 describe("syllabus topics", () => {

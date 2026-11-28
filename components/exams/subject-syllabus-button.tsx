@@ -3,7 +3,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
-import { subjectSyllabusName, syllabusUrl } from "@/lib/syllabus-files";
+import { subjectSyllabusName } from "@/lib/pdf-upload";
+import { syllabusUrl } from "@/lib/syllabus-files";
 
 /** Downloads one subject's syllabus PDF for one exam. Shows nothing until an admin has uploaded it. */
 export function SubjectSyllabusButton({ exam, subject, path, label }: { exam: string; subject: string; path: string | undefined; label?: string }) {

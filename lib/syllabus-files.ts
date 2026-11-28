@@ -22,9 +22,3 @@ export async function loadSubjectSyllabi(exam: ExamId): Promise<Record<string, s
   }
   return result;
 }
-
-/** File name for a subject syllabus: ("NDA", "Physics") -> "nda-physics-syllabus.pdf". */
-export function subjectSyllabusName(exam: string, subject: string): string {
-  const slug = `${exam} ${subject}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  return `${slug}-syllabus.pdf`;
-}

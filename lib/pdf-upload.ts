@@ -81,3 +81,9 @@ export function syllabusDownloadName(exam: string): string {
 export function syllabusPath(id: string): string {
   return `syllabus/${id}.pdf`;
 }
+
+/** File name for a subject syllabus: ("NDA", "Physics") -> "nda-physics-syllabus.pdf". */
+export function subjectSyllabusName(exam: string, subject: string): string {
+  const slug = `${exam} ${subject}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return `${slug}-syllabus.pdf`;
+}
