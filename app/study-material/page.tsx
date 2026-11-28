@@ -27,7 +27,13 @@ export default function StudyMaterialPage() {
           <div className="flex gap-2">
             <AdminShortcut href="/admin/resources" label="Manage" />
             <Button asChild variant="outline" size="sm">
-              <Link href="/flashcards">Flashcards</Link>
+              <Link href="/#exams">Syllabus</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/quizzes">Tests</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/study-material?vault=notes">PDF Notes</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
               <Link href="/">Home</Link>

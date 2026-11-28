@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Icons } from "@/components/ui/icons";
+import { Button } from "@/components/ui/button";
 import { TARGET_EXAMS } from "@/lib/landing-content";
 import { subjectHref, type Subject } from "@/lib/subjects";
 import { createSupabasePublicClient } from "@/lib/supabasePublic";
@@ -31,6 +31,37 @@ async function loadActiveSubjects(): Promise<SchemeCard[] | null> {
   }
 }
 
+/** Quick facts per scheme, from the official syllabus PDFs. A scheme without an entry here simply shows no tiles. */
+const FACTS: Record<string, { body: string; facts: { label: string; value: string }[] }> = {
+  nda: {
+    body: "UPSC",
+    facts: [
+      { label: "Written", value: "900 marks" },
+      { label: "SSB", value: "900 marks" },
+      { label: "Maths paper", value: "120 Qs, 2.5 h" },
+      { label: "Wrong answer", value: "-1/3 mark" },
+    ],
+  },
+  cds: {
+    body: "UPSC",
+    facts: [
+      { label: "Papers", value: "3 x 100 marks" },
+      { label: "SSB", value: "300 marks" },
+      { label: "Each paper", value: "2 hours" },
+      { label: "Wrong answer", value: "-1/3 mark" },
+    ],
+  },
+  afcat: {
+    body: "Indian Air Force",
+    facts: [
+      { label: "Online test", value: "300 marks" },
+      { label: "Questions", value: "100 in 2 hours" },
+      { label: "Marking", value: "+3 / -1" },
+      { label: "EKT", value: "50 Qs, 45 min" },
+    ],
+  },
+};
+
 /** The "Supported Entry Schemes" cards. Reads the active rows of the subjects table on every visit. */
 export async function EntrySchemes() {
   const subjects = (await loadActiveSubjects()) ?? FALLBACK;
@@ -42,25 +73,38 @@ export async function EntrySchemes() {
   return (
     <ul className="grid list-none grid-cols-1 gap-6 p-0 md:grid-cols-3">
       {subjects.map((subject) => {
-        const Icon = Icons[subject.icon_name as keyof typeof Icons] ?? Icons.shield;
+        const info = FACTS[subject.slug];
+        const page = subjectHref(subject.slug);
         return (
-          <li key={subject.id}>
-            <Link href={subjectHref(subject.slug)} className="group block h-full">
-              <div className="flex h-full flex-col justify-between rounded-panel border border-steel-700 bg-navy-900 p-6 shadow-panel transition-all duration-300 group-hover:border-gold-400/60 group-hover:shadow-gold-400/10">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-semibold uppercase tracking-wider text-gold-300">{subject.code}</span>
-                    <Icon className="size-5 text-steel-500 transition-colors group-hover:text-gold-400" aria-hidden />
-                  </div>
-                  <h3 className="mt-2 text-xl font-bold text-white group-hover:text-gold-300">{subject.name}</h3>
-                  <p className="mt-2 text-sm text-steel-300">{subject.description}</p>
-                </div>
-                <div className="mt-6 flex items-center justify-between border-t border-steel-700/60 pt-4 text-xs text-steel-300">
-                  <span>View syllabus and mock tests</span>
-                  <Icons.chevronRight className="size-4 transition-transform group-hover:translate-x-1 group-hover:text-gold-400" aria-hidden />
-                </div>
+          <li key={subject.id} className="flex">
+            <div className="flex w-full flex-col rounded-panel border border-steel-700 bg-navy-900 p-6 shadow-panel transition-colors duration-(--duration-base) ease-(--ease-standard) hover:border-gold-400/60 sm:p-7">
+              <div>
+                <span className="inline-block rounded-control bg-navy-800 px-2.5 py-1 font-mono text-xs font-semibold uppercase tracking-wide text-gold-300">{subject.code}</span>
               </div>
-            </Link>
+              <h3 className="mt-4 text-balance font-display text-3xl font-bold leading-tight text-white">{subject.name}</h3>
+              {info ? <p className="mt-1 text-sm text-steel-500">Conducted by {info.body}</p> : null}
+              <p className="mt-2 text-pretty text-base leading-relaxed text-steel-300">{subject.description}</p>
+
+              {info ? (
+                <dl className="mt-5 grid grid-cols-2 gap-2.5">
+                  {info.facts.map((fact) => (
+                    <div key={fact.label} className="rounded-control border border-navy-800 bg-navy-950 p-3">
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-steel-500">{fact.label}</dt>
+                      <dd className="mt-1 text-base font-semibold text-white">{fact.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : null}
+
+              <div className="mt-auto grid grid-cols-2 gap-2.5 pt-6">
+                <Button asChild variant="primary" className="w-full">
+                  <Link href={page}>Open folder</Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href={`${page}#syllabus`}>View syllabus</Link>
+                </Button>
+              </div>
+            </div>
           </li>
         );
       })}

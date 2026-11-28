@@ -36,9 +36,9 @@ export default function Home() {
           </div>
 
           <nav className="hidden gap-6 md:flex">
+            <Link href="#study-material" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Study Material</Link>
             <Link href="#features" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Features</Link>
             <Link href="#exams" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Exams</Link>
-            <Link href="#study-material" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Study Material</Link>
             <Link href="#roadmap" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Roadmap</Link>
             <Link href="/flashcards" className="text-sm font-medium text-steel-300 transition-colors hover:text-white">Flashcards</Link>
           </nav>
@@ -67,19 +67,17 @@ export default function Home() {
               {HERO_CONTENT.subtitle}
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <Link href="/register">
-                <Button variant="primary" size="lg">
+            <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
+              <Button asChild variant="primary" size="lg" className="w-full">
+                <Link href="/register">
                   Start Free Practice
                   <Icons.chevronRight className="size-4" />
-                </Button>
-              </Link>
-              <Link href="#roadmap">
-                <Button variant="secondary" size="lg">
-                  Explore Exam Roadmap
-                </Button>
-              </Link>
-              <Button asChild variant="outline" size="lg">
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="lg" className="w-full">
+                <Link href="#roadmap">Explore Exam Roadmap</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="w-full">
                 <Link href="/study-material">Get Free Study Material</Link>
               </Button>
             </div>
@@ -87,21 +85,6 @@ export default function Home() {
 
           <div className="mx-auto mt-16 max-w-5xl">
             <StatsGrid stats={HERO_STATS} label="Platform Stats Overview" />
-          </div>
-        </section>
-
-        {/* Exam Categories Section */}
-        <section id="exams" className="border-t border-steel-700 bg-navy-900/50 px-4 py-16 md:px-8">
-          <div className="mx-auto max-w-6xl">
-            <div className="mb-12 text-center">
-              <Badge variant="outline" className="mb-2">Targeted Schemes</Badge>
-              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Supported Entry Schemes</h2>
-              <p className="mt-2 text-steel-300">Click any entry scheme to view syllabus details and mock test series.</p>
-            </div>
-
-            <React.Suspense fallback={<EntrySchemesSkeleton />}>
-              <EntrySchemes />
-            </React.Suspense>
           </div>
         </section>
 
@@ -144,6 +127,21 @@ export default function Home() {
                 );
               })}
             </div>
+          </div>
+        </section>
+
+        {/* Exam Categories Section */}
+        <section id="exams" className="border-t border-steel-700 bg-navy-900/50 px-4 py-16 md:px-8">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-12 text-center">
+              <Badge variant="outline" className="mb-2">Targeted Schemes</Badge>
+              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Supported Entry Schemes</h2>
+              <p className="mt-2 text-steel-300">Click any entry scheme to view syllabus details and mock test series.</p>
+            </div>
+
+            <React.Suspense fallback={<EntrySchemesSkeleton />}>
+              <EntrySchemes />
+            </React.Suspense>
           </div>
         </section>
 
