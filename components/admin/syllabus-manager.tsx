@@ -95,10 +95,10 @@ export function SyllabusManager() {
   return (
     <Card className="max-w-3xl">
       <CardHeader>
-        <CardTitle className="text-lg">Syllabus PDFs</CardTitle>
+        <CardTitle className="text-lg">Entry-wise syllabus PDFs</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-xs text-steel-500">Upload one PDF per entry scheme (up to 50 MB). Students see a &quot;Download syllabus&quot; button on that exam&apos;s page.</p>
+        <p className="text-xs text-steel-500">Upload one PDF per entry scheme (up to 50 MB). Students get View and Download buttons on that exam page and its home card. Uploading again replaces the old file.</p>
         {msg ? (
         <Notice floating kind={msg.type} reveal={false} onClose={() => setMsg(null)} autoHideMs={msg.type === "success" ? 8000 : undefined}>{msg.text}</Notice>
       ) : null}
@@ -121,6 +121,9 @@ export function SyllabusManager() {
                   onChange={(e) => void upload(row, e.target.files?.[0], e.target)}
                   className="block min-w-0 flex-1 text-sm text-steel-300 file:mr-3 file:rounded-control file:border file:border-steel-700 file:bg-navy-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-steel-100"
                 />
+                {row.syllabus_path ? (
+                  <a href={supabase.storage.from(RESOURCE_BUCKET).getPublicUrl(row.syllabus_path).data.publicUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-gold-400 underline">View</a>
+                ) : null}
                 {row.syllabus_path ? (
                   <Button variant="danger" size="sm" disabled={busyId === row.id} onClick={() => void remove(row)}>Remove</Button>
                 ) : null}

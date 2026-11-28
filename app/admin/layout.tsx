@@ -29,6 +29,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Study Materials", href: "/admin/resources", icon: "component" },
   { label: "Flashcards", href: "/admin/flashcards", icon: "book" },
   { label: "Subjects", href: "/admin/subjects", icon: "target" },
+  { label: "Syllabus", href: "/admin/syllabus", icon: "book" },
   { label: "Audit Logs", href: "/admin/logs", icon: "clipboardCheck" },
 ];
 
