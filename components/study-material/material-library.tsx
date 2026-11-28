@@ -17,6 +17,7 @@ import { resourceKind, VAULTS } from "@/lib/resources";
 import { EXAMS } from "@/lib/subjects";
 import { subjectCoverUrl } from "@/components/flashcards/picture-url";
 import { supabase } from "@/lib/supabaseClient";
+import { ExamSyllabusPanel } from "@/components/study-material/exam-syllabus-panel";
 import { buildFolders, itemInExam, subjectInExam } from "@/lib/taxonomy";
 
 interface Material {
@@ -228,6 +229,7 @@ export function MaterialLibrary() {
             </div>
             {examChips}
           </div>
+          <ExamSyllabusPanel exam={exam} />
           <PictureLibrary exam={exam} showRecent={false} />
         </div>
       );
@@ -332,6 +334,7 @@ export function MaterialLibrary() {
           </div>
           {examChips}
         </div>
+        <ExamSyllabusPanel exam={exam} />
         {folders.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -363,6 +366,8 @@ export function MaterialLibrary() {
         </div>
         {examChips}
       </div>
+
+      <ExamSyllabusPanel exam={exam} />
 
       {q ? (
         <section aria-label="Search results" className="space-y-4">
