@@ -1,17 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy-800: #222427;
-  --color-navy-900: #151618;
-  --color-navy-950: #0b0c0d;
+  /* Charcoal surfaces, warm light text and one accent: Desert Tan. (Token names keep "navy" and "gold" so every component follows.) */
+  --color-navy-800: #26272a;
+  --color-navy-900: #1a1b1d;
+  --color-navy-950: #101113;
 
-  --color-steel-100: #f3f4f5;
-  --color-steel-300: #c5c8cb;
-  --color-steel-500: #7b8186;
-  --color-steel-700: #3a3d41;
+  --color-steel-100: #f3f1ed;
+  --color-steel-300: #cbc7bf;
+  --color-steel-500: #8c8981;
+  --color-steel-700: #3b3a38;
 
-  --color-gold-300: #fde047;
-  --color-gold-400: #facc15;
+  --color-gold-300: #e3cfae;
+  --color-gold-400: #d2b48c;
 
   --color-emerald-200: #a7f3d0;
   --color-emerald-300: #6ee7b7;
@@ -26,10 +27,16 @@
   --color-chip-text: var(--color-gold-300);
   --color-on-danger: var(--color-steel-100);
 
+  /* The main action button (Create Test, Save, Publish...): tan with charcoal text on dark. */
+  --color-action-bg: #d2b48c;
+  --color-action-text: #16130f;
+
   /* Fonts: loaded in app/layout.tsx from @fontsource packages (self-hosted). */
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Barlow Semi Condensed", "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, Menlo, Consolas, monospace;
+  /* Admin pages use this geometric sans for headings and text (see :root[data-surface="admin"] below). */
+  --font-admin: "Manrope Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Shape */
   --radius-control: 0.25rem;
@@ -38,7 +45,8 @@
 
   /* Elevation */
   --shadow-panel: 0 10px 30px -12px rgb(0 0 0 / 0.85);
-  --shadow-glow: 0 0 24px -4px rgb(250 204 21 / 0.35);
+  --shadow-glow: 0 0 24px -4px rgb(210 180 140 / 0.35);
+  --shadow-action: 0 10px 24px -10px rgb(210 180 140 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.35);
   --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 2px rgb(0 0 0 / 0.28);
   --shadow-button-hover: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 12px -4px rgb(0 0 0 / 0.45);
   /* Rich buttons: a lit top edge, a shaded bottom edge and a soft coloured glow. */
@@ -60,26 +68,26 @@
 }
 
 /*
- * Light theme: white and off-white surfaces with navy-blue text and accents.
- * Chosen with data-theme="light" on <html> (see components/theme). The dark theme above is unchanged.
+ * Light theme: warm off-white surfaces, charcoal text and a darker Desert Tan accent (dark enough for white text on buttons).
+ * Chosen with data-theme="light" on <html> (see components/theme). The dark theme above is the default.
  * Token names stay the same, so every component follows the theme with no class changes:
- *   navy-*  surfaces      steel-*  text and borders      gold-*  the accent (navy here)
+ *   navy-*  surfaces      steel-*  text and borders      gold-*  the accent (darker tan here)
  *   white   headings (ink)
  */
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --color-navy-800: #e9e5dc;
+  --color-navy-800: #ece5d8;
   --color-navy-900: #ffffff;
-  --color-navy-950: #f7f6f3;
+  --color-navy-950: #f7f3ec;
 
-  --color-steel-100: #24304a;
-  --color-steel-300: #475672;
-  --color-steel-500: #5f6b86;
-  --color-steel-700: #dedad1;
+  --color-steel-100: #2a2621;
+  --color-steel-300: #4d483f;
+  --color-steel-500: #6b665c;
+  --color-steel-700: #ddd4c4;
 
-  --color-gold-300: #2b4d7e;
-  --color-gold-400: #1b365d;
+  --color-gold-300: #6a4e2a;
+  --color-gold-400: #7d5f36;
 
   --color-emerald-200: #14573a;
   --color-emerald-300: #1f6b4a;
@@ -88,45 +96,49 @@
   --color-danger-400: #b42318;
   --color-danger-500: #b42318;
 
-  --color-white: #0f1a30;
+  --color-white: #17130e;
 
-  --color-chip-bg: #fdf0c4;
-  --color-chip-text: #7a4306;
+  --color-chip-bg: #f0e4d0;
+  --color-chip-text: #5c4222;
   --color-on-danger: #ffffff;
 
-  --shadow-panel: 0 8px 24px -14px rgb(27 54 93 / 0.35);
-  --shadow-glow: 0 0 24px -4px rgb(27 54 93 / 0.25);
-  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(27 54 93 / 0.3);
-  --shadow-button-hover: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 12px -4px rgb(27 54 93 / 0.45);
-  --shadow-rich: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 1px 2px rgb(27 54 93 / 0.35);
-  --shadow-rich-hover: inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 2px 4px rgb(27 54 93 / 0.35);
-  --shadow-rich-quiet: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(27 54 93 / 0.18);
-  --shadow-rich-quiet-hover: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 2px 4px rgb(27 54 93 / 0.22);
-  --shadow-rich-success: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 1px 2px rgb(27 54 93 / 0.35);
-  --shadow-rich-danger: 0 1px 2px rgb(27 54 93 / 0.3);
-  --shadow-notice: 0 1px 2px rgb(27 54 93 / 0.2);
+  --color-action-bg: #1d1a16;
+  --color-action-text: #faf6ee;
+
+  --shadow-panel: 0 8px 24px -14px rgb(60 45 25 / 0.35);
+  --shadow-glow: 0 0 24px -4px rgb(125 95 54 / 0.25);
+  --shadow-action: 0 10px 24px -10px rgb(29 26 22 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(60 45 25 / 0.3);
+  --shadow-button-hover: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 12px -4px rgb(60 45 25 / 0.45);
+  --shadow-rich: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 1px 2px rgb(60 45 25 / 0.35);
+  --shadow-rich-hover: inset 0 1px 0 rgb(255 255 255 / 0.35), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 2px 4px rgb(60 45 25 / 0.35);
+  --shadow-rich-quiet: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(60 45 25 / 0.18);
+  --shadow-rich-quiet-hover: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 2px 4px rgb(60 45 25 / 0.22);
+  --shadow-rich-success: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.2), 0 1px 2px rgb(60 45 25 / 0.35);
+  --shadow-rich-danger: 0 1px 2px rgb(60 45 25 / 0.3);
+  --shadow-notice: 0 1px 2px rgb(60 45 25 / 0.2);
   --color-sky-300: #1d5f99;
 
   /* Older pages still use the default grey, amber and red palettes: map them onto the light surfaces and navy text. */
-  --color-slate-100: #0f1a30;
-  --color-slate-200: #24304a;
-  --color-slate-300: #475672;
-  --color-slate-400: #5f6b86;
-  --color-slate-500: #6b7690;
-  --color-slate-600: #8a93a8;
-  --color-slate-800: #e9e5dc;
+  --color-slate-100: #17130e;
+  --color-slate-200: #2a2621;
+  --color-slate-300: #4d483f;
+  --color-slate-400: #6b665c;
+  --color-slate-500: #78726a;
+  --color-slate-600: #948d82;
+  --color-slate-800: #ece5d8;
   --color-slate-900: #ffffff;
-  --color-slate-950: #f7f6f3;
-  --color-zinc-100: #0f1a30;
-  --color-zinc-200: #24304a;
-  --color-zinc-300: #35415c;
-  --color-zinc-400: #5f6b86;
-  --color-zinc-500: #6b7690;
-  --color-zinc-700: #cfcabf;
-  --color-zinc-800: #dedad1;
+  --color-slate-950: #f7f3ec;
+  --color-zinc-100: #17130e;
+  --color-zinc-200: #2a2621;
+  --color-zinc-300: #3d3830;
+  --color-zinc-400: #6b665c;
+  --color-zinc-500: #78726a;
+  --color-zinc-700: #d4cab8;
+  --color-zinc-800: #ddd4c4;
   --color-zinc-900: #ffffff;
-  --color-zinc-950: #f7f6f3;
-  --color-amber-400: #1b365d;
+  --color-zinc-950: #f7f3ec;
+  --color-amber-400: #7d5f36;
   --color-red-300: #b42318;
   --color-red-400: #b42318;
   --color-red-500: #d92d20;
@@ -141,6 +153,26 @@
     font-family: var(--font-display);
     letter-spacing: 0.005em;
   }
+}
+
+/* Admin pages: geometric sans for headings and text. Set on <html> by the admin layout, so popups that render outside the page match too. */
+:root[data-surface="admin"] {
+  --font-sans: var(--font-admin);
+  --font-display: var(--font-admin);
+}
+:root[data-surface="admin"] h1,
+:root[data-surface="admin"] h2,
+:root[data-surface="admin"] h3,
+:root[data-surface="admin"] h4 {
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+
+/* Hazard stripe: a dashed tan line used under headers and above footers. */
+.hazard-stripe {
+  height: 4px;
+  background-image: repeating-linear-gradient(135deg, var(--color-gold-400) 0 8px, transparent 8px 16px);
+  opacity: 0.85;
 }
 
 /* Keep the scrollbar's space reserved, so the page does not shift sideways when a menu or popup locks scrolling. */
@@ -187,8 +219,8 @@ details.faq-item[open] summary ~ * {
 /* Background grid pattern for the Hero section */
 .graticule {
   background-image: 
-    linear-gradient(to right, rgba(100, 116, 139, 0.15) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(100, 116, 139, 0.15) 1px, transparent 1px);
+    linear-gradient(to right, color-mix(in oklab, var(--color-gold-400) 14%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--color-gold-400) 14%, transparent) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(circle at 50% 50%, black, transparent 70%);
 }

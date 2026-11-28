@@ -19,7 +19,7 @@ export function generateShareImage(title?: string, description?: string) {
           flexDirection: "column",
           alignItems: "flex-start",
           justifyContent: "center",
-          backgroundColor: "#090d16",
+          backgroundColor: "#101113",
           padding: "80px",
           color: "#f1f5f9",
           fontFamily: "sans-serif",
@@ -38,7 +38,7 @@ export function generateShareImage(title?: string, description?: string) {
               width: "16px",
               height: "16px",
               borderRadius: "50%",
-              backgroundColor: "#facc15",
+              backgroundColor: "#d2b48c",
             }}
           />
           <span
@@ -46,7 +46,7 @@ export function generateShareImage(title?: string, description?: string) {
               fontSize: "20px",
               fontWeight: 600,
               letterSpacing: "0.1em",
-              color: "#fde047",
+              color: "#e3cfae",
               textTransform: "uppercase",
             }}
           >

@@ -3,7 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/lib/utils";
 import { Icons } from "@/components/ui/icons";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline" | "gold" | "success";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline" | "gold" | "success" | "action";
 export type ButtonSize = "sm" | "md" | "lg" | "icon";
 
 const base =
@@ -24,6 +24,8 @@ const variants: Record<ButtonVariant, string> = {
   success: "bg-linear-to-b from-emerald-300 via-emerald-400 to-emerald-400 text-navy-950 shadow-rich-success hover:shadow-rich-success",
   outline: quiet,
   gold: solid,
+  /* The one main action on a page: fully rounded, high contrast, soft shadow. */
+  action: "rounded-full bg-action-bg text-action-text shadow-action hover:brightness-110 active:brightness-95",
 };
 
 const sizes: Record<ButtonSize, string> = {

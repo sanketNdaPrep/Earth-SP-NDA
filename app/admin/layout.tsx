@@ -33,6 +33,16 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Audit Logs", href: "/admin/logs", icon: "clipboardCheck" },
 ];
 
+/** Marks the whole page as admin, so popups and menus outside this layout use the admin font too. */
+function AdminSurface() {
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute("data-surface", "admin");
+    return () => root.removeAttribute("data-surface");
+  }, []);
+  return null;
+}
+
 export default function AdminLayout({
   children,
 }: {
@@ -47,7 +57,8 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-navy-950 text-steel-100">
+    <div data-surface="admin" className="flex min-h-screen bg-navy-950 text-steel-100 font-sans">
+      <AdminSurface />
       {/* Admin Sidebar */}
       <aside className="hidden w-64 flex-col border-r border-steel-700/60 bg-navy-900 md:flex">
         <div className="flex h-16 items-center border-b border-steel-700/60 px-6">
