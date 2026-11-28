@@ -7,6 +7,7 @@ import "@fontsource/barlow-semi-condensed/500.css";
 import "@fontsource/barlow-semi-condensed/600.css";
 import "@fontsource/barlow-semi-condensed/700.css";
 import "@/app/globals.css";
+import { FooterGate } from "@/components/landing/footer-gate";
 import { ThemeSync } from "@/components/theme/theme-sync";
 import { BackBar } from "@/components/ui/back-bar";
 import { Toaster } from "@/components/ui/toast";
@@ -52,6 +53,7 @@ export default function RootLayout({
           <BackBar />
         </Suspense>
         {children}
+        <FooterGate />
         <ThemeSync />
         <Toaster />
         <SpeedInsights />

@@ -9,7 +9,6 @@ import { TimelineDemo } from "@/components/ui/timeline-demo";
 import { EntrySchemes, EntrySchemesSkeleton } from "@/components/landing/entry-schemes";
 import { StudyFolders } from "@/components/landing/study-folders";
 import { HeaderActions } from "@/components/landing/header-actions";
-import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteMenu } from "@/components/landing/site-menu";
 import { FEATURE_ITEMS, HERO_CONTENT } from "@/lib/landing-content";
 
@@ -156,7 +155,6 @@ export default function Home() {
         </section>
       </main>
 
-      <SiteFooter />
     </div>
   );
 }

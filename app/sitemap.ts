@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { SITE_URL } from "@/lib/site";
 
-const PUBLIC_PAGES = ["/", "/exams/nda", "/exams/cds", "/exams/afcat", "/study-material", "/flashcards", "/quizzes"];
+const PUBLIC_PAGES = ["/", "/exams/nda", "/exams/cds", "/exams/afcat", "/study-material", "/flashcards", "/quizzes", "/support"];
 
 /** Public flashcard deck ids. If the database cannot be reached the sitemap still lists the fixed pages. */
 async function deckIds(): Promise<string[]> {
